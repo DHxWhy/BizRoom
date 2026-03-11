@@ -16,7 +16,7 @@ export function ChatRoom({ messages, typingAgents }: ChatRoomProps) {
   }, [messages.length, typingAgents.length]);
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto" role="log" aria-live="polite" aria-label="회의 채팅">
       <div className="py-4 space-y-1">
         {messages.map((msg) => (
           <MessageBubble key={msg.id} message={msg} />

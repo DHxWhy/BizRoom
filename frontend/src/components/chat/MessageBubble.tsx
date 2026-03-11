@@ -22,7 +22,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   const borderColor = isAgent ? (AGENT_COLORS[message.senderRole] ?? "border-l-neutral-500") : "";
 
   return (
-    <div className={`flex gap-3 px-4 py-2 hover:bg-neutral-800/30 ${isAgent ? "items-start" : "items-start flex-row-reverse"}`}>
+    <div className={`flex gap-3 px-4 py-2 hover:bg-neutral-800/30 ${isAgent ? "items-start" : "items-start flex-row-reverse"}`} role="article" aria-label={`${message.senderName}: ${message.content.slice(0, 50)}`}>
       {isAgent ? (
         <AgentAvatar icon={icon} name={message.senderName} status="online" />
       ) : (
@@ -36,11 +36,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           {isAgent && (
             <span className="text-xs text-neutral-500 uppercase">{message.senderRole}</span>
           )}
-          <span className="text-xs text-neutral-600">
+          <span className="text-xs text-neutral-400">
             {new Date(message.timestamp).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
-        <div className={`text-sm text-neutral-200 leading-relaxed ${isAgent ? `border-l-2 ${borderColor} pl-3` : ""}`}>
+        <div className={`text-sm text-neutral-200 leading-relaxed ${isAgent ? `border-l-2 ${borderColor} pl-3` : "bg-indigo-600/10 rounded-lg px-3 py-1.5"}`}>
           {message.content}
         </div>
         {message.artifacts && message.artifacts.length > 0 && (

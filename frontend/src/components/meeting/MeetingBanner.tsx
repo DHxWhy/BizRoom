@@ -15,7 +15,7 @@ export function MeetingBanner({ phase, agenda }: MeetingBannerProps) {
   const progress = ((currentIndex + 1) / PHASES.length) * 100;
 
   return (
-    <div className="border-b border-neutral-800 px-4 py-3">
+    <div className="border-b border-neutral-700/30 bg-neutral-950/60 backdrop-blur-xl px-4 py-3">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
