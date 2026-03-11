@@ -73,7 +73,7 @@ function checkFollowUp(response: AgentResponse): AgentRole | null {
       content.includes("투자") ||
       content.includes("만원") ||
       content.includes("억원") ||
-      content.includes("ROI"))
+      content.includes("roi"))
   ) {
     return "cfo";
   }
@@ -88,6 +88,42 @@ function checkFollowUp(response: AgentResponse): AgentRole | null {
       content.includes("시장점유"))
   ) {
     return "cmo";
+  }
+
+  // Tech content -> CTO should verify
+  if (
+    response.role !== "cto" &&
+    (content.includes("서버") ||
+      content.includes("아키텍처") ||
+      content.includes("api") ||
+      content.includes("개발") ||
+      content.includes("인프라") ||
+      content.includes("기술 부채"))
+  ) {
+    return "cto";
+  }
+
+  // Legal/compliance content -> CLO should verify
+  if (
+    response.role !== "clo" &&
+    (content.includes("계약") ||
+      content.includes("법적") ||
+      content.includes("규제") ||
+      content.includes("개인정보") ||
+      content.includes("라이선스"))
+  ) {
+    return "clo";
+  }
+
+  // Design/UX content -> CDO should comment
+  if (
+    response.role !== "cdo" &&
+    (content.includes("디자인") ||
+      content.includes("ux") ||
+      content.includes("사용성") ||
+      content.includes("접근성"))
+  ) {
+    return "cdo";
   }
 
   return null;
@@ -125,7 +161,7 @@ export async function processMessage(
     try {
       const agentResponse = await invokeAgent(entry.role, userMessage.content, {
         participants:
-          "Chairman (사용자), Hudson (COO), Amelia (CFO), Yusef (CMO)",
+          "Chairman (사용자), Hudson (COO), Amelia (CFO), Yusef (CMO), Kelvin (CTO), Jonas (CDO), Bradley (CLO)",
         agenda: room.agenda || userMessage.content,
         history: contextStr,
       });
@@ -156,7 +192,7 @@ export async function processMessage(
             `[${agentResponse.name}의 발언에 대한 의견]: ${agentResponse.content}`,
             {
               participants:
-                "Chairman, Hudson (COO), Amelia (CFO), Yusef (CMO)",
+                "Chairman (사용자), Hudson (COO), Amelia (CFO), Yusef (CMO), Kelvin (CTO), Jonas (CDO), Bradley (CLO)",
               agenda: room.agenda || userMessage.content,
               history: followUpContext,
             },

@@ -6,9 +6,11 @@ import { usePushToTalk } from "../../hooks/usePushToTalk";
 interface InputAreaProps {
   onSend: (content: string, isVoiceInput?: boolean) => void;
   disabled?: boolean;
+  placeholder?: string;
+  sendLabel?: string;
 }
 
-export function InputArea({ onSend, disabled }: InputAreaProps) {
+export function InputArea({ onSend, disabled, placeholder, sendLabel }: InputAreaProps) {
   const [text, setText] = useState("");
 
   const handleSend = useCallback(() => {
@@ -72,7 +74,7 @@ export function InputArea({ onSend, disabled }: InputAreaProps) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={isRecording ? S.input.recording : S.input.placeholder}
+          placeholder={isRecording ? S.input.recording : (placeholder ?? S.input.placeholder)}
           rows={1}
           disabled={disabled || isRecording}
           aria-label="메시지 입력"
@@ -83,7 +85,7 @@ export function InputArea({ onSend, disabled }: InputAreaProps) {
           disabled={!text.trim() || disabled}
           className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
         >
-          {S.input.send}
+          {sendLabel ?? S.input.send}
         </button>
       </div>
       {pttSupported && (

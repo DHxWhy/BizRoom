@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { Message } from "../../types";
 import { AgentAvatar } from "./AgentAvatar";
 import { ArtifactPreview } from "../artifact/ArtifactPreview";
@@ -7,7 +8,12 @@ interface MessageBubbleProps {
 }
 
 const AGENT_ICONS: Record<string, string> = {
-  coo: "📋", cfo: "💰", cmo: "📣", cto: "🛠️", cdo: "🎨", clo: "⚖️",
+  coo: "📋",
+  cfo: "💰",
+  cmo: "📣",
+  cto: "🛠️",
+  cdo: "🎨",
+  clo: "⚖️",
 };
 
 const AGENT_COLORS: Record<string, string> = {
@@ -16,13 +22,21 @@ const AGENT_COLORS: Record<string, string> = {
   cmo: "border-l-orange-500",
 };
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+/** Memoized: only re-renders when message object reference changes.
+ *  Critical for streaming — prevents all N messages from re-rendering
+ *  on every APPEND_MESSAGE_DELTA dispatch (only the active streaming
+ *  message gets a new object). */
+export const MessageBubble = memo(function MessageBubble({ message }: MessageBubbleProps) {
   const isAgent = message.senderType === "agent";
   const icon = AGENT_ICONS[message.senderRole] ?? "👤";
   const borderColor = isAgent ? (AGENT_COLORS[message.senderRole] ?? "border-l-neutral-500") : "";
 
   return (
-    <div className={`flex gap-3 px-4 py-2 hover:bg-neutral-800/30 ${isAgent ? "items-start" : "items-start flex-row-reverse"}`} role="article" aria-label={`${message.senderName}: ${message.content.slice(0, 50)}`}>
+    <div
+      className={`flex gap-3 px-4 py-2 hover:bg-neutral-800/30 ${isAgent ? "items-start" : "items-start flex-row-reverse"}`}
+      role="article"
+      aria-label={`${message.senderName}: ${message.content.slice(0, 50)}`}
+    >
       {isAgent ? (
         <AgentAvatar icon={icon} name={message.senderName} status="online" />
       ) : (
@@ -37,10 +51,15 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             <span className="text-xs text-neutral-500 uppercase">{message.senderRole}</span>
           )}
           <span className="text-xs text-neutral-400">
-            {new Date(message.timestamp).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
+            {new Date(message.timestamp).toLocaleTimeString("ko-KR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </span>
         </div>
-        <div className={`text-sm text-neutral-200 leading-relaxed ${isAgent ? `border-l-2 ${borderColor} pl-3` : "bg-indigo-600/10 rounded-lg px-3 py-1.5"}`}>
+        <div
+          className={`text-sm text-neutral-200 leading-relaxed ${isAgent ? `border-l-2 ${borderColor} pl-3` : "bg-indigo-600/10 rounded-lg px-3 py-1.5"}`}
+        >
           {message.content}
         </div>
         {message.artifacts && message.artifacts.length > 0 && (
@@ -53,4 +72,4 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       </div>
     </div>
   );
-}
+});

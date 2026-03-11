@@ -9,16 +9,16 @@ interface ModeSelectorProps {
 
 const MODES: { key: MeetingMode; label: string; icon: string; desc: string }[] = [
   {
-    key: "meeting",
-    label: "Meeting",
+    key: "live",
+    label: "Live",
     icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z",
-    desc: "전체 임원 회의",
+    desc: "사용자 주도 실시간 회의",
   },
   {
-    key: "autonomous",
-    label: "Autonomous",
+    key: "auto",
+    label: "Auto",
     icon: "M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
-    desc: "자율 토론 모드",
+    desc: "AI 자율 토론",
   },
   {
     key: "dm",

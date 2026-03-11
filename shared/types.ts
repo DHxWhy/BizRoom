@@ -14,7 +14,7 @@ export type MeetingPhase =
 export type ParticipantStatus = "online" | "away" | "busy" | "typing";
 export type ArtifactType = "excel" | "markdown" | "image";
 export type QuickActionType = "agree" | "disagree" | "next" | "hold";
-export type MeetingMode = "meeting" | "autonomous" | "dm";
+export type MeetingMode = "live" | "auto" | "dm";
 
 export interface Message {
   id: string;

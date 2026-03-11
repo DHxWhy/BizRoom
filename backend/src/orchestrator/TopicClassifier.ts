@@ -30,7 +30,7 @@ const TOPIC_KEYWORDS: Record<Topic, string[]> = {
   ],
   operations: [
     "일정", "프로세스", "운영", "효율", "KPI", "태스크", "실행",
-    "관리", "배포", "인력", "리소스",
+    "관리", "인력", "리소스",
     "schedule", "process", "operations",
   ],
   tech: [
@@ -51,12 +51,12 @@ const TOPIC_KEYWORDS: Record<Topic, string[]> = {
 
 // Topic -> primary/secondary agent mapping
 const TOPIC_AGENTS: Record<Topic, { primary: AgentRole; secondary: AgentRole[] }> = {
-  finance: { primary: "cfo", secondary: ["coo"] },
-  marketing: { primary: "cmo", secondary: ["cfo"] },
+  finance: { primary: "cfo", secondary: ["coo", "clo"] },
+  marketing: { primary: "cmo", secondary: ["cdo", "cfo"] },
   operations: { primary: "coo", secondary: ["cfo"] },
-  tech: { primary: "coo", secondary: ["cfo"] },
-  legal: { primary: "coo", secondary: ["cfo"] },
-  design: { primary: "cmo", secondary: ["coo"] },
+  tech: { primary: "cto", secondary: ["cdo"] },
+  legal: { primary: "clo", secondary: ["cfo", "coo"] },
+  design: { primary: "cdo", secondary: ["cmo", "cto"] },
   general: { primary: "coo", secondary: ["cfo", "cmo"] },
 };
 
@@ -87,13 +87,16 @@ export function classifyTopic(message: string): TopicResult {
 /** Parse @mentions from message content and return matching agent roles */
 export function parseMentions(message: string): AgentRole[] {
   const mentions: AgentRole[] = [];
-  const mentionPattern = /@(COO|CFO|CMO|Hudson|Amelia|Yusef)/gi;
+  const mentionPattern = /@(COO|CFO|CMO|CTO|CDO|CLO|Hudson|Amelia|Yusef|Kelvin|Jonas|Bradley)/gi;
   let match: RegExpExecArray | null;
   while ((match = mentionPattern.exec(message)) !== null) {
     const name = match[1].toLowerCase();
     if (name === "coo" || name === "hudson") mentions.push("coo");
     else if (name === "cfo" || name === "amelia") mentions.push("cfo");
     else if (name === "cmo" || name === "yusef") mentions.push("cmo");
+    else if (name === "cto" || name === "kelvin") mentions.push("cto");
+    else if (name === "cdo" || name === "jonas") mentions.push("cdo");
+    else if (name === "clo" || name === "bradley") mentions.push("clo");
   }
   return [...new Set(mentions)];
 }

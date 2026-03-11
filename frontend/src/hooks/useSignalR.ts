@@ -65,6 +65,7 @@ interface UseSignalRReturn {
     roomId: string,
     content: string,
     senderName: string,
+    modeOptions?: { mode?: string; dmTarget?: string | null },
   ) => Promise<void>;
 }
 
@@ -235,6 +236,7 @@ export function useSignalR(
       roomId: string,
       content: string,
       senderName: string,
+      modeOptions?: { mode?: string; dmTarget?: string | null },
     ): Promise<void> => {
       const response = await fetch("/api/message?stream=true", {
         method: "POST",
@@ -244,6 +246,8 @@ export function useSignalR(
           roomId,
           senderId: "user-1",
           senderName,
+          ...(modeOptions?.mode && { mode: modeOptions.mode }),
+          ...(modeOptions?.dmTarget && { dmTarget: modeOptions.dmTarget }),
         }),
       });
 
