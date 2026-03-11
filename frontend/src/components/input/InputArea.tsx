@@ -2,15 +2,20 @@ import { useState, useCallback } from "react";
 import type { KeyboardEvent } from "react";
 import { S } from "../../constants/strings";
 import { usePushToTalk } from "../../hooks/usePushToTalk";
+import { MicToggle } from "./MicToggle";
 
 interface InputAreaProps {
   onSend: (content: string, isVoiceInput?: boolean) => void;
   disabled?: boolean;
   placeholder?: string;
   sendLabel?: string;
+  // Voice Live mic toggle
+  isMicOn?: boolean;
+  isMicConnecting?: boolean;
+  onMicToggle?: () => void;
 }
 
-export function InputArea({ onSend, disabled, placeholder, sendLabel }: InputAreaProps) {
+export function InputArea({ onSend, disabled, placeholder, sendLabel, isMicOn, isMicConnecting, onMicToggle }: InputAreaProps) {
   const [text, setText] = useState("");
 
   const handleSend = useCallback(() => {
@@ -48,7 +53,16 @@ export function InputArea({ onSend, disabled, placeholder, sendLabel }: InputAre
         </div>
       )}
       <div className="flex items-end gap-2 bg-neutral-800/80 backdrop-blur-sm rounded-xl px-4 py-3 border border-neutral-700/20">
-        {/* Mic button */}
+        {/* Voice Live mic toggle */}
+        {onMicToggle && (
+          <MicToggle
+            isMicOn={isMicOn ?? false}
+            isConnecting={isMicConnecting ?? false}
+            onToggle={onMicToggle}
+            disabled={disabled}
+          />
+        )}
+        {/* PTT mic button */}
         {pttSupported && (
           <button
             onMouseDown={startRecording}
