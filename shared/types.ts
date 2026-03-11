@@ -74,6 +74,50 @@ export interface ActionItem {
   status: "pending" | "in_progress" | "done";
 }
 
+// ──────────────────────────────────────────────
+// Voice Live API Types
+// Ref: docs/superpowers/specs/2026-03-12-voice-live-turnmanager-design.md §2.2
+// ──────────────────────────────────────────────
+export type TurnState = "idle" | "hearing" | "routing" | "speaking";
+
+export interface BufferedMessage {
+  userId: string;
+  userName: string;
+  isChairman: boolean;
+  source: "voice" | "chat";
+  content: string;
+  timestamp: number;
+}
+
+export interface AgentTurn {
+  role: AgentRole;
+  priority: number;
+}
+
+/** SignalR voice streaming events — Spec §8.4 */
+export interface AgentAudioDeltaEvent {
+  role: AgentRole;
+  audioBase64: string;
+  format: "pcm16_24k";
+}
+
+export interface AgentTranscriptDeltaEvent {
+  role: AgentRole;
+  text: string;
+  isFinal: boolean;
+}
+
+export interface AgentVisemeDeltaEvent {
+  role: AgentRole;
+  visemeId: number;
+  audioOffsetMs: number;
+}
+
+export interface AgentResponseDoneEvent {
+  role: AgentRole;
+  fullText: string;
+}
+
 export interface AgentTypingEvent {
   agentId: string;
   agentName: string;

@@ -6,4 +6,11 @@ export type {
   Message,
   Artifact,
   Participant,
+  TurnState,
+  BufferedMessage,
+  AgentTurn,
+  AgentAudioDeltaEvent,
+  AgentTranscriptDeltaEvent,
+  AgentVisemeDeltaEvent,
+  AgentResponseDoneEvent,
 } from "../../../shared/types.js";

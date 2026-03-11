@@ -32,3 +32,31 @@ export function broadcastToRoom(roomId: string, message: Message): void {
     }
   }
 }
+
+// Generic event handler for non-Message payloads (voice streaming events)
+type EventHandler = (event: { type: string; payload: unknown }) => void;
+
+const eventHandlers: Map<string, Set<EventHandler>> = new Map();
+
+export function onRoomEvent(
+  roomId: string,
+  handler: EventHandler,
+): () => void {
+  if (!eventHandlers.has(roomId)) {
+    eventHandlers.set(roomId, new Set());
+  }
+  eventHandlers.get(roomId)!.add(handler);
+  return () => {
+    eventHandlers.get(roomId)?.delete(handler);
+  };
+}
+
+/** Broadcast a generic event to room subscribers (voice streaming, typing, etc.) */
+export function broadcastEvent(roomId: string, event: { type: string; payload: unknown }): void {
+  const roomEventHandlers = eventHandlers.get(roomId);
+  if (roomEventHandlers) {
+    for (const handler of roomEventHandlers) {
+      handler(event);
+    }
+  }
+}

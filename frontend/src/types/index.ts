@@ -15,4 +15,11 @@ export type {
   ActionItem,
   AgentTypingEvent,
   PhaseChangedEvent,
+  TurnState,
+  BufferedMessage,
+  AgentTurn,
+  AgentAudioDeltaEvent,
+  AgentTranscriptDeltaEvent,
+  AgentVisemeDeltaEvent,
+  AgentResponseDoneEvent,
 } from "../../../shared/types.ts";
