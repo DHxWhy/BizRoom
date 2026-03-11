@@ -8,16 +8,20 @@ import { InputArea } from "./components/input/InputArea";
 import { QuickActions } from "./components/input/QuickActions";
 import { MeetingBanner } from "./components/meeting/MeetingBanner";
 import { ModeSelector } from "./components/meeting/ModeSelector";
-import { DmAgentPicker } from "./components/meeting/DmAgentPicker";
+import { DmStoriesPicker } from "./components/meeting/DmStoriesPicker";
+import { ChairmanControls } from "./components/meeting/ChairmanControls";
 import { AutoModeBanner } from "./components/meeting/AutoModeBanner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ChatOverlay } from "./components/meeting3d/ChatOverlay";
 import { LoadingScreen } from "./components/meeting3d/LoadingScreen";
 import { LobbyPage } from "./components/lobby/LobbyPage";
 import { S } from "./constants/strings";
-import type { Message, MeetingPhase, MeetingMode, Participant, QuickActionType } from "./types";
+import type { Message, MeetingPhase, MeetingMode, Participant, QuickActionType, AgentRole } from "./types";
 import type { ArtifactData } from "./components/meeting3d/ArtifactScreen3D";
 import { useCallback, useEffect, useRef, useMemo, useState } from "react";
+import { useVoiceLive } from "./hooks/useVoiceLive";
+import { useAgentAudio } from "./hooks/useAgentAudio";
+import { useViseme } from "./hooks/useViseme";
 
 // Lazy-load the heavy 3D scene (Three.js + R3F + drei)
 const MeetingRoom3D = lazy(() =>
@@ -168,6 +172,20 @@ function MeetingRoom() {
   const speakingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const { leaveRoom, getShareUrl } = useSessionRoom();
   const [linkCopied, setLinkCopied] = useState(false);
+
+  // Voice Live hooks
+  const { isMicOn, isMicConnecting, toggleMic } = useVoiceLive({
+    roomId: state.roomId,
+    enabled: state.inRoom && state.meetingPhase !== "idle",
+  });
+  // Agent audio + viseme hooks — initialized for SignalR event wiring (Chunk 4)
+  const agentAudio = useAgentAudio();
+  const viseme = useViseme();
+  // Expose for future SignalR event handlers:
+  // agentAudio.feedAudio, agentAudio.stopAll, agentAudio.playingRole
+  // viseme.feedViseme, viseme.getTargetWeights, viseme.resetWeights
+  void agentAudio;
+  void viseme;
 
   // Initialize default participants on mount
   useEffect(() => {
@@ -498,9 +516,9 @@ function MeetingRoom() {
           <AutoModeBanner isRunning onStop={handleStopAuto} />
         )}
 
-        {/* DM mode: agent picker */}
+        {/* DM mode: stories-style agent picker */}
         {state.meetingMode === "dm" && (
-          <DmAgentPicker currentTarget={state.dmTarget} onSelect={handleDmTargetChange} />
+          <DmStoriesPicker currentTarget={state.dmTarget as AgentRole | null} onSelect={handleDmTargetChange} />
         )}
 
         <ChatRoom messages={state.messages} typingAgents={state.typingAgents} />
@@ -508,6 +526,14 @@ function MeetingRoom() {
         {/* Quick actions only in Live mode */}
         {state.meetingMode === "live" && (
           <QuickActions onAction={handleQuickAction} disabled={isIdle} />
+        )}
+
+        {/* Chairman controls */}
+        {isActive && (
+          <ChairmanControls
+            roomId={state.roomId}
+            isChairman={state.isChairman}
+          />
         )}
 
         <InputArea
@@ -523,6 +549,9 @@ function MeetingRoom() {
                   : undefined
           }
           sendLabel={state.meetingMode === "auto" ? S.input.startAuto : undefined}
+          isMicOn={isMicOn}
+          isMicConnecting={isMicConnecting}
+          onMicToggle={toggleMic}
         />
       </ChatOverlay>
     </div>
