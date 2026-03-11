@@ -1,19 +1,37 @@
 import { createContext, useContext, useReducer, type Dispatch, type ReactNode } from "react";
 import type { Message, Participant, MeetingPhase, MeetingMode, Artifact } from "../types";
 
+/** Human participant in the 3D scene (max 2 extra besides Chairman) */
+export interface HumanParticipant {
+  name: string;
+  color?: string;
+}
+
 interface MeetingState {
   roomId: string;
   roomName: string;
+  /** Unique user ID persisted in localStorage */
+  userId: string;
+  /** Display name entered in lobby */
+  userName: string;
+  /** true = room creator (Chairman), false = joined member */
+  isChairman: boolean;
+  /** Whether the user has entered a room (past the lobby) */
+  inRoom: boolean;
   messages: Message[];
   participants: Participant[];
   meetingPhase: MeetingPhase;
   meetingMode: MeetingMode;
+  /** DM mode: target agent role (e.g. "coo", "cfo") */
+  dmTarget: string | null;
   typingAgents: string[];
   speakingAgent: string | null;
   artifacts: Artifact[];
   isRecording: boolean;
   /** 현재 스트리밍 중인 메시지 ID 집합 */
   streamingMessageIds: Set<string>;
+  /** Additional human participants in the 3D scene (max 2) */
+  humanParticipants: HumanParticipant[];
 }
 
 /** START_STREAM 페이로드: 빈 메시지 stub를 생성 */
@@ -46,22 +64,35 @@ type MeetingAction =
   | { type: "SET_RECORDING"; payload: boolean }
   | { type: "SET_PARTICIPANTS"; payload: Participant[] }
   | { type: "SET_MODE"; payload: MeetingMode }
+  | { type: "SET_DM_TARGET"; payload: string | null }
   | { type: "START_STREAM"; payload: StartStreamPayload }
   | { type: "APPEND_MESSAGE_DELTA"; payload: AppendDeltaPayload }
-  | { type: "END_STREAM"; payload: EndStreamPayload };
+  | { type: "END_STREAM"; payload: EndStreamPayload }
+  | { type: "SET_USER"; payload: { userId: string; userName: string } }
+  | { type: "SET_ROOM"; payload: { roomId: string; isChairman: boolean } }
+  | { type: "ENTER_ROOM" }
+  | { type: "LEAVE_ROOM" }
+  | { type: "ADD_HUMAN_PARTICIPANT"; payload: HumanParticipant }
+  | { type: "REMOVE_HUMAN_PARTICIPANT"; payload: string };
 
 const initialState: MeetingState = {
-  roomId: "room-default",
+  roomId: "",
   roomName: "임원회의",
+  userId: "",
+  userName: "",
+  isChairman: false,
+  inRoom: false,
   messages: [],
   participants: [],
   meetingPhase: "idle",
-  meetingMode: "meeting",
+  meetingMode: "live",
+  dmTarget: null,
   typingAgents: [],
   speakingAgent: null,
   artifacts: [],
   isRecording: false,
   streamingMessageIds: new Set<string>(),
+  humanParticipants: [],
 };
 
 function meetingReducer(state: MeetingState, action: MeetingAction): MeetingState {
@@ -89,6 +120,8 @@ function meetingReducer(state: MeetingState, action: MeetingAction): MeetingStat
       return { ...state, participants: action.payload };
     case "SET_MODE":
       return { ...state, meetingMode: action.payload };
+    case "SET_DM_TARGET":
+      return { ...state, dmTarget: action.payload };
 
     // ── 스트리밍 액션 ──
 
@@ -130,6 +163,43 @@ function meetingReducer(state: MeetingState, action: MeetingAction): MeetingStat
       endStreamIds.delete(action.payload.messageId);
       return { ...state, streamingMessageIds: endStreamIds };
     }
+
+    // ── Room/user session actions ──
+
+    case "SET_USER":
+      return { ...state, userId: action.payload.userId, userName: action.payload.userName };
+
+    case "SET_ROOM":
+      return { ...state, roomId: action.payload.roomId, isChairman: action.payload.isChairman };
+
+    case "ENTER_ROOM":
+      return { ...state, inRoom: true };
+
+    case "LEAVE_ROOM":
+      return {
+        ...state,
+        inRoom: false,
+        roomId: "",
+        messages: [],
+        meetingPhase: "idle",
+        humanParticipants: [],
+        artifacts: [],
+        typingAgents: [],
+        speakingAgent: null,
+        streamingMessageIds: new Set<string>(),
+      };
+
+    case "ADD_HUMAN_PARTICIPANT": {
+      if (state.humanParticipants.length >= 2) return state;
+      if (state.humanParticipants.some((p) => p.name === action.payload.name)) return state;
+      return { ...state, humanParticipants: [...state.humanParticipants, action.payload] };
+    }
+
+    case "REMOVE_HUMAN_PARTICIPANT":
+      return {
+        ...state,
+        humanParticipants: state.humanParticipants.filter((p) => p.name !== action.payload),
+      };
 
     default:
       return state;
