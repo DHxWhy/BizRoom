@@ -104,6 +104,17 @@ export const S = {
     speaking: "발언 중",
     thinking: "생각 중...",
   },
+  chairman: {
+    requestAiOpinion: "AI 의견 요청",
+    nextAgenda: "다음 안건",
+    pauseAi: "AI 일시정지",
+    resumeAi: "AI 재개",
+  },
+  mic: {
+    on: "마이크 켜짐",
+    off: "마이크 꺼짐",
+    connecting: "마이크 연결 중...",
+  },
   errors: {
     connectionFailed: "서버 연결에 실패했습니다",
     sendFailed: "메시지 전송에 실패했습니다",
