@@ -4,7 +4,7 @@ import {
   HttpResponseInit,
   InvocationContext,
 } from "@azure/functions";
-import { processMessage, determineAgentOrder } from "../orchestrator/TurnManager.js";
+import { turnManager, determineAgentOrder } from "../orchestrator/TurnManager.js";
 import { classifyTopic, parseMentions } from "../orchestrator/TopicClassifier.js";
 import {
   getContextForAgent,
@@ -70,14 +70,18 @@ export async function message(
   const isStream = streamParam === "true";
 
   if (!isStream) {
-    // 기존 비스트리밍 응답 — 기존 동작 유지
-    try {
-      const responses = await processMessage(roomId, userMessage);
-      return { status: 200, jsonBody: { messages: responses } };
-    } catch (err) {
-      context.log("Orchestration error:", err);
-      return { status: 500, jsonBody: { error: "Agent processing failed" } };
-    }
+    // Voice Live mode: route to TurnManager state machine
+    // TurnManager handles timing, buffering, and triggers agents via events
+    const isChairman = body.senderId === "chairman" || !body.senderId;
+    turnManager.onChatMessage(
+      roomId,
+      userMessage.senderId,
+      userMessage.senderName,
+      userMessage.content,
+      isChairman,
+    );
+    // Return 202 Accepted — agent responses arrive via SignalR events, not HTTP response
+    return { status: 202, jsonBody: { accepted: true, mode: "voiceLive" } };
   }
 
   // ── SSE 스트리밍 응답 ──
