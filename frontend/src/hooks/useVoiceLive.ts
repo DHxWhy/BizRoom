@@ -5,7 +5,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { float32ToPcm16, pcm16ToBase64 } from "../utils/audioUtils";
 
 const STORAGE_KEY_MIC = "bizroom_mic_enabled";
-const AUDIO_CHUNK_SIZE = 4800; // 200ms at 24kHz
+const AUDIO_CHUNK_SIZE = 12000; // 500ms at 24kHz — larger chunks reduce HTTP request frequency
 
 interface UseVoiceLiveOptions {
   roomId: string;
@@ -31,8 +31,6 @@ export function useVoiceLive({
   const audioCtxRef = useRef<AudioContext | null>(null);
   // Ref to hold latest startStreaming to avoid stale closures in effects
   const startStreamingRef = useRef<() => Promise<void>>(undefined);
-  // Track in-flight fetch to prevent backpressure buildup
-  const inFlightRef = useRef(false);
 
   const startStreaming = useCallback(async () => {
     if (!enabled || !roomId) return;
@@ -65,9 +63,6 @@ export function useVoiceLive({
       // MVP: HTTP POST per audio chunk to /api/voice/audio
       // TODO v2: migrate to SignalR binary channel for lower latency
       processor.onaudioprocess = (e) => {
-        if (inFlightRef.current) return; // drop chunk if previous pending
-        inFlightRef.current = true;
-
         const input = e.inputBuffer.getChannelData(0);
         const pcm16 = float32ToPcm16(input);
         const base64 = pcm16ToBase64(pcm16);
@@ -77,13 +72,9 @@ export function useVoiceLive({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ roomId: targetRoomId, audioBase64: base64 }),
           keepalive: true,
-        })
-          .catch(() => {
-            /* ignore send failures — audio is best-effort */
-          })
-          .finally(() => {
-            inFlightRef.current = false;
-          });
+        }).catch(() => {
+          /* audio is best-effort */
+        });
       };
 
       source.connect(processor);
@@ -109,7 +100,6 @@ export function useVoiceLive({
     audioCtxRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
-    inFlightRef.current = false;
   }, []);
 
   const toggleMic = useCallback(() => {

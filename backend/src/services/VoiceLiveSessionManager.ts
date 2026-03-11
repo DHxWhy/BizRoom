@@ -256,14 +256,14 @@ export class VoiceLiveSessionManager extends EventEmitter {
   ): void {
     switch (event.type) {
       case "input_audio_buffer.speech_started":
-        this.emit("speechStarted", roomId, chairmanUserId);
+        this.emit("speechStarted:" + roomId, roomId, chairmanUserId);
         break;
       case "input_audio_buffer.speech_stopped":
-        this.emit("speechStopped", roomId, chairmanUserId);
+        this.emit("speechStopped:" + roomId, roomId, chairmanUserId);
         break;
       case "conversation.item.input_audio_transcription.completed":
         this.emit(
-          "transcript",
+          "transcript:" + roomId,
           roomId,
           chairmanUserId,
           (event as Record<string, unknown>).transcript || "",
@@ -280,19 +280,19 @@ export class VoiceLiveSessionManager extends EventEmitter {
     switch (event.type) {
       case "response.audio.delta": {
         const delta = event.delta as string;
-        if (delta) this.emit("agentAudioDelta", roomId, role, delta);
+        if (delta) this.emit("agentAudioDelta:" + roomId, roomId, role, delta);
         break;
       }
       case "response.audio_transcript.delta": {
         const delta = event.delta as string;
-        if (delta) this.emit("agentTextDelta", roomId, role, delta);
+        if (delta) this.emit("agentTextDelta:" + roomId, roomId, role, delta);
         break;
       }
       case "response.animation_viseme.delta": {
         const visemeId = event.viseme_id as number;
         const offsetMs = event.audio_offset_ms as number;
         this.emit(
-          "agentVisemeDelta",
+          "agentVisemeDelta:" + roomId,
           roomId,
           role,
           visemeId,
@@ -314,7 +314,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
             }
           }
         }
-        this.emit("agentDone", roomId, role, fullText);
+        this.emit("agentDone:" + roomId, roomId, role, fullText);
         break;
       }
     }

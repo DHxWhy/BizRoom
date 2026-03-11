@@ -22,6 +22,7 @@ export function useAgentAudio(): UseAgentAudioReturn {
   const queueRef = useRef<{ role: AgentRole; data: Float32Array }[]>([]);
   const playingRole = useRef<AgentRole | null>(null);
   const isPlayingRef = useRef(false);
+  const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const disposedRef = useRef(false);
 
   // Initialize AudioContext lazily (requires user gesture)
@@ -55,8 +56,12 @@ export function useAgentAudio(): UseAgentAudioReturn {
         source.buffer = buffer;
         source.connect(ctx.destination);
 
+        currentSourceRef.current = source;
         await new Promise<void>((resolve) => {
-          source.onended = () => resolve();
+          source.onended = () => {
+            currentSourceRef.current = null;
+            resolve();
+          };
           source.start();
         });
       } catch (err) {
@@ -85,6 +90,15 @@ export function useAgentAudio(): UseAgentAudioReturn {
     queueRef.current = [];
     playingRole.current = null;
     isPlayingRef.current = false;
+    // Stop currently playing audio immediately
+    if (currentSourceRef.current) {
+      try {
+        currentSourceRef.current.stop();
+      } catch {
+        /* already stopped */
+      }
+      currentSourceRef.current = null;
+    }
     if (audioCtxRef.current) {
       audioCtxRef.current.close();
       audioCtxRef.current = null;
@@ -95,6 +109,14 @@ export function useAgentAudio(): UseAgentAudioReturn {
     disposedRef.current = false;
     return () => {
       disposedRef.current = true;
+      if (currentSourceRef.current) {
+        try {
+          currentSourceRef.current.stop();
+        } catch {
+          /* already stopped */
+        }
+        currentSourceRef.current = null;
+      }
       audioCtxRef.current?.close();
       audioCtxRef.current = null;
     };

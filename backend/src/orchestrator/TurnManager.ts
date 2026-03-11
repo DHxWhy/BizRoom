@@ -77,7 +77,7 @@ export class TurnManager extends EventEmitter {
     if (paused && room.state === "speaking") {
       // Cancel current agent and clear queue
       if (room.activeAgent) {
-        this.emit("cancelAgent", roomId, room.activeAgent);
+        this.emit("cancelAgent:" + roomId, roomId, room.activeAgent);
       }
       room.agentQueue = [];
       room.activeAgent = null;
@@ -100,7 +100,7 @@ export class TurnManager extends EventEmitter {
       // Voice interrupt — Spec §2.4
       room.interruptFlag = true;
       if (room.activeAgent) {
-        this.emit("cancelAgent", roomId, room.activeAgent);
+        this.emit("cancelAgent:" + roomId, roomId, room.activeAgent);
       }
       room.agentQueue = [];
       room.inputBuffer = [];
@@ -223,7 +223,7 @@ export class TurnManager extends EventEmitter {
     } else {
       room.activeAgent = null;
       this.transition(roomId, "idle");
-      this.emit("agentsDone", roomId);
+      this.emit("agentsDone:" + roomId, roomId);
     }
   }
 
@@ -292,7 +292,7 @@ export class TurnManager extends EventEmitter {
     if (room.agentQueue.length === 0) {
       room.activeAgent = null;
       this.transition(roomId, "idle");
-      this.emit("agentsDone", roomId);
+      this.emit("agentsDone:" + roomId, roomId);
       return;
     }
 
@@ -305,13 +305,13 @@ export class TurnManager extends EventEmitter {
     // Build instructions for Voice Live response.create
     const instructions = buildAgentPrompt(next.role, contextStr, room.combinedInput, roomData.agenda || "");
 
-    this.emit("triggerAgent", roomId, next.role, instructions);
+    this.emit("triggerAgent:" + roomId, roomId, next.role, instructions);
   }
 
   private transition(roomId: string, newState: TurnState): void {
     const room = this.getRoom(roomId);
     room.state = newState;
-    this.emit("stateChanged", roomId, newState);
+    this.emit("stateChanged:" + roomId, roomId, newState);
   }
 
   private startFlushTimer(roomId: string, room: RoomTurnState, delayMs: number): void {

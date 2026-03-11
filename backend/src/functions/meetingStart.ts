@@ -2,6 +2,8 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/fu
 import { AGENT_CONFIGS } from "../agents/agentConfigs.js";
 import { invokeAgent } from "../agents/AgentFactory.js";
 import { getOrCreateRoom, setPhase, setAgenda, addMessage } from "../orchestrator/ContextBroker.js";
+import { wireVoiceLiveForRoom } from "../orchestrator/VoiceLiveOrchestrator.js";
+import { voiceLiveManager } from "../services/VoiceLiveSessionManager.js";
 import { v4 as uuidv4 } from "uuid";
 import type { Message } from "../models/index.js";
 
@@ -32,6 +34,10 @@ export async function meetingStart(
   getOrCreateRoom(roomId);
   setPhase(roomId, "opening");
   setAgenda(roomId, agenda);
+
+  // Initialize Voice Live sessions and wire events
+  await voiceLiveManager.initializeRoom(roomId, body.userId);
+  wireVoiceLiveForRoom(roomId, body.userId, body.userName);
 
   const agents = Object.values(AGENT_CONFIGS).map((config) => ({
     id: `agent-${config.role}`,
