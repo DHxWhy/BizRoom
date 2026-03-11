@@ -10,6 +10,9 @@ const AGENT_ICONS: Record<string, string> = {
   coo: "📋",
   cfo: "💰",
   cmo: "📣",
+  cto: "🛠️",
+  cdo: "🎨",
+  clo: "⚖️",
 };
 
 export function Sidebar({ participants, roomName }: SidebarProps) {

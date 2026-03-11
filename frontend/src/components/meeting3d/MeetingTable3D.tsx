@@ -3,13 +3,42 @@ import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import type { Mesh } from "three";
 
+/**
+ * Name plate positions derived from SEAT_CONFIG in MeetingRoom3D.
+ * Each plate sits ~40% of the way from the seat toward center [0,0,0],
+ * on the table surface (y=0.46).
+ */
+const SEAT_POSITIONS: { pos: [number, number, number]; label: string }[] = [
+  { pos: [0, 0, -2.2],     label: "Chairman" },
+  { pos: [-1.9, 0, -1.0],  label: "COO" },
+  { pos: [-2.1, 0, 0.2],   label: "CFO" },
+  { pos: [-1.7, 0, 1.3],   label: "CLO" },
+  { pos: [1.9, 0, -1.0],   label: "CMO" },
+  { pos: [2.1, 0, 0.2],    label: "CTO" },
+  { pos: [1.7, 0, 1.3],    label: "CDO" },
+];
+
+const TABLE_NAME_PLATES = SEAT_POSITIONS.map(({ pos, label }) => {
+  const dx = -pos[0];
+  const dz = -pos[2];
+  const dist = Math.sqrt(dx * dx + dz * dz);
+  const nx = dx / dist;
+  const nz = dz / dist;
+  // Place plate 40% toward center from seat, on table surface (Y=0.66)
+  const t = 0.4;
+  return {
+    position: [pos[0] + nx * dist * t, 0.76, pos[2] + nz * dist * t] as [number, number, number],
+    label,
+  };
+});
+
 /** Central meeting table with chairs and props */
 export function MeetingTable3D() {
   return (
     <group>
       {/* ═══ TABLE ═══ */}
-      {/* Table top - dark walnut oval */}
-      <mesh position={[0, 0.42, 0]} receiveShadow castShadow>
+      {/* Table top - dark walnut oval (scaled to ellipse for 7 seats) */}
+      <mesh position={[0, 0.72, 0]} scale={[1.3, 1, 1]} receiveShadow castShadow>
         <cylinderGeometry args={[1.4, 1.4, 0.06, 48]} />
         <meshStandardMaterial
           color="#3a2718"
@@ -19,14 +48,14 @@ export function MeetingTable3D() {
       </mesh>
 
       {/* Table edge trim */}
-      <mesh position={[0, 0.40, 0]}>
+      <mesh position={[0, 0.70, 0]} scale={[1.3, 1, 1]}>
         <cylinderGeometry args={[1.42, 1.42, 0.02, 48]} />
         <meshStandardMaterial color="#2a1a0e" roughness={0.4} metalness={0.1} />
       </mesh>
 
       {/* Table center pedestal */}
-      <mesh position={[0, 0.2, 0]} castShadow>
-        <cylinderGeometry args={[0.15, 0.2, 0.38, 16]} />
+      <mesh position={[0, 0.35, 0]} castShadow>
+        <cylinderGeometry args={[0.15, 0.2, 0.68, 16]} />
         <meshStandardMaterial color="#333340" roughness={0.5} metalness={0.6} />
       </mesh>
 
@@ -39,74 +68,11 @@ export function MeetingTable3D() {
       {/* ═══ SCREEN (center table display) ═══ */}
       <CenterScreen />
 
-      {/* ═══ CHAIRS ═══ */}
-      <Chair position={[0, 0, -1.8]} rotation={[0, Math.PI, 0]} />
-      <Chair position={[-1.55, 0, -0.9]} rotation={[0, Math.PI * 0.72, 0]} />
-      <Chair position={[1.55, 0, -0.9]} rotation={[0, -Math.PI * 0.72, 0]} />
-      <Chair position={[0, 0, 1.8]} rotation={[0, 0, 0]} />
-
-      {/* ═══ NAME PLATES on table ═══ */}
-      <NamePlate position={[0, 0.46, -0.9]} label="COO" />
-      <NamePlate position={[-0.85, 0.46, -0.5]} label="CFO" />
-      <NamePlate position={[0.85, 0.46, -0.5]} label="CMO" />
-      <NamePlate position={[0, 0.46, 0.9]} label="YOU" />
+      {/* Name plates removed — agent identity shown via Billboard badges */}
     </group>
   );
 }
 
-/** A simple office chair */
-function Chair({
-  position,
-  rotation,
-}: {
-  position: [number, number, number];
-  rotation: [number, number, number];
-}) {
-  return (
-    <group position={position} rotation={rotation}>
-      {/* Seat */}
-      <mesh position={[0, 0.38, 0]} castShadow>
-        <boxGeometry args={[0.38, 0.04, 0.38]} />
-        <meshStandardMaterial color="#1a1a2e" roughness={0.8} />
-      </mesh>
-      {/* Cushion */}
-      <mesh position={[0, 0.41, 0]}>
-        <boxGeometry args={[0.34, 0.03, 0.34]} />
-        <meshStandardMaterial color="#2d2d44" roughness={0.9} />
-      </mesh>
-      {/* Backrest */}
-      <mesh position={[0, 0.62, -0.17]} castShadow>
-        <boxGeometry args={[0.34, 0.4, 0.04]} />
-        <meshStandardMaterial color="#1a1a2e" roughness={0.8} />
-      </mesh>
-      {/* Backrest cushion */}
-      <mesh position={[0, 0.62, -0.14]}>
-        <boxGeometry args={[0.30, 0.36, 0.03]} />
-        <meshStandardMaterial color="#2d2d44" roughness={0.9} />
-      </mesh>
-      {/* Chair base stem */}
-      <mesh position={[0, 0.2, 0]}>
-        <cylinderGeometry args={[0.025, 0.025, 0.36, 8]} />
-        <meshStandardMaterial color="#555" metalness={0.8} roughness={0.3} />
-      </mesh>
-      {/* Chair star base */}
-      {[0, 72, 144, 216, 288].map((angle) => (
-        <mesh
-          key={angle}
-          position={[
-            Math.sin((angle * Math.PI) / 180) * 0.18,
-            0.03,
-            Math.cos((angle * Math.PI) / 180) * 0.18,
-          ]}
-          rotation={[0, (angle * Math.PI) / 180, Math.PI / 2]}
-        >
-          <capsuleGeometry args={[0.012, 0.16, 4, 4]} />
-          <meshStandardMaterial color="#555" metalness={0.8} roughness={0.3} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
 
 /** Floating center screen for artifacts / presentations */
 function CenterScreen() {
@@ -114,14 +80,14 @@ function CenterScreen() {
 
   useFrame((state) => {
     if (!ref.current) return;
-    ref.current.position.y =
-      0.75 + Math.sin(state.clock.elapsedTime * 0.8) * 0.015;
+    ref.current.position.y = 1.05 + Math.sin(state.clock.elapsedTime * 0.8) * 0.015;
+    ref.current.position.z = -0.4;
   });
 
   return (
     <group>
       {/* Screen frame (light moves with it) */}
-      <mesh ref={ref} position={[0, 0.75, 0]} rotation={[-0.15, 0, 0]}>
+      <mesh ref={ref} position={[0, 1.05, -0.4]} rotation={[-0.15, 0, 0]}>
         <boxGeometry args={[0.6, 0.35, 0.01]} />
         <meshStandardMaterial
           color="#0a0a1a"
