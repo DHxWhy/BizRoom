@@ -5,6 +5,7 @@ import { MathUtils, Quaternion, Euler, SkinnedMesh, Bone } from "three";
 import { clone as skeletonClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { Group } from "three";
 import { AVATAR_CONFIGS, DEFAULT_AVATAR } from "./avatarConfig";
+import { lerpWeight, VISEME_BLEND_SHAPE_KEYS, type BlendShapeWeights } from "../../utils/visemeMap";
 
 interface RPMAgentAvatarProps {
   agentRole: string;
@@ -15,6 +16,7 @@ interface RPMAgentAvatarProps {
   isThinking: boolean;
   color: string;
   gazeTarget?: [number, number, number] | null;
+  visemeWeights?: BlendShapeWeights;
 }
 
 /**
@@ -65,6 +67,7 @@ export const RPMAgentAvatar = memo(function RPMAgentAvatar({
   isThinking,
   color,
   gazeTarget,
+  visemeWeights,
 }: RPMAgentAvatarProps) {
   const groupRef = useRef<Group>(null);
   const headBoneRef = useRef<Bone | null>(null);
@@ -79,11 +82,16 @@ export const RPMAgentAvatar = memo(function RPMAgentAvatar({
   const clonedScene = useMemo(() => {
     const cloned = skeletonClone(scene);
 
-    // Reset refs for this clone
+    // Reset refs for this clone (useMemo runs during render; refs are safe
+    // here because this only runs when `scene` changes — a new GLB load)
+    // eslint-disable-next-line react-hooks/refs
     headBoneRef.current = null;
+    // eslint-disable-next-line react-hooks/refs
     neckBoneRef.current = null;
+    // eslint-disable-next-line react-hooks/refs
     meshRef.current = null;
 
+    // eslint-disable-next-line react-hooks/refs
     cloned.traverse((child) => {
       // Apply sitting pose deltas to bones (quaternion multiply, not overwrite)
       if ((child as Bone).isBone) {
@@ -112,35 +120,48 @@ export const RPMAgentAvatar = memo(function RPMAgentAvatar({
   }, [scene]);
 
   // Per-frame animation
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!groupRef.current) return;
 
     const mesh = meshRef.current;
     const head = headBoneRef.current;
     const neck = neckBoneRef.current;
     const t = state.clock.elapsedTime;
+    const hasViseme = visemeWeights && Object.keys(visemeWeights).length > 0;
 
     // ─── Morph target animations ───
     if (mesh?.morphTargetDictionary && mesh.morphTargetInfluences) {
       const dict = mesh.morphTargetDictionary;
       const infl = mesh.morphTargetInfluences;
 
-      // Jaw open (speaking)
-      const jawIdx = dict["jawOpen"];
-      if (jawIdx !== undefined) {
-        const target = isSpeaking
-          ? 0.15 + Math.sin(t * 8) * 0.12 + Math.sin(t * 13) * 0.06
-          : 0;
-        infl[jawIdx] = MathUtils.lerp(infl[jawIdx], target, 0.15);
-      }
+      // Viseme-driven lip sync (overrides simple jawOpen when weights provided)
+      if (hasViseme) {
+        for (const key of VISEME_BLEND_SHAPE_KEYS) {
+          const idx = dict[key];
+          if (idx !== undefined) {
+            const target = (visemeWeights as Record<string, number>)[key] ?? 0;
+            const current = infl[idx] ?? 0;
+            infl[idx] = lerpWeight(current, target, delta);
+          }
+        }
+      } else {
+        // Fallback: simple jaw animation when no viseme data
+        const jawIdx = dict["jawOpen"];
+        if (jawIdx !== undefined) {
+          const target = isSpeaking
+            ? 0.15 + Math.sin(t * 8) * 0.12 + Math.sin(t * 13) * 0.06
+            : 0;
+          infl[jawIdx] = MathUtils.lerp(infl[jawIdx], target, 0.15);
+        }
 
-      // Smile
-      const smL = dict["mouthSmileLeft"];
-      const smR = dict["mouthSmileRight"];
-      if (smL !== undefined && smR !== undefined) {
-        const smTarget = isSpeaking ? 0.2 : 0.05;
-        infl[smL] = MathUtils.lerp(infl[smL], smTarget, 0.05);
-        infl[smR] = MathUtils.lerp(infl[smR], smTarget, 0.05);
+        // Smile
+        const smL = dict["mouthSmileLeft"];
+        const smR = dict["mouthSmileRight"];
+        if (smL !== undefined && smR !== undefined) {
+          const smTarget = isSpeaking ? 0.2 : 0.05;
+          infl[smL] = MathUtils.lerp(infl[smL], smTarget, 0.05);
+          infl[smR] = MathUtils.lerp(infl[smR], smTarget, 0.05);
+        }
       }
 
       // Blink (~every 3-5 seconds)
@@ -338,6 +359,7 @@ function ThinkingDots() {
 }
 
 /** Preload all RPM models */
+// eslint-disable-next-line react-refresh/only-export-components
 export function preloadRPMAvatars() {
   const urls = new Set(Object.values(AVATAR_CONFIGS).map((c) => c.url));
   for (const url of urls) {
