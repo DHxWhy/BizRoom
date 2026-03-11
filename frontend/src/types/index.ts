@@ -3,6 +3,7 @@ export type {
   AgentRole,
   SenderType,
   MeetingPhase,
+  MeetingMode,
   ParticipantStatus,
   ArtifactType,
   QuickActionType,

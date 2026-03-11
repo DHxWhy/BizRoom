@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "dist/backend/src/functions/*.js",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",

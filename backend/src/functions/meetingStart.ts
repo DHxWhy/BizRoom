@@ -1,11 +1,7 @@
-import {
-  app,
-  HttpRequest,
-  HttpResponseInit,
-  InvocationContext,
-} from "@azure/functions";
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { AGENT_CONFIGS } from "../agents/agentConfigs.js";
 import { invokeAgent } from "../agents/AgentFactory.js";
+import { getOrCreateRoom, setPhase, setAgenda, addMessage } from "../orchestrator/ContextBroker.js";
 import { v4 as uuidv4 } from "uuid";
 import type { Message } from "../models/index.js";
 
@@ -16,7 +12,6 @@ interface MeetingStartRequest {
   userName: string;
 }
 
-// POST /api/meeting/start - initialize meeting session
 export async function meetingStart(
   request: HttpRequest,
   context: InvocationContext,
@@ -31,9 +26,13 @@ export async function meetingStart(
   }
 
   const roomId = body.roomId ?? `room-${uuidv4()}`;
-  const agenda = body.agenda ?? "\uC77C\uBC18 \uD68C\uC758";
+  const agenda = body.agenda ?? "일반 회의";
 
-  // Get agent list
+  // Initialize room context
+  getOrCreateRoom(roomId);
+  setPhase(roomId, "opening");
+  setAgenda(roomId, agenda);
+
   const agents = Object.values(AGENT_CONFIGS).map((config) => ({
     id: `agent-${config.role}`,
     name: config.name,
@@ -46,7 +45,7 @@ export async function meetingStart(
   try {
     const cooResponse = await invokeAgent(
       "coo",
-      `\uD68C\uC758\uB97C \uC2DC\uC791\uD569\uB2C8\uB2E4. \uC624\uB298\uC758 \uC548\uAC74: ${agenda}`,
+      `회의를 시작합니다. 오늘의 안건: ${agenda}`,
       {
         participants: `${body.userName} (Chairman), Hudson (COO), Amelia (CFO), Yusef (CMO)`,
         agenda,
@@ -64,18 +63,16 @@ export async function meetingStart(
       content: cooResponse.content,
       timestamp: new Date().toISOString(),
     };
+
+    // Store opening message in context
+    addMessage(roomId, openingMessage);
   } catch (err) {
     context.log("COO opening failed:", err);
   }
 
   return {
     status: 200,
-    jsonBody: {
-      roomId,
-      phase: "opening",
-      agents,
-      openingMessage,
-    },
+    jsonBody: { roomId, phase: "opening", agents, openingMessage },
   };
 }
 

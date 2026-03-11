@@ -1,10 +1,6 @@
-import {
-  app,
-  HttpRequest,
-  HttpResponseInit,
-  InvocationContext,
-} from "@azure/functions";
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { invokeAgent } from "../agents/AgentFactory.js";
+import { getOrCreateRoom, getContextForAgent, setPhase } from "../orchestrator/ContextBroker.js";
 import { v4 as uuidv4 } from "uuid";
 import type { Message } from "../models/index.js";
 
@@ -13,7 +9,6 @@ interface MeetingEndRequest {
   summary?: string;
 }
 
-// POST /api/meeting/end - finalize meeting, generate summary
 export async function meetingEnd(
   request: HttpRequest,
   context: InvocationContext,
@@ -27,24 +22,29 @@ export async function meetingEnd(
     return { status: 400, jsonBody: { error: "Invalid JSON body" } };
   }
 
-  // COO Hudson closes the meeting with summary
+  const roomId = body.roomId ?? "room-default";
+  const room = getOrCreateRoom(roomId);
+  setPhase(roomId, "closing");
+
+  // Get full conversation context for summary
+  const historyContext = getContextForAgent(roomId, "coo");
+
   let closingMessage: Message | null = null;
   try {
     const cooResponse = await invokeAgent(
       "coo",
-      "\uD68C\uC758\uB97C \uC885\uB8CC\uD569\uB2C8\uB2E4. \uC624\uB298 \uB17C\uC758\uB41C \uB0B4\uC6A9\uC744 \uC694\uC57D\uD558\uACE0 \uC561\uC158\uC544\uC774\uD15C\uC744 \uC815\uB9AC\uD574\uC8FC\uC138\uC694.",
+      "회의를 종료합니다. 오늘 논의된 내용을 요약하고 액션아이템을 정리해주세요.",
       {
-        participants:
-          "Chairman, Hudson (COO), Amelia (CFO), Yusef (CMO)",
-        agenda: body.summary ?? "\uD68C\uC758 \uC885\uB8CC",
-        history: "",
+        participants: "Chairman, Hudson (COO), Amelia (CFO), Yusef (CMO)",
+        agenda: room.agenda || "회의 종료",
+        history: historyContext,
       },
       "summary",
     );
 
     closingMessage = {
       id: uuidv4(),
-      roomId: body.roomId,
+      roomId,
       senderId: "agent-coo",
       senderType: "agent",
       senderName: cooResponse.name,
@@ -61,8 +61,8 @@ export async function meetingEnd(
     jsonBody: {
       phase: "closing",
       closingMessage,
-      decisions: [],
-      actionItems: [],
+      decisions: room.decisions,
+      actionItems: room.actionItems,
     },
   };
 }

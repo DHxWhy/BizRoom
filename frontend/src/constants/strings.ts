@@ -4,7 +4,7 @@
 
 export const S = {
   app: {
-    name: "BizRoom.ai",
+    name: "BizRoom",
     tagline: "Your AI Executive Team",
   },
   meeting: {
