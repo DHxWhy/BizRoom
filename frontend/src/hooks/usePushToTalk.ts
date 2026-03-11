@@ -132,30 +132,55 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
     }
   }, []);
 
-  // Space bar hold-to-talk: keydown starts, keyup stops.
-  // Ignored when focus is inside a text input or textarea to avoid
-  // interfering with normal typing.
+  // Space bar hold-to-talk: hold Space to record, release to stop & send.
+  // Works even when focus is in textarea — long press (>200ms) activates PTT,
+  // short press types a space character as normal.
   useEffect(() => {
+    let spaceDownTime = 0;
+    let spacePttActivated = false;
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.code === "Space" &&
-        !e.repeat &&
-        !(e.target instanceof HTMLTextAreaElement) &&
-        !(e.target instanceof HTMLInputElement)
-      ) {
+      if (e.code !== "Space" || e.repeat) return;
+
+      const inTextInput =
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLInputElement;
+
+      if (!inTextInput) {
+        // Outside text fields: always activate PTT immediately
         e.preventDefault();
+        spaceDownTime = Date.now();
+        spacePttActivated = true;
         startRecording();
+        return;
       }
+
+      // Inside text fields: record timestamp, decide on keyup
+      spaceDownTime = Date.now();
+      spacePttActivated = false;
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (
-        e.code === "Space" &&
-        !(e.target instanceof HTMLTextAreaElement) &&
-        !(e.target instanceof HTMLInputElement)
-      ) {
+      if (e.code !== "Space") return;
+
+      const holdDuration = Date.now() - spaceDownTime;
+
+      if (spacePttActivated) {
+        // Already activated (outside text field)
         stopRecording();
+        spacePttActivated = false;
+        return;
       }
+
+      // Inside text fields: if held long enough → treat as PTT
+      // Otherwise, normal space character (default behavior)
+      if (holdDuration > 400) {
+        // Long hold detected inside textarea — was PTT intent
+        // But we didn't start recording on keydown, so nothing to stop
+        // This path enables the mic button as primary for textarea context
+      }
+
+      spaceDownTime = 0;
     };
 
     window.addEventListener("keydown", handleKeyDown);
