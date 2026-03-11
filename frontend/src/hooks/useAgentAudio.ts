@@ -49,7 +49,7 @@ export function useAgentAudio(): UseAgentAudioReturn {
 
       try {
         const buffer = ctx.createBuffer(1, item.data.length, 24000);
-        buffer.copyToChannel(item.data, 0);
+        buffer.copyToChannel(new Float32Array(item.data), 0);
 
         const source = ctx.createBufferSource();
         source.buffer = buffer;

@@ -67,6 +67,20 @@ export function getVisemeWeights(visemeId: number): BlendShapeWeights {
   return VISEME_MAP[visemeId] ?? {};
 }
 
+/** LERP speed for smooth viseme transitions (per second) — Spec §6.3 */
+export const VISEME_LERP_SPEED = 12;
+
+/** Interpolate a single blend shape weight toward target */
+export function lerpWeight(
+  current: number,
+  target: number,
+  deltaTime: number,
+): number {
+  return (
+    current + (target - current) * Math.min(1, deltaTime * VISEME_LERP_SPEED)
+  );
+}
+
 /** All blend shape keys used by the viseme system */
 export const VISEME_BLEND_SHAPE_KEYS = [
   "jawOpen",

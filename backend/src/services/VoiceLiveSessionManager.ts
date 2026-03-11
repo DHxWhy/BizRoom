@@ -9,7 +9,6 @@ import { AGENT_VOICES } from "../constants/agentVoices.js";
 const VOICE_LIVE_ENDPOINT = process.env.AZURE_VOICE_LIVE_ENDPOINT || "";
 const VOICE_LIVE_KEY = process.env.AZURE_VOICE_LIVE_KEY || "";
 const HEARTBEAT_INTERVAL_MS = 30_000;
-const RECONNECT_DELAYS = [1000, 2000, 4000]; // exponential backoff
 
 interface RoomSessions {
   listener: WebSocket | null;

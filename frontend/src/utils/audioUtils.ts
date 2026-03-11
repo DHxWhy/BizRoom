@@ -68,7 +68,7 @@ export function playAudioChunk(
 ): Promise<void> {
   return new Promise((resolve) => {
     const buffer = ctx.createBuffer(1, float32.length, TARGET_SAMPLE_RATE);
-    buffer.copyToChannel(float32, 0);
+    buffer.copyToChannel(new Float32Array(float32), 0);
 
     const source = ctx.createBufferSource();
     source.buffer = buffer;

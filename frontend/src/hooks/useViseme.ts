@@ -4,10 +4,12 @@
 import { useRef, useCallback } from "react";
 import {
   getVisemeWeights,
-  VISEME_BLEND_SHAPE_KEYS,
   type BlendShapeWeights,
 } from "../utils/visemeMap";
 import type { AgentRole } from "../types";
+
+// Re-export for convenience
+export { lerpWeight, VISEME_LERP_SPEED, VISEME_BLEND_SHAPE_KEYS } from "../utils/visemeMap";
 
 interface UseVisemeReturn {
   /** Feed viseme event from SignalR agentVisemeDelta */
@@ -40,17 +42,3 @@ export function useViseme(): UseVisemeReturn {
 
   return { feedViseme, getTargetWeights, resetWeights };
 }
-
-/** LERP speed for smooth viseme transitions (per second) — Spec §6.3 */
-export const VISEME_LERP_SPEED = 12;
-
-/** Interpolate a single blend shape weight toward target */
-export function lerpWeight(
-  current: number,
-  target: number,
-  deltaTime: number,
-): number {
-  return current + (target - current) * Math.min(1, deltaTime * VISEME_LERP_SPEED);
-}
-
-export { VISEME_BLEND_SHAPE_KEYS };

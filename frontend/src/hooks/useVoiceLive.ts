@@ -30,7 +30,7 @@ export function useVoiceLive({
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   // Ref to hold latest startStreaming to avoid stale closures in effects
-  const startStreamingRef = useRef<() => Promise<void>>();
+  const startStreamingRef = useRef<() => Promise<void>>(undefined);
   // Track in-flight fetch to prevent backpressure buildup
   const inFlightRef = useRef(false);
 

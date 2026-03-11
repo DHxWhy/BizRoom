@@ -377,11 +377,11 @@ export function determineAgentOrder(
 function checkFollowUp(response: { role: AgentRole; content: string }): AgentRole | null {
   const content = response.content.toLowerCase();
 
-  if (response.role !== "cfo" && /예산|비용|투자|만원|억원|roi/i.test(content)) return "cfo";
-  if (response.role !== "cmo" && /마케팅|캠페인|고객|브랜드|시장점유/i.test(content)) return "cmo";
-  if (response.role !== "cto" && /서버|아키텍처|api|개발|인프라|기술 부채/i.test(content)) return "cto";
-  if (response.role !== "clo" && /계약|법적|규제|개인정보|라이선스/i.test(content)) return "clo";
-  if (response.role !== "cdo" && /디자인|ux|사용성|접근성/i.test(content)) return "cdo";
+  if (response.role !== "cfo" && /예산|비용|투자|만원|억원|roi|budget|cost|invest|revenue|financ/i.test(content)) return "cfo";
+  if (response.role !== "cmo" && /마케팅|캠페인|고객|브랜드|시장점유|marketing|campaign|customer|brand|market share/i.test(content)) return "cmo";
+  if (response.role !== "cto" && /서버|아키텍처|api|개발|인프라|기술 부채|server|architect|develop|infra|tech debt/i.test(content)) return "cto";
+  if (response.role !== "clo" && /계약|법적|규제|개인정보|라이선스|contract|legal|regulat|privacy|license|complian/i.test(content)) return "clo";
+  if (response.role !== "cdo" && /디자인|ux|사용성|접근성|design|usability|accessib|user experience/i.test(content)) return "cdo";
 
   return null;
 }
