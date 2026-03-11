@@ -6,6 +6,11 @@ import {
 } from "@microsoft/signalr";
 import type { HubConnection } from "@microsoft/signalr";
 import type { Message, MeetingPhase, Artifact } from "../types";
+import type {
+  StartStreamPayload,
+  AppendDeltaPayload,
+  EndStreamPayload,
+} from "../context/MeetingContext";
 
 /** Possible states for the SignalR connection lifecycle. */
 export type ConnectionStatus =
@@ -13,6 +18,14 @@ export type ConnectionStatus =
   | "connecting"
   | "connected"
   | "reconnecting";
+
+/** SSE 스트리밍 delta 이벤트의 JSON 구조 */
+interface SSEDeltaEvent {
+  messageId: string;
+  role: string;
+  name: string;
+  delta: string;
+}
 
 /** Callback options for reacting to SignalR hub events. */
 interface UseSignalROptions {
@@ -26,6 +39,15 @@ interface UseSignalROptions {
   onArtifactCreated?: (artifact: Artifact) => void;
   /** Called whenever the connection status changes. */
   onStatusChange?: (status: ConnectionStatus) => void;
+
+  // ── 스트리밍 콜백 ──
+
+  /** 새 에이전트 메시지 스트림이 시작될 때 호출 */
+  onStreamStart?: (payload: StartStreamPayload) => void;
+  /** 스트리밍 중 텍스트 delta가 도착할 때 호출 */
+  onStreamDelta?: (payload: AppendDeltaPayload) => void;
+  /** 에이전트 메시지 스트림이 완료될 때 호출 */
+  onStreamEnd?: (payload: EndStreamPayload) => void;
 }
 
 /** Return type of the useSignalR hook. */
@@ -34,6 +56,12 @@ interface UseSignalRReturn {
   status: ConnectionStatus;
   /** Send a message to a room via SignalR or REST fallback. */
   sendMessage: (
+    roomId: string,
+    content: string,
+    senderName: string,
+  ) => Promise<void>;
+  /** SSE 스트리밍으로 메시지를 전송하고 delta를 실시간 수신 */
+  sendMessageStream: (
     roomId: string,
     content: string,
     senderName: string,
@@ -160,6 +188,9 @@ export function useSignalR(
         await connection.invoke("SendMessage", roomId, content, senderName);
       } else {
         // REST fallback for MVP (when SignalR backend is not configured)
+        // Show typing indicator before API call
+        optionsRef.current.onTyping?.("Hudson", true);
+
         const response = await fetch("/api/message", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -170,6 +201,9 @@ export function useSignalR(
             senderName,
           }),
         });
+
+        // Clear typing indicator after response arrives
+        optionsRef.current.onTyping?.("Hudson", false);
 
         if (response.ok) {
           const data: unknown = await response.json();
@@ -191,5 +225,118 @@ export function useSignalR(
     [],
   );
 
-  return { status, sendMessage };
+  /**
+   * SSE 스트리밍으로 메시지를 전송한다.
+   * POST /api/message?stream=true 호출 후 ReadableStream으로 delta를 수신하며
+   * onStreamStart / onStreamDelta / onStreamEnd 콜백을 호출한다.
+   */
+  const sendMessageStream = useCallback(
+    async (
+      roomId: string,
+      content: string,
+      senderName: string,
+    ): Promise<void> => {
+      const response = await fetch("/api/message?stream=true", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content,
+          roomId,
+          senderId: "user-1",
+          senderName,
+        }),
+      });
+
+      if (!response.ok || !response.body) {
+        console.error("SSE stream request failed:", response.status);
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      // 현재 스트리밍 중인 메시지 ID 추적 (START_STREAM 호출 여부 판단)
+      const startedMessages = new Set<string>();
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          // SSE 이벤트는 \n\n 으로 구분
+          const parts = buffer.split("\n\n");
+          // 마지막 요소는 아직 완료되지 않은 부분일 수 있음
+          buffer = parts.pop() ?? "";
+
+          for (const part of parts) {
+            const trimmed = part.trim();
+            if (!trimmed) continue;
+
+            // "data: ..." 프리픽스 제거
+            if (!trimmed.startsWith("data: ")) continue;
+            const payload = trimmed.slice(6); // "data: " 이후
+
+            // [DONE] 시그널: 모든 스트림 완료
+            if (payload === "[DONE]") {
+              // 아직 END_STREAM을 받지 못한 메시지가 있으면 종료 처리
+              for (const msgId of startedMessages) {
+                optionsRef.current.onStreamEnd?.({ messageId: msgId });
+              }
+              startedMessages.clear();
+              return;
+            }
+
+            // JSON delta 이벤트 파싱
+            let event: SSEDeltaEvent;
+            try {
+              event = JSON.parse(payload) as SSEDeltaEvent;
+            } catch {
+              console.warn("SSE parse error, skipping chunk:", payload);
+              continue;
+            }
+
+            const { messageId, role, name, delta } = event;
+
+            // 해당 messageId의 첫 delta → START_STREAM 호출
+            if (!startedMessages.has(messageId)) {
+              startedMessages.add(messageId);
+
+              // 이전 메시지가 있으면 END_STREAM 호출 (에이전트 전환)
+              for (const prevId of startedMessages) {
+                if (prevId !== messageId) {
+                  optionsRef.current.onStreamEnd?.({ messageId: prevId });
+                  startedMessages.delete(prevId);
+                }
+              }
+
+              optionsRef.current.onStreamStart?.({
+                messageId,
+                senderId: `agent-${role}`,
+                senderName: name,
+                senderRole: role,
+                senderType: "agent",
+              });
+            }
+
+            // APPEND_MESSAGE_DELTA 호출
+            optionsRef.current.onStreamDelta?.({ messageId, delta });
+          }
+        }
+      } catch (err: unknown) {
+        console.error("SSE stream reading error:", err);
+      } finally {
+        // 정리: 남아있는 스트리밍 메시지 종료 처리
+        for (const msgId of startedMessages) {
+          optionsRef.current.onStreamEnd?.({ messageId: msgId });
+        }
+        reader.releaseLock();
+      }
+    },
+    [],
+  );
+
+  return { status, sendMessage, sendMessageStream };
 }

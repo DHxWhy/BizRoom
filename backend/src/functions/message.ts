@@ -4,9 +4,22 @@ import {
   HttpResponseInit,
   InvocationContext,
 } from "@azure/functions";
-import { invokeAgent } from "../agents/AgentFactory.js";
+import { processMessage, determineAgentOrder } from "../orchestrator/TurnManager.js";
+import { classifyTopic, parseMentions } from "../orchestrator/TopicClassifier.js";
+import {
+  getContextForAgent,
+  addMessage,
+  getOrCreateRoom,
+} from "../orchestrator/ContextBroker.js";
+import {
+  invokeAgentStream,
+  getAgentMeta,
+} from "../agents/AgentFactory.js";
 import type { AgentRole, Message } from "../models/index.js";
 import { v4 as uuidv4 } from "uuid";
+
+// Azure Functions v4: HTTP 스트리밍 활성화
+app.setup({ enableHttpStream: true });
 
 interface MessageRequest {
   content: string;
@@ -16,7 +29,11 @@ interface MessageRequest {
   mentions?: AgentRole[];
 }
 
-// POST /api/message - receive user message, trigger agent responses
+/** SSE 이벤트 한 줄을 UTF-8 인코딩하여 반환 */
+function sseEncode(data: string): Uint8Array {
+  return new TextEncoder().encode(`data: ${data}\n\n`);
+}
+
 export async function message(
   request: HttpRequest,
   context: InvocationContext,
@@ -34,50 +51,123 @@ export async function message(
     return { status: 400, jsonBody: { error: "Message content is required" } };
   }
 
-  // Build context for agents
-  const agentContext = {
-    participants:
-      "Chairman (\uC0AC\uC6A9\uC790), Hudson (COO), Amelia (CFO), Yusef (CMO)",
-    agenda: body.content,
-    history: "",
+  const roomId = body.roomId ?? "room-default";
+
+  // Build user message object
+  const userMessage: Message = {
+    id: uuidv4(),
+    roomId,
+    senderId: body.senderId ?? "user-1",
+    senderType: "human",
+    senderName: body.senderName ?? "Chairman",
+    senderRole: "chairman",
+    content: body.content,
+    timestamp: new Date().toISOString(),
   };
 
-  // Determine which agents should respond
-  const agentsToRespond: AgentRole[] = body.mentions?.length
-    ? body.mentions
-    : ["coo", "cfo", "cmo"];
+  // stream=true 쿼리 파라미터 확인
+  const streamParam = request.query.get("stream");
+  const isStream = streamParam === "true";
 
-  // Collect agent responses sequentially (DialogLab turn-taking)
-  const responses: Message[] = [];
-
-  for (const role of agentsToRespond) {
+  if (!isStream) {
+    // 기존 비스트리밍 응답 — 기존 동작 유지
     try {
-      const agentResponse = await invokeAgent(
-        role,
-        body.content,
-        agentContext,
-      );
-
-      const msg: Message = {
-        id: uuidv4(),
-        roomId: body.roomId ?? "room-default",
-        senderId: `agent-${role}`,
-        senderType: "agent",
-        senderName: agentResponse.name,
-        senderRole: role,
-        content: agentResponse.content,
-        timestamp: new Date().toISOString(),
-      };
-
-      responses.push(msg);
+      const responses = await processMessage(roomId, userMessage);
+      return { status: 200, jsonBody: { messages: responses } };
     } catch (err) {
-      context.log(`Agent ${role} failed:`, err);
+      context.log("Orchestration error:", err);
+      return { status: 500, jsonBody: { error: "Agent processing failed" } };
     }
   }
 
+  // ── SSE 스트리밍 응답 ──
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        // 사용자 메시지를 컨텍스트에 저장
+        const room = getOrCreateRoom(roomId);
+        addMessage(roomId, userMessage);
+
+        // 토픽 분류 및 @멘션 파싱
+        const mentions = parseMentions(userMessage.content);
+        const { primaryAgent, secondaryAgents } = classifyTopic(userMessage.content);
+
+        // 에이전트 응답 순서 결정
+        const turnOrder = determineAgentOrder(
+          userMessage.content,
+          mentions,
+          primaryAgent,
+          secondaryAgents,
+        );
+
+        // 순차적으로 각 에이전트의 응답을 스트리밍
+        for (const entry of turnOrder) {
+          const messageId = uuidv4();
+          const meta = getAgentMeta(entry.role);
+          const contextStr = getContextForAgent(roomId, entry.role);
+
+          try {
+            let fullContent = "";
+
+            // 에이전트 스트림에서 delta를 SSE로 전송
+            const agentStream = invokeAgentStream(
+              entry.role,
+              userMessage.content,
+              {
+                participants:
+                  "Chairman (사용자), Hudson (COO), Amelia (CFO), Yusef (CMO)",
+                agenda: room.agenda || userMessage.content,
+                history: contextStr,
+              },
+            );
+
+            for await (const delta of agentStream) {
+              fullContent += delta;
+              const sseData = JSON.stringify({
+                messageId,
+                role: meta.role,
+                name: meta.name,
+                delta,
+              });
+              controller.enqueue(sseEncode(sseData));
+            }
+
+            // 에이전트 응답 완료 — 컨텍스트에 전체 메시지 저장
+            const msg: Message = {
+              id: messageId,
+              roomId,
+              senderId: `agent-${entry.role}`,
+              senderType: "agent",
+              senderName: meta.name,
+              senderRole: entry.role,
+              content: fullContent,
+              timestamp: new Date().toISOString(),
+            };
+            addMessage(roomId, msg);
+          } catch (err: unknown) {
+            context.log(`Agent ${entry.role} stream failed:`, err);
+          }
+        }
+
+        // 모든 에이전트 응답 완료
+        controller.enqueue(sseEncode("[DONE]"));
+        controller.close();
+      } catch (err: unknown) {
+        context.log("SSE stream orchestration error:", err);
+        controller.enqueue(sseEncode("[DONE]"));
+        controller.close();
+      }
+    },
+  });
+
   return {
     status: 200,
-    jsonBody: { messages: responses },
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+    body: stream,
   };
 }
 
