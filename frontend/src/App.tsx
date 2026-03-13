@@ -83,12 +83,18 @@ const STATUS_LABEL_MAP: Record<ConnectionStatus, string> = {
   disconnected: "REST mode",
 };
 
-/** Small indicator showing the current SignalR / REST connection state. */
-function ConnectionStatusBadge({ status }: { status: ConnectionStatus }) {
+/** Small indicator showing the current SignalR / REST connection state.
+ *  Positioned as a subtle fixed pill at the bottom-left corner. */
+function ConnectionStatusPill({ status }: { status: ConnectionStatus }) {
   return (
-    <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+    <div
+      className="fixed bottom-4 left-4 z-30 flex items-center gap-1.5
+                 bg-neutral-900/60 backdrop-blur-sm border border-neutral-700/20
+                 rounded-full px-2.5 py-1
+                 opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
+    >
       <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLOR_MAP[status]}`} />
-      <span>{STATUS_LABEL_MAP[status]}</span>
+      <span className="text-[10px] text-neutral-500">{STATUS_LABEL_MAP[status]}</span>
     </div>
   );
 }
@@ -100,22 +106,19 @@ const ParticipantOverlay = memo(function ParticipantOverlay({
   participants,
   speakingAgent,
   typingAgents,
-  connectionStatus,
 }: {
   participants: Participant[];
   speakingAgent: string | null;
   typingAgents: string[];
-  connectionStatus: ConnectionStatus;
 }) {
   return (
     <div className="absolute left-4 top-4 z-10">
       <div className="bg-neutral-950/70 backdrop-blur-xl rounded-xl border border-neutral-700/30 p-3 min-w-[180px]">
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3">
           <h3 className="text-xs font-semibold text-neutral-300 uppercase tracking-wider">
             {S.overlay.participantsHeading}
           </h3>
-          <ConnectionStatusBadge status={connectionStatus} />
         </div>
 
         {/* Participant list */}
@@ -494,6 +497,22 @@ function MeetingRoom() {
     [dispatch],
   );
 
+  // Leave-room confirmation dialog state
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
+  const handleLeaveClick = useCallback(() => {
+    setShowLeaveConfirm(true);
+  }, []);
+
+  const handleLeaveConfirm = useCallback(() => {
+    setShowLeaveConfirm(false);
+    leaveRoom();
+  }, [leaveRoom]);
+
+  const handleLeaveCancel = useCallback(() => {
+    setShowLeaveConfirm(false);
+  }, []);
+
   const isIdle = state.meetingPhase === "idle";
   const isActive = !isIdle;
 
@@ -519,7 +538,33 @@ function MeetingRoom() {
       {/* ═══ TOP BAR ═══ */}
       <div className="absolute top-0 left-0 right-0 z-20 pointer-events-none">
         <div className="pointer-events-auto flex items-center justify-between">
-          <MeetingBanner phase={state.meetingPhase} />
+          <div className="flex items-center gap-2">
+            {/* Back / Leave button */}
+            <button
+              onClick={handleLeaveClick}
+              className="ml-3 mt-2 flex items-center gap-1 px-2.5 py-1.5
+                         bg-neutral-800/40 backdrop-blur-sm border border-neutral-700/20
+                         rounded-lg text-neutral-400 text-xs
+                         hover:bg-neutral-700/50 hover:text-neutral-200
+                         transition-all
+                         opacity-0 animate-[fadeIn_0.3s_ease-out_forwards]"
+              title={S.lobby.backToLobby}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="w-3.5 h-3.5"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+            <MeetingBanner phase={state.meetingPhase} />
+          </div>
           {isActive && (
             <div className="mr-4 mt-2">
               <ModeSelector currentMode={state.meetingMode} onModeChange={handleModeChange} />
@@ -528,13 +573,50 @@ function MeetingRoom() {
         </div>
       </div>
 
+      {/* ═══ LEAVE CONFIRMATION MODAL ═══ */}
+      {showLeaveConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center
+                     bg-black/60 backdrop-blur-sm
+                     opacity-0 animate-[fadeIn_0.2s_ease-out_forwards]"
+        >
+          <div
+            className="bg-neutral-900/90 backdrop-blur-xl border border-neutral-700/30
+                       rounded-xl p-6 max-w-sm mx-4 text-center
+                       opacity-0 animate-[fadeIn_0.3s_ease-out_0.05s_forwards]"
+          >
+            <p className="text-neutral-200 text-sm whitespace-pre-line mb-5">
+              {S.lobby.leaveConfirm}
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={handleLeaveCancel}
+                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700
+                           text-neutral-300 text-sm rounded-lg transition-colors"
+              >
+                {S.lobby.leaveCancel}
+              </button>
+              <button
+                onClick={handleLeaveConfirm}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500
+                           text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                {S.lobby.leaveYes}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══ PARTICIPANT SIDEBAR (overlay) ═══ */}
       <ParticipantOverlay
         participants={state.participants.length > 0 ? state.participants : DEFAULT_PARTICIPANTS}
         speakingAgent={state.speakingAgent}
         typingAgents={state.typingAgents}
-        connectionStatus={connectionStatus}
       />
+
+      {/* ═══ CONNECTION STATUS (bottom-left pill) ═══ */}
+      <ConnectionStatusPill status={connectionStatus} />
 
       {/* ═══ START MEETING BUTTON + MODE SELECTOR (when idle) ═══ */}
       {isIdle && (
@@ -657,13 +739,18 @@ function getInitialRoomCode(): string | undefined {
 /** Router: shows lobby or meeting room based on session state */
 function AppRouter() {
   const state = useMeetingState();
+  const dispatch = useMeetingDispatch();
   const { initUser } = useSessionRoom();
   const [urlRoomCode] = useState(getInitialRoomCode);
 
-  // On mount: initialize user from localStorage
+  // On mount: initialize user from localStorage, and auto-rejoin if URL hash has room code
   useEffect(() => {
-    initUser();
-  }, [initUser]);
+    const { userName } = initUser();
+    if (urlRoomCode && userName) {
+      dispatch({ type: "SET_ROOM", payload: { roomId: urlRoomCode, isChairman: false } });
+      dispatch({ type: "ENTER_ROOM" });
+    }
+  }, [initUser, urlRoomCode, dispatch]);
 
   // If user is in a room, show the meeting room
   if (state.inRoom) {
