@@ -11,6 +11,7 @@ import type {
   AppendDeltaPayload,
   EndStreamPayload,
 } from "../context/MeetingContext";
+import { API_BASE } from "../config/api";
 
 /** Possible states for the SignalR connection lifecycle. */
 export type ConnectionStatus =
@@ -84,8 +85,8 @@ interface UseSignalRReturn {
   ) => Promise<void>;
 }
 
-// For MVP: negotiate endpoint for SignalR; falls back to REST polling if unavailable
-const NEGOTIATE_URL = "/api/negotiate";
+// SignalR hub URL — client auto-appends /negotiate, so this must NOT end with /negotiate
+const NEGOTIATE_URL = `${API_BASE}/api`;
 
 /**
  * React hook that manages a SignalR HubConnection lifecycle.
@@ -233,7 +234,7 @@ export function useSignalR(
         // Show typing indicator before API call
         optionsRef.current.onTyping?.("Hudson", true);
 
-        const response = await fetch("/api/message", {
+        const response = await fetch(`${API_BASE}/api/message`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -279,7 +280,7 @@ export function useSignalR(
       senderName: string,
       modeOptions?: { mode?: string; dmTarget?: string | null },
     ): Promise<void> => {
-      const response = await fetch("/api/message?stream=true", {
+      const response = await fetch(`${API_BASE}/api/message?stream=true`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

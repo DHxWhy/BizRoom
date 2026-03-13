@@ -3,6 +3,7 @@
 
 import { useState, useCallback } from "react";
 import { S } from "../../constants/strings";
+import { API_BASE } from "../../config/api";
 
 interface ChairmanControlsProps {
   roomId: string;
@@ -22,7 +23,7 @@ export function ChairmanControls({
     async (endpoint: string, body: Record<string, unknown>) => {
       setLoading(endpoint);
       try {
-        await fetch(`/api/meeting/${endpoint}`, {
+        await fetch(`${API_BASE}/api/meeting/${endpoint}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),

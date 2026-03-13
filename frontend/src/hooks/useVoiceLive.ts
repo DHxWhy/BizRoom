@@ -3,6 +3,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { float32ToPcm16, pcm16ToBase64 } from "../utils/audioUtils";
+import { API_BASE } from "../config/api";
 
 const STORAGE_KEY_MIC = "bizroom_mic_enabled";
 const AUDIO_CHUNK_SIZE = 12000; // 500ms at 24kHz — larger chunks reduce HTTP request frequency
@@ -67,7 +68,7 @@ export function useVoiceLive({
         const pcm16 = float32ToPcm16(input);
         const base64 = pcm16ToBase64(pcm16);
 
-        fetch(`/api/voice/audio`, {
+        fetch(`${API_BASE}/api/voice/audio`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ roomId: targetRoomId, audioBase64: base64 }),

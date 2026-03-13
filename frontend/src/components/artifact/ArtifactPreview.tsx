@@ -1,5 +1,6 @@
 import { S } from "../../constants/strings";
 import type { Artifact } from "../../types";
+import { API_BASE } from "../../config/api";
 
 interface ArtifactPreviewProps {
   artifact: Artifact;
@@ -16,7 +17,7 @@ export function ArtifactPreview({ artifact }: ArtifactPreviewProps) {
 
   const handleDownload = () => {
     // Download via API endpoint
-    window.open(`/api/artifacts/${artifact.id}`, "_blank");
+    window.open(`${API_BASE}/api/artifacts/${artifact.id}`, "_blank");
   };
 
   return (

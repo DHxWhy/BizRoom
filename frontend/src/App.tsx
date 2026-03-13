@@ -16,6 +16,7 @@ import { ChatOverlay } from "./components/meeting3d/ChatOverlay";
 import { LoadingScreen } from "./components/meeting3d/LoadingScreen";
 import { LobbyPage } from "./components/lobby/LobbyPage";
 import { S } from "./constants/strings";
+import { API_BASE } from "./config/api";
 import type {
   Message,
   MeetingPhase,
@@ -395,7 +396,7 @@ function MeetingRoom() {
   const handleStartMeeting = useCallback(async () => {
     dispatch({ type: "SET_PHASE", payload: "opening" });
     try {
-      const res = await fetch("/api/meeting/start", {
+      const res = await fetch(`${API_BASE}/api/meeting/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
