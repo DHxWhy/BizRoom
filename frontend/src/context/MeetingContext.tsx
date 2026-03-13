@@ -1,5 +1,18 @@
 import { createContext, useContext, useReducer, type Dispatch, type ReactNode } from "react";
-import type { Message, Participant, MeetingPhase, MeetingMode, Artifact } from "../types";
+import type {
+  Message,
+  Participant,
+  MeetingPhase,
+  MeetingMode,
+  Artifact,
+  AgentRole,
+  BigScreenUpdateEvent,
+  MonitorUpdateEvent,
+  SophiaMessageEvent,
+  ArtifactsReadyEvent,
+  HumanCalloutEvent,
+  BrandMemorySet,
+} from "../types";
 
 /** Human participant in the 3D scene (max 2 extra besides Chairman) */
 export interface HumanParticipant {
@@ -32,6 +45,24 @@ interface MeetingState {
   streamingMessageIds: Set<string>;
   /** Additional human participants in the 3D scene (max 2) */
   humanParticipants: HumanParticipant[];
+  /** Big screen visualization history (max 20, FIFO) */
+  bigScreenHistory: BigScreenUpdateEvent[];
+  /** Index into bigScreenHistory: -1 = auto-follow latest */
+  bigScreenIndex: number;
+  /** Per-agent/chairman monitor data */
+  monitorData: Record<string, MonitorUpdateEvent>;
+  /** Sophia secretary messages */
+  sophiaMessages: SophiaMessageEvent[];
+  /** Meeting artifacts ready for download */
+  readyArtifacts: ArtifactsReadyEvent | null;
+  /** Agents currently thinking */
+  thinkingAgents: AgentRole[];
+  /** Active human callout (opinion/confirm request from agent) */
+  humanCallout: HumanCalloutEvent | null;
+  /** Brand memory for current meeting session */
+  brandMemory: BrandMemorySet | null;
+  /** Agenda set in lobby (used by handleStartMeeting in App.tsx) */
+  lobbyAgenda: string;
 }
 
 /** START_STREAM 페이로드: 빈 메시지 stub를 생성 */
@@ -73,7 +104,16 @@ type MeetingAction =
   | { type: "ENTER_ROOM" }
   | { type: "LEAVE_ROOM" }
   | { type: "ADD_HUMAN_PARTICIPANT"; payload: HumanParticipant }
-  | { type: "REMOVE_HUMAN_PARTICIPANT"; payload: string };
+  | { type: "REMOVE_HUMAN_PARTICIPANT"; payload: string }
+  | { type: "PUSH_BIG_SCREEN"; payload: BigScreenUpdateEvent }
+  | { type: "NAV_BIG_SCREEN"; payload: "prev" | "next" }
+  | { type: "SET_MONITOR"; payload: MonitorUpdateEvent }
+  | { type: "ADD_SOPHIA_MESSAGE"; payload: SophiaMessageEvent }
+  | { type: "SET_READY_ARTIFACTS"; payload: ArtifactsReadyEvent }
+  | { type: "SET_THINKING_AGENTS"; payload: { roles: AgentRole[] } }
+  | { type: "SET_HUMAN_CALLOUT"; payload: HumanCalloutEvent | null }
+  | { type: "SET_BRAND_MEMORY"; payload: BrandMemorySet | null }
+  | { type: "SET_LOBBY_AGENDA"; payload: string };
 
 const initialState: MeetingState = {
   roomId: "",
@@ -93,6 +133,15 @@ const initialState: MeetingState = {
   isRecording: false,
   streamingMessageIds: new Set<string>(),
   humanParticipants: [],
+  bigScreenHistory: [],
+  bigScreenIndex: -1,
+  monitorData: {},
+  sophiaMessages: [],
+  readyArtifacts: null,
+  thinkingAgents: [],
+  humanCallout: null,
+  brandMemory: null,
+  lobbyAgenda: "",
 };
 
 function meetingReducer(state: MeetingState, action: MeetingAction): MeetingState {
@@ -187,6 +236,15 @@ function meetingReducer(state: MeetingState, action: MeetingAction): MeetingStat
         typingAgents: [],
         speakingAgent: null,
         streamingMessageIds: new Set<string>(),
+        bigScreenHistory: [],
+        bigScreenIndex: -1,
+        monitorData: {},
+        sophiaMessages: [],
+        readyArtifacts: null,
+        thinkingAgents: [],
+        humanCallout: null,
+        brandMemory: null,
+        lobbyAgenda: "",
       };
 
     case "ADD_HUMAN_PARTICIPANT": {
@@ -201,6 +259,42 @@ function meetingReducer(state: MeetingState, action: MeetingAction): MeetingStat
         humanParticipants: state.humanParticipants.filter((p) => p.name !== action.payload),
       };
 
+    // ── Meeting interaction actions ──
+
+    case "PUSH_BIG_SCREEN": {
+      const MAX_HISTORY = 20;
+      const next = [...state.bigScreenHistory, action.payload];
+      const trimmed = next.length > MAX_HISTORY ? next.slice(-MAX_HISTORY) : next;
+      return { ...state, bigScreenHistory: trimmed, bigScreenIndex: -1 };
+    }
+    case "NAV_BIG_SCREEN": {
+      const len = state.bigScreenHistory.length;
+      if (len === 0) return state;
+      const current = state.bigScreenIndex === -1 ? len - 1 : state.bigScreenIndex;
+      const nextIdx =
+        action.payload === "prev" ? Math.max(0, current - 1) : Math.min(len - 1, current + 1);
+      return { ...state, bigScreenIndex: nextIdx === len - 1 ? -1 : nextIdx };
+    }
+    case "SET_MONITOR":
+      return {
+        ...state,
+        monitorData: { ...state.monitorData, [action.payload.target]: action.payload },
+      };
+    case "ADD_SOPHIA_MESSAGE": {
+      const next = [...state.sophiaMessages, action.payload];
+      return { ...state, sophiaMessages: next.length > 50 ? next.slice(-50) : next };
+    }
+    case "SET_READY_ARTIFACTS":
+      return { ...state, readyArtifacts: action.payload };
+    case "SET_THINKING_AGENTS":
+      return { ...state, thinkingAgents: action.payload.roles };
+    case "SET_HUMAN_CALLOUT":
+      return { ...state, humanCallout: action.payload };
+    case "SET_BRAND_MEMORY":
+      return { ...state, brandMemory: action.payload };
+    case "SET_LOBBY_AGENDA":
+      return { ...state, lobbyAgenda: action.payload };
+
     default:
       return state;
   }
@@ -213,9 +307,7 @@ export function MeetingProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(meetingReducer, initialState);
   return (
     <MeetingStateContext.Provider value={state}>
-      <MeetingDispatchContext.Provider value={dispatch}>
-        {children}
-      </MeetingDispatchContext.Provider>
+      <MeetingDispatchContext.Provider value={dispatch}>{children}</MeetingDispatchContext.Provider>
     </MeetingStateContext.Provider>
   );
 }

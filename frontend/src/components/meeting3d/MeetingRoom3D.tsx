@@ -1,19 +1,15 @@
 import { Suspense, useMemo, useRef, useState, useCallback, useEffect, memo } from "react";
 import { Canvas } from "@react-three/fiber";
-import {
-  OrbitControls,
-  Environment,
-  ContactShadows,
-  Billboard,
-  Text,
-} from "@react-three/drei";
+import { OrbitControls, Environment, ContactShadows, Billboard, Text } from "@react-three/drei";
 import { RPMAgentAvatar } from "./RPMAgentAvatar";
+import { AgentAvatar3D } from "./AgentAvatar3D";
 import { MeetingTable3D } from "./MeetingTable3D";
 import { RoomEnvironment3D } from "./RoomEnvironment3D";
 import { CameraController } from "./CameraController";
 import { ArtifactScreen3D } from "./ArtifactScreen3D";
 import { HoloMonitor3D } from "./HoloMonitor3D";
 import type { ArtifactData } from "./ArtifactScreen3D";
+import type { BigScreenUpdateEvent } from "../../types";
 import { S } from "../../constants/strings";
 
 interface AgentSeat {
@@ -90,6 +86,15 @@ const HUMAN_EXTRA_SEATS: [number, number, number][] = [
   [0.9, 0, 2.1],
 ];
 
+/** Sophia secretary — standing beside the big screen */
+const SOPHIA_CONFIG = {
+  position: [2.0, 0, -6.5] as [number, number, number],
+  rotation: [0, -Math.PI / 4, 0] as [number, number, number],
+  name: "Sophia",
+  role: "Secretary",
+  color: "#F59E0B",
+};
+
 // Memoize static sub-scenes to prevent unnecessary re-renders
 const MemoizedRoom = memo(RoomEnvironment3D);
 const MemoizedTable = memo(MeetingTable3D);
@@ -104,7 +109,7 @@ function getMonitorTransform(pos: [number, number, number]): {
   const dist = Math.sqrt(dx * dx + dz * dz);
   const nx = dx / dist;
   const nz = dz / dist;
-  const offset = 0.50;
+  const offset = 0.5;
   return {
     position: [pos[0] + nx * offset, 1.05, pos[2] + nz * offset],
     rotationY: Math.atan2(pos[0], pos[2]) + Math.PI,
@@ -128,7 +133,7 @@ const HumanChair = memo(function HumanChair({
       </mesh>
       {/* Backrest */}
       <mesh position={[0, 0.85, -0.12]}>
-        <boxGeometry args={[0.40, 0.55, 0.04]} />
+        <boxGeometry args={[0.4, 0.55, 0.04]} />
         <meshStandardMaterial color="#1a1a24" roughness={0.75} />
       </mesh>
       {/* Backrest cushion */}
@@ -173,13 +178,22 @@ interface MeetingRoom3DProps {
   currentArtifact?: ArtifactData | null;
   /** Additional human participants (max 2) sitting across from Chairman */
   humanParticipants?: HumanParticipant[];
+  /** Current BigScreen visualization event */
+  bigScreenEvent?: BigScreenUpdateEvent | null;
+  /** Current page info for BigScreen history navigation */
+  bigScreenPage?: { current: number; total: number } | null;
+  /** Callback for Q/E keyboard navigation through BigScreen history */
+  onBigScreenNav?: (dir: "prev" | "next") => void;
 }
 
-export function MeetingRoom3D({
+export const MeetingRoom3D = memo(function MeetingRoom3D({
   speakingAgent,
   thinkingAgents,
   currentArtifact = null,
   humanParticipants = [],
+  bigScreenEvent = null,
+  bigScreenPage = null,
+  onBigScreenNav,
 }: MeetingRoom3DProps) {
   // useRef instead of useState to avoid re-renders on drag
   const isUserControllingRef = useRef(false);
@@ -196,11 +210,7 @@ export function MeetingRoom3D({
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't handle keys if user is typing in an input field
       const tag = (e.target as HTMLElement)?.tagName;
-      if (
-        tag === "INPUT" ||
-        tag === "TEXTAREA" ||
-        (e.target as HTMLElement)?.isContentEditable
-      )
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable)
         return;
 
       // V: toggle first-person view
@@ -226,10 +236,18 @@ export function MeetingRoom3D({
           setFirstPersonYaw((prev) => Math.max(prev - 50, -50));
         }
       }
+
+      // Q/E: navigate BigScreen history (only when multiple pages exist)
+      if (e.key === "q" || e.key === "Q") {
+        onBigScreenNav?.("prev");
+      }
+      if (e.key === "e" || e.key === "E") {
+        onBigScreenNav?.("next");
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFirstPerson, isLookingBack]);
+  }, [isFirstPerson, isLookingBack, onBigScreenNav]);
 
   const seatPositions = useMemo(() => {
     const map: Record<string, [number, number, number]> = {};
@@ -305,11 +323,7 @@ export function MeetingRoom3D({
             shadow-bias={-0.0001}
             color="#f8f8ff"
           />
-          <directionalLight
-            position={[-4, 6, -3]}
-            intensity={1.0}
-            color="#d4d4ff"
-          />
+          <directionalLight position={[-4, 6, -3]} intensity={1.0} color="#d4d4ff" />
 
           {/* ═══ ENVIRONMENT ═══ */}
           <Environment background={false}>
@@ -343,10 +357,7 @@ export function MeetingRoom3D({
             return (
               <group key={`human-${i}`}>
                 {/* Chair */}
-                <HumanChair
-                  position={seat.position}
-                  rotationY={seat.rotationY}
-                />
+                <HumanChair position={seat.position} rotationY={seat.rotationY} />
                 {/* Holographic monitor */}
                 <HoloMonitor3D
                   position={seat.monitor.position}
@@ -380,8 +391,32 @@ export function MeetingRoom3D({
             );
           })}
 
+          {/* ═══ SOPHIA — standing beside big screen ═══ */}
+          <group position={SOPHIA_CONFIG.position} rotation={SOPHIA_CONFIG.rotation}>
+            <AgentAvatar3D
+              agentName={SOPHIA_CONFIG.name}
+              agentRole={SOPHIA_CONFIG.role.toLowerCase()}
+              position={[0, 0, 0]}
+              rotation={[0, 0, 0]}
+              isSpeaking={false}
+              isThinking={false}
+              color={SOPHIA_CONFIG.color}
+            />
+            <HoloMonitor3D
+              position={[0, 1.8, 0.3]}
+              rotationY={0}
+              agentRole="secretary"
+              agentName="Sophia"
+              color={SOPHIA_CONFIG.color}
+            />
+          </group>
+
           {/* ═══ ARTIFACT SCREEN (back wall) ═══ */}
-          <ArtifactScreen3D artifact={currentArtifact} />
+          <ArtifactScreen3D
+            artifact={currentArtifact}
+            bigScreenEvent={bigScreenEvent}
+            pageInfo={bigScreenPage}
+          />
 
           {/* ═══ CONTACT SHADOWS (baked once) ═══ */}
           <ContactShadows
@@ -446,13 +481,17 @@ export function MeetingRoom3D({
             <span>{S.camera.backMonitorHint}</span>
           ) : (
             <>
-              <span className={firstPersonYaw > 0 ? "text-indigo-400" : "text-white/40"}>A &larr;</span>
+              <span className={firstPersonYaw > 0 ? "text-indigo-400" : "text-white/40"}>
+                A &larr;
+              </span>
               <span>{S.camera.firstPersonHint}</span>
-              <span className={firstPersonYaw < 0 ? "text-indigo-400" : "text-white/40"}>&rarr; D</span>
+              <span className={firstPersonYaw < 0 ? "text-indigo-400" : "text-white/40"}>
+                &rarr; D
+              </span>
             </>
           )}
         </div>
       )}
     </div>
   );
-}
+});

@@ -33,8 +33,9 @@ export function broadcastToRoom(roomId: string, message: Message): void {
   }
 }
 
-// Generic event handler for non-Message payloads (voice streaming events)
-type EventHandler = (event: { type: string; payload: unknown }) => void;
+// Typed event handler for voice streaming and meeting interaction events
+import type { MeetingBroadcastEvent } from "../models/index.js";
+type EventHandler = (event: MeetingBroadcastEvent) => void;
 
 const eventHandlers: Map<string, Set<EventHandler>> = new Map();
 
@@ -51,8 +52,8 @@ export function onRoomEvent(
   };
 }
 
-/** Broadcast a generic event to room subscribers (voice streaming, typing, etc.) */
-export function broadcastEvent(roomId: string, event: { type: string; payload: unknown }): void {
+/** Broadcast a typed event to room subscribers (voice streaming, meeting interaction, etc.) */
+export function broadcastEvent(roomId: string, event: MeetingBroadcastEvent): void {
   const roomEventHandlers = eventHandlers.get(roomId);
   if (roomEventHandlers) {
     for (const handler of roomEventHandlers) {

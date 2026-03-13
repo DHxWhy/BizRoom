@@ -12,7 +12,8 @@ export type MeetingPhase =
   | "action"
   | "closing";
 export type ParticipantStatus = "online" | "away" | "busy" | "typing";
-export type ArtifactType = "excel" | "markdown" | "image";
+export type ArtifactType = "excel" | "markdown" | "image" | "powerpoint" | "planner";
+export type ArtifactFileType = "pptx" | "xlsx" | "planner";
 export type QuickActionType = "agree" | "disagree" | "next" | "hold";
 export type MeetingMode = "live" | "auto" | "dm";
 
@@ -78,7 +79,7 @@ export interface ActionItem {
 // Voice Live API Types
 // Ref: docs/superpowers/specs/2026-03-12-voice-live-turnmanager-design.md §2.2
 // ──────────────────────────────────────────────
-export type TurnState = "idle" | "hearing" | "routing" | "speaking";
+export type TurnState = "idle" | "hearing" | "routing" | "speaking" | "awaiting";
 
 export interface BufferedMessage {
   userId: string;
@@ -127,4 +128,218 @@ export interface AgentTypingEvent {
 export interface PhaseChangedEvent {
   phase: MeetingPhase;
   agendaItem?: string;
+}
+
+// ──────────────────────────────────────────────
+// Agent Context — shared between AgentFactory, agentConfigs, prompts
+// ──────────────────────────────────────────────
+export interface AgentContext {
+  participants: string;
+  agenda: string;
+  history: string;
+  brandMemory?: BrandMemorySet;
+}
+
+// ──────────────────────────────────────────────
+// SignalR Broadcast Event — discriminated union
+// ──────────────────────────────────────────────
+export type RoomBroadcastEvent =
+  | { type: "agentAudioDelta"; payload: AgentAudioDeltaEvent }
+  | { type: "agentTranscriptDelta"; payload: AgentTranscriptDeltaEvent }
+  | { type: "agentVisemeDelta"; payload: AgentVisemeDeltaEvent }
+  | { type: "agentResponseDone"; payload: AgentResponseDoneEvent }
+  | { type: "agentTyping"; payload: AgentTypingEvent }
+  | { type: "phaseChanged"; payload: PhaseChangedEvent };
+
+// ──────────────────────────────────────────────
+// Voice Live WebSocket Event — discriminated unions
+// ──────────────────────────────────────────────
+export type ListenerWsEvent =
+  | { type: "input_audio_buffer.speech_started" }
+  | { type: "input_audio_buffer.speech_stopped" }
+  | { type: "conversation.item.input_audio_transcription.completed"; transcript: string };
+
+export type AgentWsEvent =
+  | { type: "response.audio.delta"; delta: string }
+  | { type: "response.audio_transcript.delta"; delta: string }
+  | { type: "response.animation_viseme.delta"; viseme_id: number; audio_offset_ms: number }
+  | {
+      type: "response.done";
+      response: {
+        output: Array<{
+          type: string;
+          content?: Array<{ type: string; text?: string; transcript?: string }>;
+        }>;
+      };
+    };
+
+// ──────────────────────────────────────────────
+// Response Quality Logging
+// ──────────────────────────────────────────────
+export interface ResponseLog {
+  _type: "ResponseLog";
+  timestamp: string;
+  agent: { role: AgentRole; name: string };
+  response: { sentenceCount: number; tokenEstimate: number; latencyMs: number };
+  qualityChecks: { sentenceCountPass: boolean };
+}
+
+// ──────────────────────────────────────────────
+// Meeting Interaction Types — Spec §2-4
+// ──────────────────────────────────────────────
+export interface Mention {
+  target: AgentRole | "chairman" | `member:${string}`;
+  intent: "opinion" | "confirm";
+  options?: string[];
+}
+
+export interface VisualHint {
+  type: VisualType;
+  title: string;
+}
+
+export interface StructuredAgentOutput {
+  speech: string;
+  key_points: string[];
+  mention: Mention | null;
+  visual_hint: VisualHint | null;
+}
+
+export type VisualType =
+  | "comparison"
+  | "pie-chart"
+  | "bar-chart"
+  | "timeline"
+  | "checklist"
+  | "summary"
+  | "architecture";
+
+export type SecretaryRole = "sophia";
+export type AllAgentRole = AgentRole | SecretaryRole;
+
+// ──────────────────────────────────────────────
+// Meeting Interaction Events — Spec §9
+// ──────────────────────────────────────────────
+export interface AgentThinkingEvent {
+  roles: AgentRole[];
+}
+
+export interface HumanCalloutEvent {
+  target: "chairman" | `member:${string}`;
+  intent: "opinion" | "confirm";
+  options?: string[];
+  fromAgent: AgentRole;
+}
+
+export type BigScreenRenderData =
+  | { type: "comparison"; columns: string[]; rows: string[][] }
+  | { type: "pie-chart"; items: Array<{ label: string; value: number; color: string }> }
+  | { type: "bar-chart"; items: Array<{ label: string; value: number }> }
+  | { type: "timeline"; items: Array<{ date: string; label: string; status: "done" | "current" | "pending" }> }
+  | { type: "checklist"; items: Array<{ text: string; checked: boolean }> }
+  | { type: "summary"; items: string[] }
+  | { type: "architecture"; nodes: Array<{ id: string; label: string; x: number; y: number }>; edges: Array<{ from: string; to: string }> };
+
+export interface BigScreenUpdateEvent {
+  visualType: VisualType;
+  title: string;
+  renderData: BigScreenRenderData;
+}
+
+export type MonitorContent =
+  | { type: "idle"; text: string }
+  | { type: "keyPoints"; agentRole: AgentRole; points: string[] }
+  | { type: "confirm"; options: string[]; fromAgent: AgentRole }
+  | { type: "callout"; message: string; fromAgent: AgentRole }
+  | { type: "actionItems"; items: Array<{ description: string; assignee: string }> }
+  | { type: "thinking"; text: string }
+  | { type: "speaking"; text: string };
+
+export interface MonitorUpdateEvent {
+  target: "chairman" | `member:${string}` | AgentRole;
+  mode: "idle" | "keyPoints" | "confirm" | "callout" | "actionItems" | "thinking" | "speaking";
+  content: MonitorContent;
+}
+
+export interface SophiaMessageEvent {
+  text: string;
+  visualRef?: string;
+}
+
+export interface ArtifactsReadyEvent {
+  files: Array<{
+    name: string;
+    type: ArtifactFileType;
+    webUrl: string;
+    driveItemId?: string;
+  }>;
+}
+
+// Extend RoomBroadcastEvent with meeting interaction events
+export type MeetingBroadcastEvent =
+  | RoomBroadcastEvent
+  | { type: "agentThinking"; payload: AgentThinkingEvent }
+  | { type: "humanCallout"; payload: HumanCalloutEvent }
+  | { type: "bigScreenUpdate"; payload: BigScreenUpdateEvent }
+  | { type: "monitorUpdate"; payload: MonitorUpdateEvent }
+  | { type: "sophiaMessage"; payload: SophiaMessageEvent }
+  | { type: "artifactsReady"; payload: ArtifactsReadyEvent };
+
+// ──────────────────────────────────────────────
+// Brand Memory Set — Spec §1
+// ──────────────────────────────────────────────
+
+export interface PricingTier {
+  name: string;
+  price: string;
+  features: string;
+}
+
+export interface CompetitorInfo {
+  name: string;
+  weakness: string;
+}
+
+export interface ExternalLink {
+  label: string;
+  url: string;
+}
+
+export interface BrandMemorySet {
+  // Required (3)
+  companyName: string;
+  industry: string;
+  productName: string;
+  // Basic info
+  foundedDate?: string;
+  founderName?: string;
+  teamSize?: string;
+  mission?: string;
+  vision?: string;
+  // Product
+  productDescription?: string;
+  coreFeatures?: string[];
+  targetCustomer?: string;
+  techStack?: string;
+  revenueModel?: string;
+  pricing?: PricingTier[];
+  // Market
+  marketSize?: string;
+  marketStats?: string[];
+  competitors?: CompetitorInfo[];
+  differentiation?: string[];
+  // Finance
+  currentStage?: string;
+  funding?: string;
+  goals?: string;
+  // Links
+  links?: ExternalLink[];
+  // Challenges
+  challenges?: string[];
+  quarterGoal?: string;
+  meetingObjective?: string;
+  // Brand copy
+  brandCopy?: string;
+  subCopy?: string;
+  positioning?: string;
 }

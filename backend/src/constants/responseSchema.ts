@@ -1,0 +1,53 @@
+// JSON schema for Chat Completions response_format (strict mode)
+// Ref: Spec §2.2
+
+export const CSUITE_RESPONSE_SCHEMA = {
+  name: "csuite_response",
+  strict: true,
+  schema: {
+    type: "object" as const,
+    properties: {
+      speech: { type: "string" as const, description: "Spoken text in Korean, 80-180 chars" },
+      key_points: { type: "array" as const, items: { type: "string" as const } },
+      mention: {
+        anyOf: [
+          { type: "null" as const },
+          {
+            type: "object" as const,
+            properties: {
+              target: { type: "string" as const },
+              intent: { type: "string" as const, enum: ["opinion", "confirm"] },
+              options: {
+                anyOf: [
+                  { type: "null" as const },
+                  { type: "array" as const, items: { type: "string" as const } },
+                ],
+              },
+            },
+            required: ["target", "intent", "options"] as const,
+            additionalProperties: false,
+          },
+        ],
+      },
+      visual_hint: {
+        anyOf: [
+          { type: "null" as const },
+          {
+            type: "object" as const,
+            properties: {
+              type: {
+                type: "string" as const,
+                enum: ["comparison", "pie-chart", "bar-chart", "timeline", "checklist", "summary", "architecture"],
+              },
+              title: { type: "string" as const },
+            },
+            required: ["type", "title"] as const,
+            additionalProperties: false,
+          },
+        ],
+      },
+    },
+    required: ["speech", "key_points", "mention", "visual_hint"] as const,
+    additionalProperties: false,
+  },
+} as const;

@@ -38,6 +38,30 @@ async function toggleAiPause(request: HttpRequest, context: InvocationContext): 
   return { status: 200, jsonBody: { success: true, paused } };
 }
 
+/** Max input length for human response text */
+const MAX_TEXT_LENGTH = 2000;
+const MAX_ID_LENGTH = 200;
+
+/** POST /api/meeting/human-response — chairman/member callout reply */
+async function humanResponse(
+  request: HttpRequest,
+  context: InvocationContext,
+): Promise<HttpResponseInit> {
+  const { roomId, userId, text } = (await request.json()) as {
+    roomId?: string;
+    userId?: string;
+    text?: string;
+  };
+  if (!roomId || !userId || !text) {
+    return { status: 400, jsonBody: { error: "roomId, userId, text required" } };
+  }
+  if (text.length > MAX_TEXT_LENGTH || roomId.length > MAX_ID_LENGTH || userId.length > MAX_ID_LENGTH) {
+    return { status: 400, jsonBody: { error: "Input exceeds maximum length" } };
+  }
+  turnManager.onHumanResponse(roomId, userId, text);
+  return { status: 200, jsonBody: { success: true } };
+}
+
 app.http("requestAiOpinion", {
   methods: ["POST"],
   authLevel: "anonymous",
@@ -57,4 +81,48 @@ app.http("toggleAiPause", {
   authLevel: "anonymous",
   route: "api/meeting/toggle-ai-pause",
   handler: toggleAiPause,
+});
+
+app.http("humanResponse", {
+  methods: ["POST"],
+  authLevel: "anonymous",
+  route: "api/meeting/human-response",
+  handler: humanResponse,
+});
+
+/** POST /api/meeting/join-member — team member role-based joining */
+async function joinMember(
+  request: HttpRequest,
+  context: InvocationContext,
+): Promise<HttpResponseInit> {
+  const { roomId, userId, userName, role } = (await request.json()) as {
+    roomId?: string;
+    userId?: string;
+    userName?: string;
+    role?: string;
+  };
+
+  if (!roomId || !userId || !userName || !role) {
+    return { status: 400, jsonBody: { error: "roomId, userId, userName, role required" } };
+  }
+  if (roomId.length > MAX_ID_LENGTH || userId.length > MAX_ID_LENGTH ||
+      userName.length > MAX_ID_LENGTH || role.length > MAX_ID_LENGTH) {
+    return { status: 400, jsonBody: { error: "Input exceeds maximum length" } };
+  }
+
+  // TODO: Register participant in ContextBroker once participant tracking is implemented
+  // Broadcast member joined notification
+  broadcastEvent(roomId, {
+    type: "phaseChanged",
+    payload: { phase: "discussion" },
+  });
+
+  return { status: 200, jsonBody: { success: true } };
+}
+
+app.http("joinMember", {
+  methods: ["POST"],
+  authLevel: "anonymous",
+  route: "api/meeting/join-member",
+  handler: joinMember,
 });

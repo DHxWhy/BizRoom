@@ -69,7 +69,7 @@ export function useSessionRoom() {
     return { userId, userName };
   }, [dispatch]);
 
-  /** Create a new room as Chairman */
+  /** Create a new room as Chairman (sets user + room, does NOT enter yet) */
   const createRoom = useCallback(
     (userName: string) => {
       const userId = getOrCreateUserId();
@@ -78,7 +78,6 @@ export function useSessionRoom() {
       saveUserName(userName);
       dispatch({ type: "SET_USER", payload: { userId, userName } });
       dispatch({ type: "SET_ROOM", payload: { roomId, isChairman: true } });
-      dispatch({ type: "ENTER_ROOM" });
 
       setRoomIdInUrl(roomId);
 
@@ -86,6 +85,11 @@ export function useSessionRoom() {
     },
     [dispatch],
   );
+
+  /** Enter the room (call after multi-step setup is complete) */
+  const enterRoom = useCallback(() => {
+    dispatch({ type: "ENTER_ROOM" });
+  }, [dispatch]);
 
   /** Join an existing room as a team member */
   const joinRoom = useCallback(
@@ -117,6 +121,7 @@ export function useSessionRoom() {
   return {
     initUser,
     createRoom,
+    enterRoom,
     joinRoom,
     leaveRoom,
     getShareUrl,

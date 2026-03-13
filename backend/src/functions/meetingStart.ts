@@ -1,17 +1,39 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { AGENT_CONFIGS } from "../agents/agentConfigs.js";
 import { invokeAgent } from "../agents/AgentFactory.js";
-import { getOrCreateRoom, setPhase, setAgenda, addMessage } from "../orchestrator/ContextBroker.js";
+import {
+  getOrCreateRoom,
+  setPhase,
+  setAgenda,
+  addMessage,
+  setBrandMemory,
+} from "../orchestrator/ContextBroker.js";
 import { wireVoiceLiveForRoom } from "../orchestrator/VoiceLiveOrchestrator.js";
 import { voiceLiveManager } from "../services/VoiceLiveSessionManager.js";
 import { v4 as uuidv4 } from "uuid";
-import type { Message } from "../models/index.js";
+import type { Message, BrandMemorySet } from "../models/index.js";
 
 interface MeetingStartRequest {
   roomId?: string;
   agenda?: string;
   userId: string;
   userName: string;
+  brandMemory?: BrandMemorySet;
+}
+
+/** Max serialized size for brandMemory payload (10 KB) */
+const BRAND_MEMORY_MAX_SIZE = 10_000;
+
+/** Validate brandMemory — returns cleaned object or null */
+function validateBrandMemory(bm: unknown): BrandMemorySet | null {
+  if (!bm || typeof bm !== "object") return null;
+  const b = bm as Record<string, unknown>;
+  if (typeof b.companyName !== "string" || !b.companyName.trim()) return null;
+  if (typeof b.industry !== "string" || !b.industry.trim()) return null;
+  if (typeof b.productName !== "string" || !b.productName.trim()) return null;
+  // Guard against oversized payloads
+  if (JSON.stringify(bm).length > BRAND_MEMORY_MAX_SIZE) return null;
+  return bm as BrandMemorySet;
 }
 
 export async function meetingStart(
@@ -35,6 +57,12 @@ export async function meetingStart(
   setPhase(roomId, "opening");
   setAgenda(roomId, agenda);
 
+  // Store brand memory if provided
+  const validBrandMemory = validateBrandMemory(body.brandMemory);
+  if (validBrandMemory) {
+    setBrandMemory(roomId, validBrandMemory);
+  }
+
   // Initialize Voice Live sessions and wire events
   await voiceLiveManager.initializeRoom(roomId, body.userId);
   wireVoiceLiveForRoom(roomId, body.userId, body.userName);
@@ -49,15 +77,12 @@ export async function meetingStart(
   // COO Hudson opens the meeting
   let openingMessage: Message | null = null;
   try {
-    const cooResponse = await invokeAgent(
-      "coo",
-      `회의를 시작합니다. 오늘의 안건: ${agenda}`,
-      {
-        participants: `${body.userName} (Chairman), Hudson (COO), Amelia (CFO), Yusef (CMO)`,
-        agenda,
-        history: "",
-      },
-    );
+    const cooResponse = await invokeAgent("coo", `회의를 시작합니다. 오늘의 안건: ${agenda}`, {
+      participants: `${body.userName} (Chairman), Hudson (COO), Amelia (CFO), Yusef (CMO)`,
+      agenda,
+      history: "",
+      brandMemory: validBrandMemory ?? undefined,
+    });
 
     openingMessage = {
       id: uuidv4(),

@@ -3,7 +3,7 @@
 // Ref: Design Spec §2
 
 import { EventEmitter } from "events";
-import type { AgentRole, BufferedMessage, AgentTurn, TurnState, Message } from "../models/index.js";
+import type { AgentRole, BufferedMessage, AgentTurn, TurnState, Message, StructuredAgentOutput } from "../models/index.js";
 import { classifyTopic, parseMentions } from "./TopicClassifier.js";
 import { getContextForAgent, addMessage, getOrCreateRoom } from "./ContextBroker.js";
 import {
@@ -12,6 +12,7 @@ import {
   INTER_AGENT_GAP_MS,
   MAX_AGENTS_PER_TURN,
   MAX_FOLLOW_UP_ROUNDS,
+  HUMAN_CALLOUT_TIMEOUT_MS,
 } from "../constants/turnConfig.js";
 import { v4 as uuidv4 } from "uuid";
 
@@ -23,16 +24,11 @@ interface RoomTurnState {
   activeAgent: AgentRole | null;
   interruptFlag: boolean;
   aiPaused: boolean;
-  combinedInput: string;           // cached for triggerNextAgent
-  chairmanUserId: string | null;   // MVP: single mic = chairman
-}
-
-// Preserved from original TurnManager — DialogLab priority queue
-type Priority = 0 | 1 | 2 | 3 | 4;
-
-interface TurnEntry {
-  role: AgentRole;
-  priority: Priority;
+  combinedInput: string; // cached for triggerNextAgent
+  chairmanUserId: string | null; // MVP: single mic = chairman
+  followUpRound: number; // track A2A follow-up rounds
+  awaitingTimer: ReturnType<typeof setTimeout> | null;
+  awaitingGeneration: number;
 }
 
 /**
@@ -47,6 +43,12 @@ interface TurnEntry {
 export class TurnManager extends EventEmitter {
   private rooms = new Map<string, RoomTurnState>();
 
+  constructor() {
+    super();
+    // Multiple rooms × multiple event types can exceed default maxListeners(10)
+    this.setMaxListeners(0);
+  }
+
   private getRoom(roomId: string): RoomTurnState {
     if (!this.rooms.has(roomId)) {
       this.rooms.set(roomId, {
@@ -59,6 +61,9 @@ export class TurnManager extends EventEmitter {
         aiPaused: false,
         combinedInput: "",
         chairmanUserId: null,
+        followUpRound: 0,
+        awaitingTimer: null,
+        awaitingGeneration: 0,
       });
     }
     return this.rooms.get(roomId)!;
@@ -88,7 +93,7 @@ export class TurnManager extends EventEmitter {
   // ── Event Handlers (Spec §2.3) ──
 
   /** Human started speaking via voice — Spec §2.3 onSpeechStart */
-  onSpeechStart(roomId: string, userId: string): void {
+  onSpeechStart(roomId: string, _userId: string): void {
     const room = this.getRoom(roomId);
 
     if (room.state === "idle") {
@@ -142,7 +147,13 @@ export class TurnManager extends EventEmitter {
   }
 
   /** Chat message received — Spec §2.3 onChatMessage */
-  onChatMessage(roomId: string, userId: string, userName: string, text: string, isChairman: boolean): void {
+  onChatMessage(
+    roomId: string,
+    userId: string,
+    userName: string,
+    text: string,
+    isChairman: boolean,
+  ): void {
     const room = this.getRoom(roomId);
 
     if (room.aiPaused) return; // AI paused, ignore
@@ -188,8 +199,11 @@ export class TurnManager extends EventEmitter {
     }
   }
 
-  /** Agent finished responding — Spec §2.3 onAgentDone */
-  onAgentDone(roomId: string, agentRole: AgentRole, fullText: string): void {
+  /** Agent finished responding — Spec §2.3 onAgentDone
+   *  @param skipFollowUp - When true, skip keyword-based checkFollowUp
+   *    (use when handleMentionRouting has already processed structured output)
+   */
+  onAgentDone(roomId: string, agentRole: AgentRole, fullText: string, skipFollowUp = false): void {
     const room = this.getRoom(roomId);
     if (room.state !== "speaking") return;
 
@@ -206,15 +220,20 @@ export class TurnManager extends EventEmitter {
     };
     addMessage(roomId, agentMessage);
 
-    // A2A follow-up check (preserved from original TurnManager)
-    // C2 fix: deduplicate — don't queue an agent that's already in the queue
-    const followUpRole = checkFollowUp({ role: agentRole, content: fullText });
-    if (
-      followUpRole &&
-      room.agentQueue.length < MAX_AGENTS_PER_TURN &&
-      !room.agentQueue.some((q) => q.role === followUpRole)
-    ) {
-      room.agentQueue.push({ role: followUpRole, priority: 3 });
+    // A2A follow-up check — enforce MAX_FOLLOW_UP_ROUNDS + deduplicate
+    // Skip when structured mention routing already handled follow-ups
+    if (!skipFollowUp) {
+      room.followUpRound++;
+      if (room.followUpRound <= MAX_FOLLOW_UP_ROUNDS) {
+        const followUpRole = checkFollowUp({ role: agentRole, content: fullText });
+        if (
+          followUpRole &&
+          room.agentQueue.length < MAX_AGENTS_PER_TURN &&
+          !room.agentQueue.some((q) => q.role === followUpRole)
+        ) {
+          room.agentQueue.push({ role: followUpRole, priority: 3 });
+        }
+      }
     }
 
     // Next agent or back to IDLE
@@ -222,8 +241,98 @@ export class TurnManager extends EventEmitter {
       setTimeout(() => this.triggerNextAgent(roomId), INTER_AGENT_GAP_MS);
     } else {
       room.activeAgent = null;
-      this.transition(roomId, "idle");
+      // Emit agentsDone for completed cycle, then re-flush if queued input
       this.emit("agentsDone:" + roomId, roomId);
+      if (room.inputBuffer.length > 0) {
+        this.onFlush(roomId);
+      } else {
+        this.transition(roomId, "idle");
+      }
+    }
+  }
+
+  /** Initialize a room explicitly (for tests and external setup) */
+  initRoom(roomId: string, chairmanUserId: string): void {
+    const room = this.getRoom(roomId);
+    room.chairmanUserId = chairmanUserId;
+  }
+
+  /** Enter awaiting state for human callout — Spec §2 */
+  enterAwaitingState(
+    roomId: string,
+    callout: { target: string; intent: string; options?: string[]; fromAgent: AgentRole },
+  ): void {
+    const room = this.getRoom(roomId);
+    if (room.state !== "speaking") return;
+
+    this.transition(roomId, "awaiting");
+    room.awaitingGeneration++;
+
+    this.emit("humanCallout:" + roomId, roomId, callout);
+
+    const gen = room.awaitingGeneration;
+    room.awaitingTimer = setTimeout(() => {
+      if (room.awaitingGeneration !== gen) return;
+      if (room.state !== "awaiting") return;
+      this.resumeFromAwaiting(roomId, "[의장님이 응답하지 않아 계속 진행합니다]");
+    }, HUMAN_CALLOUT_TIMEOUT_MS);
+  }
+
+  /** Handle human response during awaiting state */
+  onHumanResponse(roomId: string, _userId: string, text: string): void {
+    const room = this.getRoom(roomId);
+    if (room.state !== "awaiting") return;
+
+    if (room.awaitingTimer) {
+      clearTimeout(room.awaitingTimer);
+      room.awaitingTimer = null;
+    }
+
+    this.clearFlushTimer(room);
+    room.inputBuffer = [];
+
+    this.resumeFromAwaiting(roomId, text);
+  }
+
+  /** Route based on structured mention output — Spec §3 */
+  handleMentionRouting(
+    roomId: string,
+    output: StructuredAgentOutput,
+    fromAgent: AgentRole,
+  ): void {
+    const room = this.getRoom(roomId);
+
+    if (output.mention) {
+      const { target, intent, options } = output.mention;
+
+      if (target === "chairman" || target.startsWith("member:")) {
+        this.enterAwaitingState(roomId, { target, intent, options, fromAgent });
+        return;
+      }
+
+      // Agent-to-agent mention
+      const VALID_AGENT_ROLES = new Set<string>(["coo", "cfo", "cmo", "cto", "cdo", "clo"]);
+      if (VALID_AGENT_ROLES.has(target)) {
+        room.agentQueue.push({ role: target as AgentRole, priority: 1 });
+      }
+    } else {
+      // Fallback: keyword-based checkFollowUp
+      const followUp = checkFollowUp({ role: fromAgent, content: output.speech });
+      if (followUp) {
+        room.agentQueue.push({ role: followUp, priority: 2 });
+      }
+    }
+  }
+
+  private resumeFromAwaiting(roomId: string, responseText: string): void {
+    const room = this.getRoom(roomId);
+    this.emit("humanResponseReceived:" + roomId, roomId, responseText);
+
+    if (room.agentQueue.length > 0) {
+      this.transition(roomId, "speaking");
+      this.triggerNextAgent(roomId);
+    } else {
+      this.transition(roomId, "idle");
     }
   }
 
@@ -232,6 +341,10 @@ export class TurnManager extends EventEmitter {
     const room = this.rooms.get(roomId);
     if (room) {
       this.clearFlushTimer(room);
+      if (room.awaitingTimer) {
+        clearTimeout(room.awaitingTimer);
+        room.awaitingTimer = null;
+      }
       this.rooms.delete(roomId);
     }
   }
@@ -243,9 +356,7 @@ export class TurnManager extends EventEmitter {
     this.transition(roomId, "routing");
 
     // 1. Merge buffered messages
-    room.combinedInput = room.inputBuffer
-      .map((m) => `[${m.userName}]: ${m.content}`)
-      .join("\n");
+    room.combinedInput = room.inputBuffer.map((m) => `[${m.userName}]: ${m.content}`).join("\n");
 
     // If buffer is empty (e.g., AI opinion with no new input), use last context
     if (!room.combinedInput.trim()) {
@@ -271,12 +382,17 @@ export class TurnManager extends EventEmitter {
     // 3. Determine agents via TopicClassifier
     const mentions = parseMentions(room.combinedInput);
     const { primaryAgent, secondaryAgents } = classifyTopic(room.combinedInput);
-    room.agentQueue = determineAgentOrder(room.combinedInput, mentions, primaryAgent, secondaryAgents)
-      .slice(0, MAX_AGENTS_PER_TURN);
+    room.agentQueue = determineAgentOrder(
+      room.combinedInput,
+      mentions,
+      primaryAgent,
+      secondaryAgents,
+    ).slice(0, MAX_AGENTS_PER_TURN);
 
-    // 4. Clear buffer
+    // 4. Clear buffer + reset follow-up counter
     room.inputBuffer = [];
     room.interruptFlag = false;
+    room.followUpRound = 0;
 
     // 5. Trigger first agent
     if (room.agentQueue.length > 0) {
@@ -303,7 +419,12 @@ export class TurnManager extends EventEmitter {
     const roomData = getOrCreateRoom(roomId);
 
     // Build instructions for Voice Live response.create
-    const instructions = buildAgentPrompt(next.role, contextStr, room.combinedInput, roomData.agenda || "");
+    const instructions = buildAgentPrompt(
+      next.role,
+      contextStr,
+      room.combinedInput,
+      roomData.agenda || "",
+    );
 
     this.emit("triggerAgent:" + roomId, roomId, next.role, instructions);
   }
@@ -342,8 +463,8 @@ export function determineAgentOrder(
   const entries: AgentTurn[] = [];
   const added = new Set<AgentRole>();
 
-  // P1: COO always responds (meeting orchestrator)
-  if (!mentions.length || mentions.includes("coo")) {
+  // P1: COO responds only when: no mentions, or COO is mentioned, or COO is primary
+  if (mentions.length === 0 || mentions.includes("coo") || primaryAgent === "coo") {
     entries.push({ role: "coo", priority: 1 });
     added.add("coo");
   }
@@ -373,33 +494,130 @@ export function determineAgentOrder(
   return entries.sort((a, b) => a.priority - b.priority);
 }
 
-/** A2A follow-up check — preserved from original TurnManager */
+// Negative context patterns — skip A2A when keyword appears in negation
+const NEGATION_PATTERN =
+  /(?:필요\s*(?:없|않)|하지\s*않|안\s*해도|불필요|제외|빼고|without|no need|not require)/i;
+
+/** Check if a keyword match is negated by nearby context (within same sentence) */
+function isNegatedMatch(content: string, keywordMatch: RegExpMatchArray): boolean {
+  const matchIndex = keywordMatch.index ?? 0;
+  // Extract the sentence containing the match (look back up to 40 chars for negation)
+  const windowStart = Math.max(0, matchIndex - 40);
+  const window = content.slice(windowStart, matchIndex);
+  return NEGATION_PATTERN.test(window);
+}
+
+/** A2A follow-up check with per-keyword negation filter */
 function checkFollowUp(response: { role: AgentRole; content: string }): AgentRole | null {
   const content = response.content.toLowerCase();
 
-  if (response.role !== "cfo" && /예산|비용|투자|만원|억원|roi|budget|cost|invest|revenue|financ/i.test(content)) return "cfo";
-  if (response.role !== "cmo" && /마케팅|캠페인|고객|브랜드|시장점유|marketing|campaign|customer|brand|market share/i.test(content)) return "cmo";
-  if (response.role !== "cto" && /서버|아키텍처|api|개발|인프라|기술 부채|server|architect|develop|infra|tech debt/i.test(content)) return "cto";
-  if (response.role !== "clo" && /계약|법적|규제|개인정보|라이선스|contract|legal|regulat|privacy|license|complian/i.test(content)) return "clo";
-  if (response.role !== "cdo" && /디자인|ux|사용성|접근성|design|usability|accessib|user experience/i.test(content)) return "cdo";
+  const checks: Array<{ exclude: AgentRole; pattern: RegExp; target: AgentRole }> = [
+    {
+      exclude: "cfo",
+      pattern: /예산|비용|투자|만원|억원|roi|budget|cost|invest|revenue|financ/i,
+      target: "cfo",
+    },
+    {
+      exclude: "cmo",
+      pattern: /마케팅|캠페인|고객|브랜드|시장점유|marketing|campaign|customer|brand|market share/i,
+      target: "cmo",
+    },
+    {
+      exclude: "cto",
+      pattern: /서버|아키텍처|api|개발|인프라|기술 부채|server|architect|develop|infra|tech debt/i,
+      target: "cto",
+    },
+    {
+      exclude: "clo",
+      pattern: /계약|법적|규제|개인정보|라이선스|contract|legal|regulat|privacy|license|complian/i,
+      target: "clo",
+    },
+    {
+      exclude: "cdo",
+      pattern: /디자인|ux|사용성|접근성|design|usability|accessib|user experience/i,
+      target: "cdo",
+    },
+  ];
+
+  for (const { exclude, pattern, target } of checks) {
+    if (response.role === exclude) continue;
+    const match = pattern.exec(content);
+    if (match && !isNegatedMatch(content, match)) return target;
+  }
 
   return null;
 }
 
-/** Build prompt for Voice Live response.create — combines persona + context + input */
-function buildAgentPrompt(role: AgentRole, contextStr: string, humanInput: string, agenda: string): string {
-  return [
-    `You are the ${role.toUpperCase()} agent in a BizRoom meeting.`,
-    `Current agenda: ${agenda || "General discussion"}`,
-    "",
-    "Recent conversation context:",
-    contextStr,
-    "",
-    "Human input to respond to:",
-    humanInput,
-    "",
-    "Respond concisely (max 200 tokens). Focus on your domain expertise.",
-  ].join("\n");
+// Agent voice persona map — compressed persona for Voice Live prompts
+const VOICE_PERSONA: Record<AgentRole, { identity: string; style: string; domain: string }> = {
+  coo: {
+    identity:
+      "COO Hudson — 회의의 오케스트레이터이자 실행 전문가. 핵심 가치: 실행이 전략보다 중요하다.",
+    style: "정리하겠습니다 / 액션아이템은 / 첫째,둘째 / 시간 언급",
+    domain: "회의 진행, 태스크 분배, 실행 계획. 재무/마케팅은 해당 임원에게 위임.",
+  },
+  cfo: {
+    identity:
+      "CFO Amelia — 재무 분석가이자 예산 관리자. 핵심 가치: 모든 결정에는 숫자가 있어야 한다.",
+    style: "숫자를 먼저 제시 / 마진율은 X% / Option A vs B 비교 / 조건부 승인",
+    domain: "비용 분석, 예산, ROI, P&L, 현금흐름. 마케팅 전략은 CMO 영역.",
+  },
+  cmo: {
+    identity:
+      "CMO Yusef — 브랜드 스토리텔러이자 AI 마케터. 핵심 가치: 고객이 아직 모르는 것을 보여줘라.",
+    style: "고객 관점에서... / 구체적 시나리오 / 데이터 기반 확신 / 열정적",
+    domain: "GTM, 캠페인, 브랜딩, 고객 여정. 재무 분석은 CFO 영역.",
+  },
+  cto: {
+    identity:
+      "CTO Kelvin — 실용적 기술 리더. 핵심 가치: 복잡한 것을 단순하게 만드는 것이 진짜 혁신.",
+    style: "쉽게 말하면 / 기술적으로는 A지만 현실적으로는 B / 공수 산정",
+    domain: "아키텍처, 개발, 인프라, 기술부채. 디자인은 CDO 영역.",
+  },
+  cdo: {
+    identity: "CDO Jonas — 사용자 중심 디자인 리더. 핵심 가치: 아름다움과 접근성의 공존.",
+    style: "이 경험이 사용자에게 어떤 감정을... / 접근성 / 시안을 만들어볼게요",
+    domain: "UI/UX, 디자인 시스템, 접근성. 서버/인프라는 CTO 영역.",
+  },
+  clo: {
+    identity:
+      "CLO Bradley — 법률 전문가이자 Responsible AI 수호자. 핵심 가치: 옳은 일을 하는 것이 좋은 비즈니스다.",
+    style: "~해야 할 것으로 사료됩니다 / 법 인용 / 리스크 완화 중심",
+    domain: "계약, 규제, 개인정보, 라이선스. 기술 결정은 CTO 영역.",
+  },
+};
+
+/** Build prompt for Voice Live response.create — includes persona + Korean + guardrails */
+function buildAgentPrompt(
+  role: AgentRole,
+  contextStr: string,
+  humanInput: string,
+  agenda: string,
+): string {
+  const persona = VOICE_PERSONA[role];
+  return `## 정체성
+당신은 BizRoom.ai의 ${persona.identity}
+
+## 화법
+${persona.style}
+
+## 규칙
+- 모든 응답은 한국어로 합니다.
+- 3-5문장 이내로 간결하게 응답합니다.
+- 결론을 먼저 말하고, 근거를 뒤에 붙입니다.
+- 다른 임원: "Amelia CFO", "Yusef CMO" 형식으로 호칭합니다.
+- 투자/법률 조언은 "참고용"임을 명시합니다.
+- 전문 분야: ${persona.domain}
+
+## 맥락
+현재 안건: ${agenda || "일반 회의"}
+${contextStr}
+
+## 발언 과제
+아래 발언에 응답하세요:
+<user_input>
+${humanInput}
+</user_input>`;
 }
 
 // Singleton instance

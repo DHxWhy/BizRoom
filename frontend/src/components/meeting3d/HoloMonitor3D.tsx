@@ -3,6 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import type { Group } from "three";
 import { S } from "../../constants/strings";
+import type { MonitorUpdateEvent } from "../../types";
 
 const MONITOR_W = 0.52;
 const MONITOR_H = 0.34;
@@ -15,6 +16,52 @@ interface HoloMonitorProps {
   agentRole: string;
   agentName: string;
   color: string;
+  monitorData?: MonitorUpdateEvent;
+}
+
+/** Render dynamic content based on monitor mode */
+function renderMonitorContent(data: MonitorUpdateEvent): JSX.Element {
+  switch (data.content.type) {
+    case "idle":
+      return <Text fontSize={0.02} color="#8b949e" anchorX="center" anchorY="middle">{data.content.text}</Text>;
+    case "keyPoints":
+      return (
+        <group>
+          {data.content.points.slice(0, 4).map((point, i) => (
+            <Text key={i} position={[0, 0.04 - i * 0.025, 0.004]} fontSize={0.018} color="#e6edf3" anchorX="left" anchorY="middle" maxWidth={0.4}>
+              {"\u2022"} {point}
+            </Text>
+          ))}
+        </group>
+      );
+    case "confirm":
+      return (
+        <group>
+          <Text position={[0, 0.06, 0.004]} fontSize={0.022} color="#58a6ff" anchorX="center" anchorY="middle">결정 필요</Text>
+          {data.content.options.slice(0, 3).map((opt, i) => (
+            <Text key={i} position={[0, 0.02 - i * 0.03, 0.004]} fontSize={0.018} color="#e6edf3" anchorX="center" anchorY="middle">
+              [{i + 1}] {opt}
+            </Text>
+          ))}
+        </group>
+      );
+    case "callout":
+      return <Text fontSize={0.02} color="#fbbf24" anchorX="center" anchorY="middle">{data.content.message}</Text>;
+    case "thinking":
+      return <Text fontSize={0.022} color="#58a6ff" anchorX="center" anchorY="middle">생각 중...</Text>;
+    case "speaking":
+      return <Text fontSize={0.022} color="#3fb950" anchorX="center" anchorY="middle">발언 중</Text>;
+    case "actionItems":
+      return (
+        <group>
+          {data.content.items.slice(0, 3).map((item, i) => (
+            <Text key={i} position={[0, 0.04 - i * 0.025, 0.004]} fontSize={0.016} color="#e6edf3" anchorX="left" anchorY="middle" maxWidth={0.4}>
+              {"\u25A1"} {item.description}
+            </Text>
+          ))}
+        </group>
+      );
+  }
 }
 
 /** Futuristic floating holographic monitor in front of each agent */
@@ -24,6 +71,7 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
   agentRole,
   agentName,
   color,
+  monitorData,
 }: HoloMonitorProps) {
   const groupRef = useRef<Group>(null);
   const baseY = position[1];
@@ -115,17 +163,21 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
         {agentName}
       </Text>
 
-      {/* ─── Status indicator ─── */}
-      <Text
-        position={[0, -0.04, 0.004]}
-        rotation={[-0.1, 0, 0]}
-        fontSize={0.02}
-        color="#667799"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {S.monitor.briefingReady}
-      </Text>
+      {/* ─── Dynamic content or default status ─── */}
+      <group position={[0, -0.04, 0.004]} rotation={[-0.1, 0, 0]}>
+        {monitorData ? (
+          renderMonitorContent(monitorData)
+        ) : (
+          <Text
+            fontSize={0.02}
+            color="#667799"
+            anchorX="center"
+            anchorY="middle"
+          >
+            {S.monitor.briefingReady}
+          </Text>
+        )}
+      </group>
 
       {/* ─── Holographic scanlines ─── */}
       {[0, 1, 2, 3].map((i) => (

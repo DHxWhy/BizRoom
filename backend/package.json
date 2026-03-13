@@ -12,8 +12,13 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@azure/functions": "^4.0.0",
+    "@azure/msal-node": "^2.0.0",
+    "@microsoft/microsoft-graph-client": "^3.0.0",
+    "exceljs": "^4.0.0",
     "openai": "^4.0.0",
+    "pptxgenjs": "^3.0.0",
     "uuid": "^9.0.0",
     "ws": "^8.19.0",
     "xlsx": "^0.18.5"

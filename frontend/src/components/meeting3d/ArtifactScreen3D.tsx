@@ -1,8 +1,10 @@
-import { memo, useRef, useMemo } from "react";
+import { memo, useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
-import type { Mesh, MeshStandardMaterial, Group } from "three";
+import type { Mesh, MeshStandardMaterial } from "three";
 import * as THREE from "three";
+import type { BigScreenUpdateEvent } from "../../types";
+import { renderToCanvas } from "./BigScreenRenderer";
 
 /** Artifact data to display on the 3D screen */
 export interface ArtifactData {
@@ -17,6 +19,10 @@ export interface ArtifactScreen3DProps {
   artifact: ArtifactData | null;
   /** Position of the screen in 3D space */
   position?: [number, number, number];
+  /** BigScreen visualization event (rendered in Task 4) */
+  bigScreenEvent?: BigScreenUpdateEvent | null;
+  /** Page info for BigScreen history navigation */
+  pageInfo?: { current: number; total: number } | null;
 }
 
 /** Screen dimensions — large presentation display */
@@ -140,11 +146,7 @@ const IdleScreen = memo(function IdleScreen() {
 /**
  * Active screen — artifact title, type badge, and content preview.
  */
-const ActiveScreen = memo(function ActiveScreen({
-  artifact,
-}: {
-  artifact: ArtifactData;
-}) {
+const ActiveScreen = memo(function ActiveScreen({ artifact }: { artifact: ArtifactData }) {
   const contentText = useMemo(() => {
     if (!artifact.content) return "(No content preview)";
     return truncateContent(artifact.content, CONTENT_MAX_CHARS);
@@ -156,13 +158,7 @@ const ActiveScreen = memo(function ActiveScreen({
   return (
     <group>
       {/* Type badge */}
-      <mesh
-        position={[
-          -CONTENT_WIDTH / 2 + 0.15,
-          SCREEN_HEIGHT / 2 - 0.14,
-          0.005,
-        ]}
-      >
+      <mesh position={[-CONTENT_WIDTH / 2 + 0.15, SCREEN_HEIGHT / 2 - 0.14, 0.005]}>
         <planeGeometry args={[0.28, 0.08]} />
         <meshStandardMaterial
           color={badgeColor}
@@ -172,11 +168,7 @@ const ActiveScreen = memo(function ActiveScreen({
         />
       </mesh>
       <Text
-        position={[
-          -CONTENT_WIDTH / 2 + 0.15,
-          SCREEN_HEIGHT / 2 - 0.14,
-          0.007,
-        ]}
+        position={[-CONTENT_WIDTH / 2 + 0.15, SCREEN_HEIGHT / 2 - 0.14, 0.007]}
         fontSize={0.035}
         color="#ffffff"
         anchorX="center"
@@ -230,11 +222,68 @@ const ActiveScreen = memo(function ActiveScreen({
 export const ArtifactScreen3D = memo(function ArtifactScreen3D({
   artifact,
   position = [0, 2.2, -6.85],
+  bigScreenEvent,
+  pageInfo,
 }: ArtifactScreen3DProps) {
   const borderRef = useRef<Mesh>(null);
   const screenRef = useRef<Mesh>(null);
   const prevArtifactRef = useRef<string | null>(null);
   const pulseTimerRef = useRef(0);
+
+  // Offscreen canvas for BigScreen SVG rendering
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const textureRef = useRef<THREE.CanvasTexture | null>(null);
+
+  // Create offscreen canvas once
+  useEffect(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 576;
+    canvasRef.current = canvas;
+    return () => {
+      canvasRef.current = null;
+      textureRef.current?.dispose();
+      textureRef.current = null;
+    };
+  }, []);
+
+  // Render BigScreen SVG to canvas texture when event changes
+  useEffect(() => {
+    if (!bigScreenEvent || !canvasRef.current) {
+      // Clear texture from screen mesh
+      if (textureRef.current) {
+        textureRef.current.dispose();
+        textureRef.current = null;
+      }
+      if (screenRef.current) {
+        const mat = screenRef.current.material as THREE.MeshStandardMaterial;
+        mat.map = null;
+        mat.needsUpdate = true;
+      }
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    void renderToCanvas(canvas, bigScreenEvent)
+      .then(() => {
+        if (!canvasRef.current) return;
+        if (textureRef.current) textureRef.current.dispose();
+        const tex = new THREE.CanvasTexture(canvasRef.current);
+        tex.needsUpdate = true;
+        textureRef.current = tex;
+        // Apply texture to screen mesh
+        if (screenRef.current) {
+          const mat = screenRef.current.material as THREE.MeshStandardMaterial;
+          mat.map = tex;
+          mat.emissive = new THREE.Color("#111122");
+          mat.emissiveIntensity = 0.15;
+          mat.needsUpdate = true;
+        }
+      })
+      .catch((err) => {
+        console.error("[BigScreen] renderToCanvas failed:", err);
+      });
+  }, [bigScreenEvent]);
 
   useFrame((state, delta) => {
     const hasArtifact = artifact !== null;
@@ -260,8 +309,8 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
       mat.emissiveIntensity = basePulse + arrivalPulse;
     }
 
-    // Screen brightness
-    if (screenRef.current) {
+    // Screen brightness — skip when BigScreen texture is active (its own emissive is set in useEffect)
+    if (screenRef.current && !textureRef.current) {
       const mat = screenRef.current.material as MeshStandardMaterial;
       mat.emissiveIntensity = hasArtifact ? 0.1 : 0.04;
     }
@@ -318,8 +367,17 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
       <CornerBracket x={-hw + 0.02} y={-hh + 0.02} flipX={false} flipY color="#6366f1" />
       <CornerBracket x={hw - 0.02} y={-hh + 0.02} flipX flipY color="#6366f1" />
 
-      {/* Content layer */}
-      {artifact ? <ActiveScreen artifact={artifact} /> : <IdleScreen />}
+      {/* Page indicator (Q/E navigation) */}
+      {pageInfo && pageInfo.total > 1 && (
+        <group position={[0, -SCREEN_HEIGHT / 2 - 0.12, 0.005]}>
+          <Text fontSize={0.04} color="#8b949e" anchorX="center" anchorY="middle">
+            {`◀ Q  ${pageInfo.current} / ${pageInfo.total}  E ▶`}
+          </Text>
+        </group>
+      )}
+
+      {/* Content layer — priority: BigScreen canvas texture > Artifact > Idle */}
+      {bigScreenEvent ? null : artifact ? <ActiveScreen artifact={artifact} /> : <IdleScreen />}
 
       {/* Ambient light cast onto back wall */}
       <pointLight position={[0, 0, 0.4]} color="#4f46e5" intensity={0.3} distance={3} />

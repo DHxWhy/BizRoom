@@ -1,4 +1,4 @@
-import type { AgentRole } from "../models/index.js";
+import type { AgentRole, AgentContext } from "../models/index.js";
 import { getCOOPrompt } from "./prompts/coo-hudson.js";
 import { getCFOPrompt } from "./prompts/cfo-amelia.js";
 import { getCMOPrompt } from "./prompts/cmo-yusef.js";
@@ -11,14 +11,10 @@ export interface AgentConfig {
   name: string;
   icon: string;
   color: string;
-  getSystemPrompt: (context: {
-    participants: string;
-    agenda: string;
-    history: string;
-  }) => string;
+  getSystemPrompt: (context: AgentContext) => string;
 }
 
-export const AGENT_CONFIGS: Record<string, AgentConfig> = {
+export const AGENT_CONFIGS: Record<AgentRole, AgentConfig> = {
   coo: {
     role: "coo",
     name: "Hudson",

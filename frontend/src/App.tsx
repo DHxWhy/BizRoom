@@ -16,7 +16,19 @@ import { ChatOverlay } from "./components/meeting3d/ChatOverlay";
 import { LoadingScreen } from "./components/meeting3d/LoadingScreen";
 import { LobbyPage } from "./components/lobby/LobbyPage";
 import { S } from "./constants/strings";
-import type { Message, MeetingPhase, MeetingMode, Participant, QuickActionType, AgentRole } from "./types";
+import type {
+  Message,
+  MeetingPhase,
+  MeetingMode,
+  Participant,
+  QuickActionType,
+  AgentRole,
+  BigScreenUpdateEvent,
+  MonitorUpdateEvent,
+  SophiaMessageEvent,
+  ArtifactsReadyEvent,
+  HumanCalloutEvent,
+} from "./types";
 import type { ArtifactData } from "./components/meeting3d/ArtifactScreen3D";
 import { useCallback, useEffect, useRef, useMemo, useState } from "react";
 import { useVoiceLive } from "./hooks/useVoiceLive";
@@ -260,6 +272,45 @@ function MeetingRoom() {
       },
       [dispatch],
     ),
+
+    // ── Meeting interaction callbacks ──
+
+    onBigScreenUpdate: useCallback(
+      (payload: BigScreenUpdateEvent) => {
+        dispatch({ type: "PUSH_BIG_SCREEN", payload });
+      },
+      [dispatch],
+    ),
+    onMonitorUpdate: useCallback(
+      (payload: MonitorUpdateEvent) => {
+        dispatch({ type: "SET_MONITOR", payload });
+      },
+      [dispatch],
+    ),
+    onSophiaMessage: useCallback(
+      (payload: SophiaMessageEvent) => {
+        dispatch({ type: "ADD_SOPHIA_MESSAGE", payload });
+      },
+      [dispatch],
+    ),
+    onArtifactsReady: useCallback(
+      (payload: ArtifactsReadyEvent) => {
+        dispatch({ type: "SET_READY_ARTIFACTS", payload });
+      },
+      [dispatch],
+    ),
+    onAgentThinking: useCallback(
+      (payload: { roles: string[] }) => {
+        dispatch({ type: "SET_THINKING_AGENTS", payload: { roles: payload.roles as AgentRole[] } });
+      },
+      [dispatch],
+    ),
+    onHumanCallout: useCallback(
+      (payload: HumanCalloutEvent) => {
+        dispatch({ type: "SET_HUMAN_CALLOUT", payload });
+      },
+      [dispatch],
+    ),
   });
 
   // Derive thinking agent roles from typing agent names (memoized to avoid
@@ -348,8 +399,11 @@ function MeetingRoom() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          roomId: state.roomId,
           userId: state.userId || "user-1",
           userName: state.userName || "Chairman",
+          agenda: state.lobbyAgenda || "일반 회의",
+          brandMemory: state.brandMemory,
         }),
       });
       if (res.ok) {
@@ -369,7 +423,7 @@ function MeetingRoom() {
     } catch (err: unknown) {
       console.error("Failed to start meeting:", err);
     }
-  }, [dispatch, state.userId, state.userName]);
+  }, [dispatch, state.userId, state.userName, state.roomId, state.lobbyAgenda, state.brandMemory]);
 
   const handleModeChange = useCallback(
     (mode: MeetingMode) => {
@@ -405,6 +459,28 @@ function MeetingRoom() {
     };
   }, [state.artifacts]);
 
+  const { bigScreenHistory, bigScreenIndex } = state;
+
+  const currentBigScreen: BigScreenUpdateEvent | null = useMemo(() => {
+    if (bigScreenHistory.length === 0) return null;
+    const idx = bigScreenIndex === -1 ? bigScreenHistory.length - 1 : bigScreenIndex;
+    return bigScreenHistory[idx] ?? null;
+  }, [bigScreenHistory, bigScreenIndex]);
+
+  const bigScreenPage = useMemo(() => {
+    const len = bigScreenHistory.length;
+    if (len === 0) return null;
+    const idx = bigScreenIndex === -1 ? len - 1 : bigScreenIndex;
+    return { current: idx + 1, total: len };
+  }, [bigScreenHistory, bigScreenIndex]);
+
+  const handleBigScreenNav = useCallback(
+    (dir: "prev" | "next") => {
+      dispatch({ type: "NAV_BIG_SCREEN", payload: dir });
+    },
+    [dispatch],
+  );
+
   const isIdle = state.meetingPhase === "idle";
   const isActive = !isIdle;
 
@@ -419,6 +495,9 @@ function MeetingRoom() {
             meetingPhase={state.meetingPhase}
             currentArtifact={currentArtifact}
             humanParticipants={state.humanParticipants}
+            bigScreenEvent={currentBigScreen}
+            bigScreenPage={bigScreenPage}
+            onBigScreenNav={handleBigScreenNav}
           />
         </Suspense>
       </div>
@@ -518,7 +597,10 @@ function MeetingRoom() {
 
         {/* DM mode: stories-style agent picker */}
         {state.meetingMode === "dm" && (
-          <DmStoriesPicker currentTarget={state.dmTarget as AgentRole | null} onSelect={handleDmTargetChange} />
+          <DmStoriesPicker
+            currentTarget={state.dmTarget as AgentRole | null}
+            onSelect={handleDmTargetChange}
+          />
         )}
 
         <ChatRoom messages={state.messages} typingAgents={state.typingAgents} />
@@ -529,12 +611,7 @@ function MeetingRoom() {
         )}
 
         {/* Chairman controls */}
-        {isActive && (
-          <ChairmanControls
-            roomId={state.roomId}
-            isChairman={state.isChairman}
-          />
-        )}
+        {isActive && <ChairmanControls roomId={state.roomId} isChairman={state.isChairman} />}
 
         <InputArea
           onSend={(content, isVoiceInput) => void handleSend(content, isVoiceInput)}

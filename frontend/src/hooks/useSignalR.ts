@@ -5,7 +5,7 @@ import {
   LogLevel,
 } from "@microsoft/signalr";
 import type { HubConnection } from "@microsoft/signalr";
-import type { Message, MeetingPhase, Artifact } from "../types";
+import type { Message, MeetingPhase, Artifact, HumanCalloutEvent, BigScreenUpdateEvent, MonitorUpdateEvent, SophiaMessageEvent, ArtifactsReadyEvent } from "../types";
 import type {
   StartStreamPayload,
   AppendDeltaPayload,
@@ -48,6 +48,21 @@ interface UseSignalROptions {
   onStreamDelta?: (payload: AppendDeltaPayload) => void;
   /** 에이전트 메시지 스트림이 완료될 때 호출 */
   onStreamEnd?: (payload: EndStreamPayload) => void;
+
+  // ── Meeting interaction callbacks ──
+
+  /** Called when agents begin thinking */
+  onAgentThinking?: (payload: { roles: string[] }) => void;
+  /** Called when an agent requests human input */
+  onHumanCallout?: (payload: HumanCalloutEvent) => void;
+  /** Called when BigScreen content should be updated */
+  onBigScreenUpdate?: (payload: BigScreenUpdateEvent) => void;
+  /** Called when a monitor should show new content */
+  onMonitorUpdate?: (payload: MonitorUpdateEvent) => void;
+  /** Called when Sophia sends a secretary message */
+  onSophiaMessage?: (payload: SophiaMessageEvent) => void;
+  /** Called when meeting artifacts are ready for download */
+  onArtifactsReady?: (payload: ArtifactsReadyEvent) => void;
 }
 
 /** Return type of the useSignalR hook. */
@@ -132,6 +147,32 @@ export function useSignalR(
 
         connection.on("artifactCreated", (artifact: Artifact) => {
           optionsRef.current.onArtifactCreated?.(artifact);
+        });
+
+        // --- Meeting interaction event handlers ---
+
+        connection.on("agentThinking", (payload: { roles: string[] }) => {
+          optionsRef.current.onAgentThinking?.(payload);
+        });
+
+        connection.on("humanCallout", (payload: HumanCalloutEvent) => {
+          optionsRef.current.onHumanCallout?.(payload);
+        });
+
+        connection.on("bigScreenUpdate", (payload: BigScreenUpdateEvent) => {
+          optionsRef.current.onBigScreenUpdate?.(payload);
+        });
+
+        connection.on("monitorUpdate", (payload: MonitorUpdateEvent) => {
+          optionsRef.current.onMonitorUpdate?.(payload);
+        });
+
+        connection.on("sophiaMessage", (payload: SophiaMessageEvent) => {
+          optionsRef.current.onSophiaMessage?.(payload);
+        });
+
+        connection.on("artifactsReady", (payload: ArtifactsReadyEvent) => {
+          optionsRef.current.onArtifactsReady?.(payload);
         });
 
         // --- Reconnection lifecycle handlers ---

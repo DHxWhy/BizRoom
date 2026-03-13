@@ -18,3 +18,6 @@ export const MAX_FOLLOW_UP_ROUNDS = 2;
 
 /** Immediate flush for Chairman "AI opinion" button */
 export const IMMEDIATE_FLUSH_MS = 0;
+
+/** Timeout for human response during awaiting state (Spec §2) */
+export const HUMAN_CALLOUT_TIMEOUT_MS = 30000;

@@ -3,7 +3,7 @@
 
 import { EventEmitter } from "events";
 import WebSocket from "ws";
-import type { AgentRole } from "../models/index.js";
+import type { AgentRole, ListenerWsEvent, AgentWsEvent } from "../models/index.js";
 import { AGENT_VOICES } from "../constants/agentVoices.js";
 
 const VOICE_LIVE_ENDPOINT = process.env.AZURE_VOICE_LIVE_ENDPOINT || "";
@@ -252,7 +252,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
   private handleListenerEvent(
     roomId: string,
     chairmanUserId: string,
-    event: Record<string, unknown>,
+    event: ListenerWsEvent,
   ): void {
     switch (event.type) {
       case "input_audio_buffer.speech_started":
@@ -262,12 +262,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
         this.emit("speechStopped:" + roomId, roomId, chairmanUserId);
         break;
       case "conversation.item.input_audio_transcription.completed":
-        this.emit(
-          "transcript:" + roomId,
-          roomId,
-          chairmanUserId,
-          (event as Record<string, unknown>).transcript || "",
-        );
+        this.emit("transcript:" + roomId, roomId, chairmanUserId, event.transcript || "");
         break;
     }
   }
@@ -275,37 +270,22 @@ export class VoiceLiveSessionManager extends EventEmitter {
   private handleAgentEvent(
     roomId: string,
     role: AgentRole,
-    event: Record<string, unknown>,
+    event: AgentWsEvent,
   ): void {
     switch (event.type) {
-      case "response.audio.delta": {
-        const delta = event.delta as string;
-        if (delta) this.emit("agentAudioDelta:" + roomId, roomId, role, delta);
+      case "response.audio.delta":
+        if (event.delta) this.emit("agentAudioDelta:" + roomId, roomId, role, event.delta);
         break;
-      }
-      case "response.audio_transcript.delta": {
-        const delta = event.delta as string;
-        if (delta) this.emit("agentTextDelta:" + roomId, roomId, role, delta);
+      case "response.audio_transcript.delta":
+        if (event.delta) this.emit("agentTextDelta:" + roomId, roomId, role, event.delta);
         break;
-      }
-      case "response.animation_viseme.delta": {
-        const visemeId = event.viseme_id as number;
-        const offsetMs = event.audio_offset_ms as number;
-        this.emit(
-          "agentVisemeDelta:" + roomId,
-          roomId,
-          role,
-          visemeId,
-          offsetMs ?? 0,
-        );
+      case "response.animation_viseme.delta":
+        this.emit("agentVisemeDelta:" + roomId, roomId, role, event.viseme_id, event.audio_offset_ms ?? 0);
         break;
-      }
       case "response.done": {
-        // Extract full text from response
-        const output = event.response as Record<string, unknown>;
         let fullText = "";
-        if (output?.output && Array.isArray(output.output)) {
-          for (const item of output.output) {
+        if (event.response?.output) {
+          for (const item of event.response.output) {
             if (item.type === "message" && item.content) {
               for (const c of item.content) {
                 if (c.type === "text") fullText += c.text || "";

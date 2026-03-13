@@ -1,4 +1,4 @@
-import type { Message, MeetingPhase } from "../models/index.js";
+import type { Message, MeetingPhase, BrandMemorySet } from "../models/index.js";
 
 const MAX_CONTEXT_MESSAGES = 50;
 
@@ -23,6 +23,7 @@ interface RoomContext {
   messages: Message[];
   decisions: Decision[];
   actionItems: ActionItem[];
+  brandMemory?: BrandMemorySet;
 }
 
 // In-memory context store (per room)
@@ -65,6 +66,17 @@ export function setAgenda(roomId: string, agenda: string): void {
   room.agenda = agenda;
 }
 
+/** Set brand memory for a room */
+export function setBrandMemory(roomId: string, brandMemory: BrandMemorySet): void {
+  const room = getOrCreateRoom(roomId);
+  room.brandMemory = brandMemory;
+}
+
+/** Get brand memory for a room */
+export function getBrandMemory(roomId: string): BrandMemorySet | undefined {
+  return getOrCreateRoom(roomId).brandMemory;
+}
+
 /** Record a decision made during the meeting */
 export function addDecision(roomId: string, decision: Decision): void {
   const room = getOrCreateRoom(roomId);
@@ -91,9 +103,7 @@ export function getContextForAgent(roomId: string, _role: string): string {
     : "없음";
 
   const actionsStr = room.actionItems.length
-    ? room.actionItems
-        .map((a) => `- [${a.status}] ${a.description} → ${a.assignee}`)
-        .join("\n")
+    ? room.actionItems.map((a) => `- [${a.status}] ${a.description} → ${a.assignee}`).join("\n")
     : "없음";
 
   return `## 현재 단계: ${room.phase}

@@ -1,20 +1,13 @@
-import {
-  app,
-  HttpRequest,
-  HttpResponseInit,
-  InvocationContext,
-} from "@azure/functions";
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { turnManager, determineAgentOrder } from "../orchestrator/TurnManager.js";
 import { classifyTopic, parseMentions } from "../orchestrator/TopicClassifier.js";
 import {
   getContextForAgent,
   addMessage,
   getOrCreateRoom,
+  getBrandMemory,
 } from "../orchestrator/ContextBroker.js";
-import {
-  invokeAgentStream,
-  getAgentMeta,
-} from "../agents/AgentFactory.js";
+import { invokeAgentStream, getAgentMeta } from "../agents/AgentFactory.js";
 import type { AgentRole, Message } from "../models/index.js";
 import { v4 as uuidv4 } from "uuid";
 
@@ -114,16 +107,12 @@ export async function message(
             let fullContent = "";
 
             // 에이전트 스트림에서 delta를 SSE로 전송
-            const agentStream = invokeAgentStream(
-              entry.role,
-              userMessage.content,
-              {
-                participants:
-                  "Chairman (사용자), Hudson (COO), Amelia (CFO), Yusef (CMO)",
-                agenda: room.agenda || userMessage.content,
-                history: contextStr,
-              },
-            );
+            const agentStream = invokeAgentStream(entry.role, userMessage.content, {
+              participants: "Chairman (사용자), Hudson (COO), Amelia (CFO), Yusef (CMO)",
+              agenda: room.agenda || userMessage.content,
+              history: contextStr,
+              brandMemory: getBrandMemory(roomId),
+            });
 
             for await (const delta of agentStream) {
               fullContent += delta;
