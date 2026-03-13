@@ -1,3 +1,21 @@
+/**
+ * @file realtime-bench.mjs
+ * @description OpenAI Realtime API benchmark via WebSocket.
+ *
+ * Standalone script that measures TTFB (Time To First Byte) and total response
+ * time for OpenAI's Realtime models (gpt-4o-realtime-preview, gpt-realtime-1.5).
+ *
+ * Usage:
+ *   OPENAI_API_KEY=sk-... node helpers/realtime-bench.mjs
+ *   RT_MODEL=gpt-realtime-1.5 OPENAI_API_KEY=sk-... node helpers/realtime-bench.mjs
+ *
+ * Output:
+ *   - TTFB: Time to first streaming delta (ms)
+ *   - Total: Full response completion time (ms)
+ *   - Deltas: Number of streaming delta events received
+ *   - Output: Truncated response text (first 200 chars)
+ */
+
 // OpenAI Realtime API benchmark via WebSocket
 import WebSocket from "ws";
 

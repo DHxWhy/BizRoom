@@ -1,17 +1,34 @@
 /**
- * Phase 9 — Error Resilience
+ * @file phase9-error-resilience.spec.ts
+ * @description Phase 9 — Error Resilience and Graceful Degradation
  *
- * Covers graceful degradation and error handling across the following scenarios:
- *   1. SignalR unavailable → REST fallback (POST /api/message still works)
- *   2. Empty message submission → no crash, input remains functional
- *   3. Very long message (2 000+ chars) → no crash, message processed
- *   4. Rapid-fire messages → all processed without error
+ * **Objective**:
+ *   Validate that BizRoom.ai handles edge cases and failure scenarios
+ *   gracefully. A production-ready meeting tool must not crash when
+ *   network connections fail, users submit unexpected input, or the
+ *   system is under stress.
  *
- * Philosophy:
- *   - We validate that the application does NOT crash/hang under edge inputs.
- *   - We verify the REST fallback path is reachable independent of SignalR.
- *   - Hard assertions are on "app stays alive" (no error pages, input still works).
- *   - Response correctness from AI is soft-asserted (non-deterministic timing).
+ * **Expected Outcomes**:
+ *   - SignalR unavailable: REST fallback (POST /api/message) still works
+ *   - Empty message: send does not crash, input remains functional
+ *   - Very long message (2000+ chars): no crash, message accepted or truncated
+ *   - Rapid-fire messages (3 in quick succession): all processed, no error
+ *   - API-level rapid-fire: 3 concurrent REST calls do not produce 5xx errors
+ *
+ * **Prerequisites**:
+ *   - Frontend deployed with fallback mechanisms
+ *   - Backend REST endpoints accessible independently of SignalR
+ *
+ * **Architecture Components Tested**:
+ *   - REST fallback path (bypasses SignalR for message delivery)
+ *   - Client-side input validation (empty/long message handling)
+ *   - Server-side request throttling / graceful error handling
+ *   - Playwright route interception (simulates SignalR failure)
+ *   - Application crash detection (error page / overlay check)
+ *
+ * **Philosophy**:
+ *   Hard assertions target "app stays alive" (no error pages, input works).
+ *   AI response correctness is soft-asserted (non-deterministic timing).
  */
 
 import { test, expect } from "@playwright/test";
@@ -111,6 +128,7 @@ async function assertPageAlive(
 test.describe.serial("Phase 9 — Error Resilience", () => {
   // ──────────────────────────────────────────────────────────────────────
   // Setup: active meeting room
+  // Verifies: Application is alive and meeting room is established.
   // ──────────────────────────────────────────────────────────────────────
   test("9-0 | setup — enter active meeting room", async ({ page }) => {
     await setupActiveMeeting(page);
@@ -119,7 +137,11 @@ test.describe.serial("Phase 9 — Error Resilience", () => {
   });
 
   // ──────────────────────────────────────────────────────────────────────
-  // Test 9-1: REST Fallback — POST /api/message works independently
+  // Test 9-1: REST Fallback -- POST /api/message works independently
+  // Verifies: Messages can be sent via REST API even without SignalR WebSocket.
+  // Why it matters: If SignalR connection drops (network issues, Azure outage),
+  //   the app must gracefully fall back to REST-based message delivery.
+  // Expected: Status < 500 from direct API call; app remains alive
   // ──────────────────────────────────────────────────────────────────────
   test(
     "9-1 | REST fallback — POST /api/message works without SignalR",
@@ -150,7 +172,11 @@ test.describe.serial("Phase 9 — Error Resilience", () => {
   );
 
   // ──────────────────────────────────────────────────────────────────────
-  // Test 9-2: REST fallback via UI — intercept SignalR and verify message sends
+  // Test 9-2: REST fallback via UI -- intercept SignalR and verify message sends
+  // Verifies: When SignalR is blocked via route interception, the UI falls back
+  //   to REST POST /api/message for message delivery.
+  // Why it matters: Proves the client-side fallback mechanism works end-to-end.
+  // Expected: REST request intercepted or app remains alive after SignalR block
   // ──────────────────────────────────────────────────────────────────────
   test(
     "9-2 | REST fallback via UI — block SignalR, verify message still sends",
@@ -226,7 +252,11 @@ test.describe.serial("Phase 9 — Error Resilience", () => {
   );
 
   // ──────────────────────────────────────────────────────────────────────
-  // Test 9-3: Empty message submission — no crash
+  // Test 9-3: Empty message submission -- no crash
+  // Verifies: Sending an empty string does not crash the app or corrupt state.
+  // Why it matters: Edge case input must be handled gracefully — users may
+  //   accidentally hit Enter on an empty input field.
+  // Expected: App alive; message count unchanged (soft); input still usable
   // ──────────────────────────────────────────────────────────────────────
   test("9-3 | empty message — send does not crash app", async ({ page }) => {
     const chat = new ChatPanel(page);
@@ -278,7 +308,11 @@ test.describe.serial("Phase 9 — Error Resilience", () => {
   });
 
   // ──────────────────────────────────────────────────────────────────────
-  // Test 9-4: Very long message (2 000+ chars) — no crash
+  // Test 9-4: Very long message (2000+ chars) -- no crash
+  // Verifies: A 2000+ character message does not crash the UI or backend.
+  // Why it matters: Tests client-side truncation and server-side payload limits.
+  //   Both accepting and truncating are valid behaviors — the requirement is no crash.
+  // Expected: App alive; input still usable; no error overlay
   // ──────────────────────────────────────────────────────────────────────
   test(
     "9-4 | very long message (2000+ chars) — no crash",
@@ -328,7 +362,11 @@ test.describe.serial("Phase 9 — Error Resilience", () => {
   );
 
   // ──────────────────────────────────────────────────────────────────────
-  // Test 9-5: Rapid-fire messages — all processed without error
+  // Test 9-5: Rapid-fire messages -- all processed without error
+  // Verifies: Sending 3 messages in quick succession (< 500 ms apart) does not
+  //   crash the app, lose messages, or show error overlays.
+  // Why it matters: Real users type fast — the UI must not choke under rapid input.
+  // Expected: App alive; all 3 messages accepted (soft); no error overlay
   // ──────────────────────────────────────────────────────────────────────
   test(
     "9-5 | rapid-fire 3 messages — all processed without error",
@@ -408,7 +446,11 @@ test.describe.serial("Phase 9 — Error Resilience", () => {
   );
 
   // ──────────────────────────────────────────────────────────────────────
-  // Test 9-6: API-level rapid-fire — direct REST calls do not 5xx
+  // Test 9-6: API-level rapid-fire -- direct REST calls do not 5xx
+  // Verifies: 3 concurrent API calls (Promise.all) do not produce server crashes.
+  // Why it matters: Tests backend concurrency handling — multiple users or rapid
+  //   messages must not overwhelm the Azure Functions backend.
+  // Expected: All 3 requests return responses (no network crash); status < 500 (soft)
   // ──────────────────────────────────────────────────────────────────────
   test(
     "9-6 | API rapid-fire — 3 direct REST message calls do not 5xx",

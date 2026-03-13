@@ -1,24 +1,40 @@
 /**
- * Phase 10 — Cosmos DB CRUD Verification (API-only)
+ * @file phase10-db-verification.spec.ts
+ * @description Phase 10 — Cosmos DB CRUD Verification (API-only)
  *
- * Verifies all Cosmos DB containers are correctly persisting and retrieving
- * data through the backend REST API layer.  No browser is needed for most
- * tests — they use Playwright's `request` fixture directly.
+ * **Objective**:
+ *   Verify that all Cosmos DB containers correctly persist and retrieve data
+ *   through the backend REST API layer. This validates the data persistence
+ *   backbone that enables meeting history, user profiles, and artifact storage.
  *
- * Containers exercised:
- *   users     → register, get, update brandMemory
- *   rooms     → create, join by code
- *   sessions  → create via meeting/start, list by roomId
- *   messages  → send, retrieve by sessionId
+ * **Expected Outcomes**:
+ *   - User registration: POST /api/user/register returns 201 with id, email, displayName
+ *   - User retrieval: GET /api/user/{id} returns matching user data
+ *   - Brand memory: PUT updates and GET retrieves brandMemory field correctly
+ *   - Room creation: POST /api/room/create returns id + 6-char joinCode
+ *   - Room join: POST /api/room/join-by-code increments participant count
+ *   - Session: POST /api/meeting/start creates session, GET lists it
+ *   - Messages: POST /api/message persists, GET /api/session/{id}/messages retrieves
+ *   - Full CRUD round-trip: all operations succeed without 5xx errors
  *
- * Design decisions:
- *   - Each test creates its own fresh data using a unique timestamp-based ID
- *     to prevent cross-test interference and allow safe re-runs.
- *   - All assertions use expect.soft for Cosmos DB results so a single
- *     container misconfiguration does not cascade-fail unrelated tests.
- *   - 500 responses are caught and the test is skipped with a warning —
- *     Cosmos DB connection issues are infra problems, not code bugs.
- *   - All API responses are logged for traceability.
+ * **Prerequisites**:
+ *   - Backend Azure Functions deployed and running
+ *   - Cosmos DB provisioned with containers: users, rooms, sessions, messages
+ *   - No browser needed — uses Playwright `request` fixture directly
+ *
+ * **Architecture Components Tested**:
+ *   - CosmosService (Cosmos DB client wrapper)
+ *   - UserService — register, get, update brand memory
+ *   - RoomService — create, join by code
+ *   - SessionService — create via meeting start, list by room
+ *   - MessageService — send, retrieve by session
+ *   - REST API endpoints for all CRUD operations
+ *
+ * **Design Decisions**:
+ *   - Each test creates fresh data with unique timestamp-based IDs (no cross-test interference)
+ *   - Soft assertions prevent single container misconfiguration from cascade-failing
+ *   - 500 responses skip the test (infra problem, not code bug)
+ *   - All API responses are logged for traceability
  */
 
 import { test, expect } from "@playwright/test";
@@ -75,6 +91,9 @@ function shouldSkipDueToInfra(
 test.describe("Phase 10 — Cosmos DB Verification", () => {
   // ──────────────────────────────────────────────────────────────────────
   // Test 10-1: User Registration
+  // Verifies: POST /api/user/register creates a user in Cosmos DB users container.
+  // Why it matters: User identity is the foundation for all personalized AI interactions.
+  // Expected: 200/201 with id, email, displayName fields matching input
   // ──────────────────────────────────────────────────────────────────────
   test(
     "10-1 | POST /api/user/register → 201, id + email + displayName + createdAt",
@@ -125,7 +144,10 @@ test.describe("Phase 10 — Cosmos DB Verification", () => {
   );
 
   // ──────────────────────────────────────────────────────────────────────
-  // Test 10-2: GET /api/user/{id} — read back registered user
+  // Test 10-2: GET /api/user/{id} -- read back registered user
+  // Verifies: A freshly registered user can be retrieved by ID with matching data.
+  // Why it matters: Validates the Cosmos DB write-then-read consistency path.
+  // Expected: GET returns 200 with id, email, displayName matching registration
   // ──────────────────────────────────────────────────────────────────────
   test(
     "10-2 | POST register → GET /api/user/{id} returns same data",
@@ -174,6 +196,10 @@ test.describe("Phase 10 — Cosmos DB Verification", () => {
 
   // ──────────────────────────────────────────────────────────────────────
   // Test 10-3: Brand Memory Update
+  // Verifies: Brand memory can be updated via PUT and read back via GET.
+  // Why it matters: Brand memory is injected into all agent system prompts —
+  //   it personalizes every AI response to the user's company context.
+  // Expected: PUT returns < 300; subsequent GET includes brandMemory field
   // ──────────────────────────────────────────────────────────────────────
   test(
     "10-3 | PUT /api/user/{id}/brand-memory → GET returns updated brandMemory",
@@ -258,6 +284,10 @@ test.describe("Phase 10 — Cosmos DB Verification", () => {
 
   // ──────────────────────────────────────────────────────────────────────
   // Test 10-4: Room Creation
+  // Verifies: POST /api/room/create persists a room with a 6-char join code.
+  // Why it matters: Rooms are the collaboration container — the join code enables
+  //   multi-user meetings (participants enter the code to join).
+  // Expected: 200/201 with id; joinCode matches /^[A-Z0-9]{6}$/; participants array
   // ──────────────────────────────────────────────────────────────────────
   test(
     "10-4 | POST /api/room/create → 201, id + joinCode (6 chars) + participants",
@@ -314,6 +344,9 @@ test.describe("Phase 10 — Cosmos DB Verification", () => {
 
   // ──────────────────────────────────────────────────────────────────────
   // Test 10-5: Room Join by Code
+  // Verifies: A second user can join an existing room via the 6-char code.
+  // Why it matters: Multi-user meetings require the join-by-code flow to work.
+  // Expected: Participant count increases after join (soft)
   // ──────────────────────────────────────────────────────────────────────
   test(
     "10-5 | POST /api/room/join-by-code → participant count increases",
@@ -381,6 +414,10 @@ test.describe("Phase 10 — Cosmos DB Verification", () => {
 
   // ──────────────────────────────────────────────────────────────────────
   // Test 10-6: Session Creation via Meeting Start
+  // Verifies: Starting a meeting creates a session record in Cosmos DB.
+  // Why it matters: Sessions track meeting history (agenda, phase, participants, timestamps)
+  //   and are required for message retrieval and artifact association.
+  // Expected: Session list has >= 1 entry with agenda and startedAt fields
   // ──────────────────────────────────────────────────────────────────────
   test(
     "10-6 | POST /api/meeting/start → GET /api/room/{roomId}/sessions has session",
@@ -477,6 +514,10 @@ test.describe("Phase 10 — Cosmos DB Verification", () => {
 
   // ──────────────────────────────────────────────────────────────────────
   // Test 10-7: Message Persistence
+  // Verifies: A sent message is persisted in Cosmos DB and retrievable by session.
+  // Why it matters: Message persistence enables meeting transcripts, conversation
+  //   replay, and meeting minutes generation (Sophia artifact pipeline).
+  // Expected: Message with matching content found in session messages; has id, sender, timestamp
   // ──────────────────────────────────────────────────────────────────────
   test(
     "10-7 | POST /api/message → GET /api/session/{id}/messages has message",
@@ -624,6 +665,11 @@ test.describe("Phase 10 — Cosmos DB Verification", () => {
 
   // ──────────────────────────────────────────────────────────────────────
   // Test 10-8: Full CRUD round-trip summary
+  // Verifies: All 4 CRUD operations (user, room, session, message) execute
+  //   end-to-end without any 5xx server errors.
+  // Why it matters: This is the comprehensive "smoke test" for the entire
+  //   Cosmos DB backend — a single summary of all persistence operations.
+  // Expected: No 500 errors; user registration always responds (hard)
   // ──────────────────────────────────────────────────────────────────────
   test(
     "10-8 | full CRUD round-trip — user → room → session → message (summary)",

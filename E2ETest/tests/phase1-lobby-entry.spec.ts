@@ -1,8 +1,30 @@
 /**
- * Phase 1 — Lobby Entry (Multi-step flow)
+ * @file phase1-lobby-entry.spec.ts
+ * @description Phase 1 — Lobby Entry (Multi-step Wizard)
  *
- * Lobby steps: name → brandMemory → agenda → enter room
- * Tests validate each step in the multi-step wizard.
+ * **Objective**:
+ *   Validate the complete lobby onboarding flow that users experience before
+ *   entering the AI meeting room. The lobby is a multi-step wizard:
+ *     Step 1: User name input
+ *     Step 2: Brand memory form (company context for AI agents)
+ *     Step 3: Meeting agenda input
+ *     Step 4: Room creation and entry
+ *
+ * **Expected Outcomes**:
+ *   - Page loads within performance budget (< 3 s)
+ *   - All lobby UI elements render correctly
+ *   - Each wizard step accepts user input and transitions properly
+ *   - Full create-room flow ends with successful room entry (URL change + 3D canvas)
+ *
+ * **Prerequisites**:
+ *   - Frontend deployed to Azure Static Web Apps (or running locally)
+ *   - No backend/AI dependency — this phase is purely UI validation
+ *
+ * **Architecture Components Tested**:
+ *   - LobbyPage component (React multi-step form)
+ *   - BrandMemoryForm component (preset + manual input)
+ *   - Client-side routing (hash-based room URL)
+ *   - Three.js canvas initialization on room entry
  */
 
 import { test, expect } from "@playwright/test";
@@ -14,7 +36,12 @@ import {
 } from "../fixtures/test-data";
 import { Timer } from "../helpers/timing";
 
-/** Detect meeting room entry: URL change, canvas, or meeting root */
+/**
+ * Detect meeting room entry using multiple signals: URL change away from "/",
+ * Three.js canvas becoming visible, or meeting root container appearing.
+ * Uses Promise.race so the fastest signal wins — accommodates different
+ * rendering strategies across build configurations.
+ */
 async function waitForRoomEntry(
   page: import("@playwright/test").Page,
   timeout = 30_000,
@@ -31,6 +58,9 @@ async function waitForRoomEntry(
 
 test.describe.serial("Phase 1 — Lobby Entry", () => {
   // ── Test 1-1: Page load ──────────────────────────────
+  // Verifies: Initial page load completes within performance budget.
+  // Why it matters: First impression for users — slow load = immediate bounce.
+  // Expected: networkidle < 10 s (hard), < 3 s (target logged)
   test("1-1 | page loads within 3s", async ({ page }) => {
     const timer = new Timer();
     await page.goto("/");
@@ -47,6 +77,9 @@ test.describe.serial("Phase 1 — Lobby Entry", () => {
   });
 
   // ── Test 1-2: Lobby UI visible ───────────────────────
+  // Verifies: All essential lobby UI elements render on page load.
+  // Why it matters: Broken rendering blocks the entire onboarding flow.
+  // Expected: Name input, create tab, and submit button all visible
   test("1-2 | lobby UI elements visible", async ({ page }) => {
     const lobby = new LobbyPage(page);
     await lobby.goto();
@@ -66,6 +99,9 @@ test.describe.serial("Phase 1 — Lobby Entry", () => {
   });
 
   // ── Test 1-3: Name input ─────────────────────────────
+  // Verifies: Step 1 name input accepts and retains user input.
+  // Why it matters: User identity feeds into all agent interactions.
+  // Expected: Input value matches the test user name after fill
   test("1-3 | name input accepts user name", async ({ page }) => {
     const lobby = new LobbyPage(page);
     await lobby.goto();
@@ -76,6 +112,10 @@ test.describe.serial("Phase 1 — Lobby Entry", () => {
   });
 
   // ── Test 1-4: Brand Memory form (step 2) ─────────────
+  // Verifies: Step 2 brand memory form accepts company context data.
+  // Why it matters: Brand memory personalizes all AI agent responses
+  //   (agents reference company name, industry, and product in their advice).
+  // Expected: Company name field populated after form fill
   test("1-4 | brand memory form accepts data (step 2)", async ({ page }) => {
     const lobby = new LobbyPage(page);
     await lobby.goto();
@@ -104,6 +144,10 @@ test.describe.serial("Phase 1 — Lobby Entry", () => {
   });
 
   // ── Test 1-5: Agenda input (step 3) ──────────────────
+  // Verifies: Step 3 agenda textarea accepts meeting topic text.
+  // Why it matters: The agenda drives the entire meeting discussion —
+  //   it is passed to agent system prompts and the SnippetManager.
+  // Expected: Textarea value matches the test agenda string
   test("1-5 | agenda input accepts text (step 3)", async ({ page }) => {
     const lobby = new LobbyPage(page);
     await lobby.goto();
@@ -123,6 +167,10 @@ test.describe.serial("Phase 1 — Lobby Entry", () => {
   });
 
   // ── Test 1-6: Full create-room flow ──────────────────
+  // Verifies: The complete multi-step wizard (name -> brand memory -> agenda -> enter)
+  //   results in successful room entry with 3D canvas rendered.
+  // Why it matters: This is the critical path — if this fails, users cannot start meetings.
+  // Expected: URL changes away from "/" or canvas becomes visible
   test("1-6 | create room — full flow succeeds", async ({ page }) => {
     const lobby = new LobbyPage(page);
     await lobby.goto();
@@ -146,6 +194,9 @@ test.describe.serial("Phase 1 — Lobby Entry", () => {
   });
 
   // ── Test 1-7: Performance ────────────────────────────
+  // Verifies: Page load performance with DOMContentLoaded and networkidle timings.
+  // Why it matters: Establishes baseline metrics for the lobby page.
+  // Expected: networkidle < 15 s (hard ceiling); DOMContentLoaded logged
   test("1-7 | performance — page load time", async ({ page }) => {
     const timer = new Timer();
     await page.goto("/");

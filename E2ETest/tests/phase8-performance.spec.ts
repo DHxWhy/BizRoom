@@ -1,19 +1,41 @@
 /**
- * Phase 8 — Performance Benchmarks
+ * @file phase8-performance.spec.ts
+ * @description Phase 8 — Performance Benchmarks
  *
- * Covers end-to-end latency for the key user journeys:
- *   1. Lobby page load
- *   2. Room creation → meeting start → first COO message
- *   3. User message → first agent streaming delta
- *   4. Full agent turn (all agents done)
- *   5. Mode switch (Live → DM)
+ * **Objective**:
+ *   Establish baseline performance metrics for all critical user journeys.
+ *   These benchmarks validate that BizRoom.ai delivers a responsive
+ *   experience — essential for a real-time AI meeting product.
  *
- * Each measurement is logged in a structured format:
- *   [PERF] <label>: <measured>ms (threshold: <threshold>ms) ✅/❌
+ * **Expected Outcomes (Thresholds)**:
+ *   - Page load (networkidle): < 3 s (hard: < 6 s with CI tolerance)
+ *   - Room creation + meeting start -> first COO message: < 10 s
+ *   - User message -> first agent streaming delta: < 5 s
+ *   - Full agent turn (streaming done): < 15 s per agent
+ *   - Mode switch (Live -> DM): < 1 s
+ *   - API negotiate (SignalR health): logged for baseline
+ *   - Room creation via API: logged for baseline
  *
- * Hard failures only apply to metrics we can control reliably (page load,
- * mode switch). AI-response times are soft-asserted because cold-start
- * Azure Functions can add unpredictable latency.
+ * **Prerequisites**:
+ *   - Frontend deployed to Azure Static Web Apps
+ *   - Backend Azure Functions running
+ *   - Azure OpenAI configured (for AI-dependent benchmarks)
+ *
+ * **Architecture Components Tested**:
+ *   - Vite build output (bundle size, code splitting, tree-shaking)
+ *   - Azure Static Web Apps CDN delivery
+ *   - Azure Functions cold-start behavior
+ *   - SignalR connection negotiation
+ *   - Full orchestration pipeline latency
+ *   - React rendering performance (mode switch)
+ *
+ * **Logging Format**:
+ *   `[PERF] <label>: <measured>ms (threshold: <threshold>ms) PASS/FAIL`
+ *
+ * **Assertion Strategy**:
+ *   Hard failures only apply to metrics under our control (page load, mode switch).
+ *   AI-response times use soft assertions — Azure Functions cold-start adds
+ *   unpredictable latency that is not a code quality issue.
  */
 
 import { test, expect } from "@playwright/test";
@@ -79,6 +101,8 @@ async function enterMeetingRoom(
 test.describe("Phase 8 — Performance Benchmarks", () => {
   // ────────────────────────────────────────────────────────────────────────
   // Benchmark 1: Page Load
+  // Measures: DOMContentLoaded and networkidle timings for the lobby page.
+  // Threshold: < 3 s (soft), < 6 s with CI tolerance (hard)
   // ────────────────────────────────────────────────────────────────────────
   test("8-1 | page load time < 3 s (networkidle)", async ({ page }) => {
     const timer = new Timer();
@@ -118,7 +142,9 @@ test.describe("Phase 8 — Performance Benchmarks", () => {
   });
 
   // ────────────────────────────────────────────────────────────────────────
-  // Benchmark 2: Room Creation + Meeting Start → First COO Message
+  // Benchmark 2: Room Creation + Meeting Start -> First COO Message
+  // Measures: End-to-end latency from room creation to first AI-generated content.
+  // Threshold: Room entry < 30 s (hard); first message < 10 s (soft)
   // ────────────────────────────────────────────────────────────────────────
   test(
     "8-2 | room creation + meeting start → first COO message < 10 s",
@@ -181,7 +207,9 @@ test.describe("Phase 8 — Performance Benchmarks", () => {
   );
 
   // ────────────────────────────────────────────────────────────────────────
-  // Benchmark 3: User Message → First Agent Streaming Delta
+  // Benchmark 3: User Message -> First Agent Streaming Delta (TTFB)
+  // Measures: Time from message send to first visible streaming indicator or new bubble.
+  // Threshold: < 5 s (soft), < 15 s (hard)
   // ────────────────────────────────────────────────────────────────────────
   test(
     "8-3 | user message → first agent streaming delta < 5 s",
@@ -256,7 +284,9 @@ test.describe("Phase 8 — Performance Benchmarks", () => {
   );
 
   // ────────────────────────────────────────────────────────────────────────
-  // Benchmark 4: Full Agent Turn Completion < 15 s per agent
+  // Benchmark 4: Full Agent Turn Completion
+  // Measures: Time from message send to streaming completion (all agents done).
+  // Threshold: < 15 s (soft), < 60 s (hard)
   // ────────────────────────────────────────────────────────────────────────
   test(
     "8-4 | full agent turn (streaming done) < 15 s per agent",
@@ -320,7 +350,9 @@ test.describe("Phase 8 — Performance Benchmarks", () => {
   );
 
   // ────────────────────────────────────────────────────────────────────────
-  // Benchmark 5: Mode Switch (Live → DM) < 1 s
+  // Benchmark 5: Mode Switch (Live -> DM)
+  // Measures: UI transition time from clicking DM to visible mode change.
+  // Threshold: < 1 s (soft), < 3 s (hard)
   // ────────────────────────────────────────────────────────────────────────
   test("8-5 | mode switch Live → DM < 1 s", async ({ page }) => {
     const meetingRoom = new MeetingRoomPage(page);
@@ -378,6 +410,8 @@ test.describe("Phase 8 — Performance Benchmarks", () => {
 
   // ────────────────────────────────────────────────────────────────────────
   // Benchmark 6: Comprehensive Performance Summary
+  // Measures: Page load, SignalR negotiate, and room creation via API.
+  // Purpose: Produce a consolidated performance report for all key metrics.
   // ────────────────────────────────────────────────────────────────────────
   test("8-6 | performance summary — all thresholds reported", async ({
     page,

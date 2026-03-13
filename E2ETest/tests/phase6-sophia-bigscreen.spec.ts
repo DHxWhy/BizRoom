@@ -1,16 +1,36 @@
 /**
- * Phase 6: Sophia Visualizations & BigScreen
+ * @file phase6-sophia-bigscreen.spec.ts
+ * @description Phase 6 — Sophia Visualizations and BigScreen
  *
- * Validates:
- * - Data visualization request triggers Sophia message or BigScreen update
- * - BigScreen / artifact screen area is visible in the 3D canvas zone
- * - BigScreen pagination via Prev / Next buttons (if history exists)
- * - Sophia blob element exists in 3D scene
- * - HoloMonitor key_points display triggered after agent response
- * - Visualization render-time performance measured
+ * **Objective**:
+ *   Validate the Sophia supporting agent pipeline — the unique feature that
+ *   transforms agent conversation insights into real-time visualizations
+ *   displayed on the 3D BigScreen inside the meeting room.
  *
- * Note: Some features may not yet be fully wired in the deployed build.
- *       Non-critical checks use expect.soft() so the suite keeps running.
+ * **Expected Outcomes**:
+ *   - Data visualization request triggers Sophia message or BigScreen update
+ *   - BigScreen area is visible in the 3D canvas zone
+ *   - BigScreen pagination (Prev/Next) works when history exists
+ *   - Sophia blob element renders in the 3D scene
+ *   - HoloMonitor displays key_points after agent responses
+ *   - Visualization pipeline completes within 30 s
+ *
+ * **Prerequisites**:
+ *   - Full meeting session active with Sophia pipeline operational
+ *   - Azure OpenAI configured (Sophia uses Fast model for visualizations)
+ *   - BigScreenRenderer component mounted in R3F scene
+ *
+ * **Architecture Components Tested**:
+ *   - SophiaAgent (visual_hint buffer and FIFO queue)
+ *   - Sophia visual pipeline: agent visual_hint -> FIFO queue -> callSophiaVisualGPT()
+ *   - BigScreenRenderData generation and broadcast
+ *   - BigScreenRenderer (React Three Fiber) — in-scene screen component
+ *   - HoloMonitor3D — key_points display from StructuredAgentOutput
+ *   - SophiaBlob3D — animated 3D element representing Sophia
+ *   - SignalR bigScreenUpdate and sophiaMessage events
+ *
+ * **Note**: Some features may not be fully wired in the deployed build.
+ *   Non-critical checks use `expect.soft()` so the suite keeps running.
  */
 
 import { test, expect } from "@playwright/test";
@@ -80,16 +100,19 @@ async function detectSophiaActivity(page: import("@playwright/test").Page): Prom
 // ─────────────────────────────────────────────────────────────────────────────
 
 test.describe.serial("Phase 6 — Sophia Visualizations & BigScreen", () => {
-  // ── Test 6-1: Setup — full flow into active meeting ────────────────────────
-
+  // ── Test 6-1: Setup -- full flow into active meeting ────────────────────────
+  // Verifies: Full meeting setup completes for Sophia pipeline testing.
   test("6-1  Full lobby → meeting room → active meeting", async ({ page }) => {
     const timer = new Timer();
     await fullSetup(page);
     console.log(`[Phase 6-1] Setup complete in ${timer.elapsed()}ms`);
   });
 
-  // ── Test 6-2: Data visualization request → Sophia or BigScreen response ───
-
+  // ── Test 6-2: Data visualization request triggers Sophia pipeline ──────────
+  // Verifies: A chart/data request triggers the Sophia visual pipeline
+  //   (agent visual_hint -> FIFO queue -> callSophiaVisualGPT -> BigScreen).
+  // Why it matters: Real-time data visualization is a key product differentiator.
+  // Expected: At least one agent responds; Sophia message or BigScreen update (soft)
   test(
     "6-2  Data viz request → Sophia message or BigScreen update appears",
     async ({ page }) => {
@@ -137,8 +160,11 @@ test.describe.serial("Phase 6 — Sophia Visualizations & BigScreen", () => {
     { timeout: 120_000 },
   );
 
-  // ── Test 6-3: BigScreen / artifact screen visible in 3D canvas area ────────
-
+  // ── Test 6-3: BigScreen visible in 3D canvas area ──────────────────────────
+  // Verifies: The BigScreen element renders in the 3D scene after a viz request.
+  // Why it matters: The BigScreen is the physical "projector screen" in the 3D
+  //   meeting room where Sophia displays charts and data visualizations.
+  // Expected: BigScreen root element visible (soft); 3D canvas always present (hard)
   test(
     "6-3  BigScreen area visible in 3D scene after visualization request",
     async ({ page }) => {
@@ -172,7 +198,10 @@ test.describe.serial("Phase 6 — Sophia Visualizations & BigScreen", () => {
   );
 
   // ── Test 6-4: BigScreen pagination (Prev / Next) ──────────────────────────
-
+  // Verifies: BigScreen supports navigation through visualization history.
+  // Why it matters: As the meeting progresses, multiple visualizations are generated.
+  //   Users need to review past charts during discussion.
+  // Expected: Next/Prev buttons clickable when history exists; Q/E keyboard shortcuts
   test(
     "6-4  BigScreen pagination — Prev/Next buttons work if history exists",
     async ({ page }) => {
@@ -244,7 +273,10 @@ test.describe.serial("Phase 6 — Sophia Visualizations & BigScreen", () => {
   );
 
   // ── Test 6-5: Sophia blob element in 3D scene ─────────────────────────────
-
+  // Verifies: SophiaBlob3D component renders as a visible element in the R3F scene.
+  // Why it matters: Sophia's animated blob is the visual representation of the
+  //   supporting AI agent — it pulses when generating visualizations.
+  // Expected: Sophia-related DOM element found (soft); canvas always present (hard)
   test(
     "6-5  Sophia blob / 3D element exists in scene",
     async ({ page }) => {
@@ -275,7 +307,11 @@ test.describe.serial("Phase 6 — Sophia Visualizations & BigScreen", () => {
   );
 
   // ── Test 6-6: HoloMonitor key_points display ──────────────────────────────
-
+  // Verifies: The HoloMonitor3D element displays key_points extracted from
+  //   StructuredAgentOutput after each agent response.
+  // Why it matters: Key points are the "meeting notes in real-time" — they help
+  //   users track decisions and action items as the meeting progresses.
+  // Expected: Monitor/key-points DOM elements found (soft)
   test(
     "6-6  HoloMonitor key_points appear after agent response",
     async ({ page }) => {
@@ -312,7 +348,10 @@ test.describe.serial("Phase 6 — Sophia Visualizations & BigScreen", () => {
   );
 
   // ── Test 6-7: Sophia message in chat ──────────────────────────────────────
-
+  // Verifies: Sophia posts a chat message alongside BigScreen updates.
+  // Why it matters: Sophia communicates what it is visualizing, providing
+  //   context for the chart/data displayed on the BigScreen.
+  // Expected: Sophia-related message or keyword in chat (soft)
   test(
     "6-7  Sophia message appears in chat for visualization",
     async ({ page }) => {
@@ -354,8 +393,11 @@ test.describe.serial("Phase 6 — Sophia Visualizations & BigScreen", () => {
     { timeout: 120_000 },
   );
 
-  // ── Test 6-8: Performance — visualization render time ─────────────────────
-
+  // ── Test 6-8: Performance -- visualization render time ─────────────────────
+  // Verifies: The full visualization pipeline (request -> Sophia -> BigScreen)
+  //   completes within a reasonable time budget.
+  // Why it matters: Slow visualizations lose the meeting's momentum.
+  // Expected: Pipeline completes within 30 s (soft)
   test(
     "6-8  Performance — visualization pipeline completes within 30s",
     async ({ page }) => {

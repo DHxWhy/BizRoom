@@ -1,22 +1,37 @@
 /**
- * Phase 3 — Live Chat Messaging & Streaming
+ * @file phase3-live-chat.spec.ts
+ * @description Phase 3 — Live Chat Messaging and Streaming
  *
- * Covers:
- *   – Full setup: lobby → create room → start meeting → wait for COO opening
- *   – Human message send → appears in chat immediately
- *   – Agent response starts (message count increases / streaming active)
- *   – At least one agent fully responds (streaming ends)
- *   – Agent response contains non-empty text
- *   – Performance: send → first agent response time
+ * **Objective**:
+ *   Validate the core user interaction loop: type a message, send it, and
+ *   receive a streamed AI agent response. This is the primary value
+ *   proposition of BizRoom.ai — real-time conversation with AI executives.
  *
- * Design notes:
- *   The meeting is started once in beforeAll via a dedicated browser context
- *   (same pattern as Phase 2) so all ordered tests operate on a live session.
+ * **Expected Outcomes**:
+ *   - Human message appears in chat immediately after send
+ *   - Agent response begins streaming (message count increases or streaming indicator)
+ *   - At least one agent fully responds with non-empty text
+ *   - Streaming completes (indicator disappears)
+ *   - Full send-to-response cycle completes within performance budget
  *
- *   Streaming detection uses two complementary signals:
- *     1. [data-streaming='true'] / .streaming — if the app marks streaming msgs
- *     2. Message count growth — if the app appends new bubbles during stream
- *   Either signal is sufficient; neither is required to be present.
+ * **Prerequisites**:
+ *   - Full meeting session active (lobby -> room -> meeting started -> COO opening)
+ *   - Azure OpenAI configured for agent responses
+ *   - SignalR connection active for real-time message delivery
+ *
+ * **Architecture Components Tested**:
+ *   - ChatPanel (React) — message rendering and input handling
+ *   - SignalR message broadcast pipeline
+ *   - TurnManager turn allocation
+ *   - TopicClassifier agent routing
+ *   - AgentFactory LLM invocation
+ *   - ResponseParser structured output parsing
+ *   - SSE/streaming message delivery to frontend
+ *
+ * **Streaming Detection Strategy**:
+ *   Uses two complementary signals (either is sufficient):
+ *     1. `[data-streaming='true']` / `.streaming` — app marks streaming messages
+ *     2. Message count growth — app appends new bubbles during stream
  */
 
 import { test, expect, Browser, BrowserContext, Page } from "@playwright/test";
@@ -114,7 +129,10 @@ test.describe.serial("Phase 3 — Live Chat Messaging", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 1: Setup verification — meeting room is live
+  // Test 3-1: Setup verification -- meeting room is live
+  // Verifies: The full setup (lobby -> room -> meeting -> COO opening) succeeded.
+  // Why it matters: Confirms the test environment is ready for chat interaction tests.
+  // Expected: At least 1 message (COO opening) exists in chat
   // ------------------------------------------------------------------
   test("3-1 | setup — meeting room is live after full setup", async () => {
     const chat = new ChatPanel(sharedPage);
@@ -128,7 +146,10 @@ test.describe.serial("Phase 3 — Live Chat Messaging", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 2: Type message and send
+  // Test 3-2: Type message and send
+  // Verifies: User can type text into the input and click send.
+  // Why it matters: This is the fundamental user action — broken input = no conversation.
+  // Expected: Input contains typed text before send; send button clickable
   // ------------------------------------------------------------------
   test("3-2 | type and send a human message", async () => {
     const chat = new ChatPanel(sharedPage);
@@ -151,7 +172,10 @@ test.describe.serial("Phase 3 — Live Chat Messaging", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 3: Human message appears in chat
+  // Test 3-3: Human message appears in chat
+  // Verifies: The sent message renders as a bubble in the chat panel.
+  // Why it matters: Users need immediate visual feedback that their message was accepted.
+  // Expected: Message count increases; sent text visible in a bubble
   // ------------------------------------------------------------------
   test("3-3 | human message appears in chat after send", async () => {
     // After sending, the human message bubble should appear
@@ -185,7 +209,11 @@ test.describe.serial("Phase 3 — Live Chat Messaging", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 4: Agent response starts — message count increases or streaming appears
+  // Test 3-4: Agent response starts streaming
+  // Verifies: The orchestration pipeline picks up the user message and begins
+  //   generating an agent response (visible as a new bubble or streaming indicator).
+  // Why it matters: Proves the full round-trip: UI -> SignalR -> TurnManager -> LLM -> streaming.
+  // Expected: New message bubble appears OR streaming indicator becomes visible
   // ------------------------------------------------------------------
   test("3-4 | agent response starts streaming after human message", async () => {
     // Signal 1: a new message bubble appears (streaming appends a new bubble)
@@ -228,7 +256,10 @@ test.describe.serial("Phase 3 — Live Chat Messaging", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 5: At least one agent fully responds — streaming ends
+  // Test 3-5: Agent response completes -- streaming ends
+  // Verifies: The agent finishes its response (streaming indicator disappears).
+  // Why it matters: Incomplete responses indicate pipeline failures or timeouts.
+  // Expected: No streaming indicators remain; message count > baseline
   // ------------------------------------------------------------------
   test("3-5 | agent response completes — streaming finishes", async () => {
     const chat = new ChatPanel(sharedPage);
@@ -244,7 +275,10 @@ test.describe.serial("Phase 3 — Live Chat Messaging", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 6: Agent response contains non-empty text
+  // Test 3-6: Agent response contains non-empty text
+  // Verifies: The completed agent response has meaningful content (not empty/error).
+  // Why it matters: An empty response means the LLM call or response parser failed.
+  // Expected: At least one response bubble with length > 0
   // ------------------------------------------------------------------
   test("3-6 | agent response contains non-empty text", async () => {
     const chat = new ChatPanel(sharedPage);
@@ -274,7 +308,10 @@ test.describe.serial("Phase 3 — Live Chat Messaging", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 7: Performance — send to first agent response time
+  // Test 3-7: Performance -- send to first agent response time
+  // Verifies: The total cycle time from message send to completed agent response.
+  // Why it matters: Users expect conversational latency — long waits break immersion.
+  // Expected: < 120 s (hard), < 15 s (soft target), total message count logged
   // ------------------------------------------------------------------
   test("3-7 | performance — send to first agent response measured", async () => {
     // At this point (after test 3-5 passed), at least one agent has responded.

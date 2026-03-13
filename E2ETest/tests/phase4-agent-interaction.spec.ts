@@ -1,12 +1,32 @@
 /**
- * Phase 4: Multi-Agent Interaction & A2A Mention Routing
+ * @file phase4-agent-interaction.spec.ts
+ * @description Phase 4 — Multi-Agent Interaction and A2A Mention Routing
  *
- * Validates:
- * - CFO mention routing: @CFO message triggers Amelia response
- * - Multi-agent sequential turns: COO + CFO both appear after mention
- * - Strategy message routes to CMO (Yusef)
- * - A2A turn chain: mention chain produces 2+ agent responses
- * - Agent turn completion performance measured with Timer
+ * **Objective**:
+ *   Validate that BizRoom's multi-agent orchestration works correctly.
+ *   When a user mentions a specific agent (e.g., "@CFO"), the system must
+ *   route the message to the correct agent and produce a coherent
+ *   multi-agent conversation thread.
+ *
+ * **Expected Outcomes**:
+ *   - @CFO mention routes to Amelia (CFO) who responds
+ *   - Hudson (COO) appears as meeting chair alongside CFO responses
+ *   - Strategy topics route to Yusef (CMO) via TopicClassifier
+ *   - A2A turn chains produce 2+ distinct agent responses
+ *   - Agent turn completes within 60 s performance budget
+ *
+ * **Prerequisites**:
+ *   - Full meeting session active with all 3 MVP agents (Hudson, Amelia, Yusef)
+ *   - Azure OpenAI configured for multi-agent response generation
+ *   - TurnManager and TopicClassifier operational
+ *
+ * **Architecture Components Tested**:
+ *   - TopicClassifier — routes user input to relevant agents
+ *   - TurnManager — priority queue (P0-P4) and turn allocation
+ *   - ContextBroker — shared context between agents
+ *   - ResponseParser — StructuredAgentOutput with mention field
+ *   - A2A mention routing (agent mentions another agent -> follow-up turn)
+ *   - VoiceLiveOrchestrator agentDone handler chain
  */
 
 import { test, expect } from "@playwright/test";
@@ -56,7 +76,9 @@ async function fullSetup(page: import("@playwright/test").Page) {
 
 test.describe.serial("Phase 4 — Multi-Agent Interaction & A2A", () => {
   // ── Test 4-1: Setup ─────────────────────────────────────────────────────────
-
+  // Verifies: Full setup completes and baseline message count is captured.
+  // Why it matters: Establishes a clean starting point for multi-agent tests.
+  // Expected: Baseline message count >= 0
   test("4-1  Full lobby → meeting room → start flow", async ({ page }) => {
     const timer = new Timer();
 
@@ -74,7 +96,11 @@ test.describe.serial("Phase 4 — Multi-Agent Interaction & A2A", () => {
   });
 
   // ── Test 4-2: CFO mention routing ──────────────────────────────────────────
-
+  // Verifies: @CFO mention correctly routes to Amelia (CFO) via TopicClassifier.
+  // Why it matters: Mention routing is the primary mechanism for users to
+  //   direct questions to specific C-Suite members — it validates the A2A protocol.
+  // Expected: Amelia's name appears in chat; message count increases by 2+
+  //   (typically Hudson chairs + Amelia responds)
   test(
     "4-2  @CFO mention → Amelia responds + message count increases by 2+",
     async ({ page }) => {
@@ -110,7 +136,10 @@ test.describe.serial("Phase 4 — Multi-Agent Interaction & A2A", () => {
   );
 
   // ── Test 4-3: Hudson (COO) appears in conversation ─────────────────────────
-
+  // Verifies: COO Hudson acts as meeting chair alongside other agent responses.
+  // Why it matters: Hudson moderates all meetings — his presence validates
+  //   the chairman turn logic in TurnManager (P0 priority).
+  // Expected: Hudson's name appears in a message bubble (soft assertion)
   test(
     "4-3  Hudson (COO) appears as meeting chair after CFO mention",
     async ({ page }) => {
@@ -136,7 +165,10 @@ test.describe.serial("Phase 4 — Multi-Agent Interaction & A2A", () => {
   );
 
   // ── Test 4-4: CMO responds to strategy message ─────────────────────────────
-
+  // Verifies: Strategy/marketing topics are routed to Yusef (CMO) by TopicClassifier.
+  // Why it matters: Demonstrates intelligent topic-based agent routing — users
+  //   do not need to explicitly mention agents for relevant responses.
+  // Expected: Yusef (CMO) appears in agent responses after strategy message
   test(
     "4-4  Strategy message → Yusef (CMO) responds",
     async ({ page }) => {
@@ -163,8 +195,11 @@ test.describe.serial("Phase 4 — Multi-Agent Interaction & A2A", () => {
     { timeout: 120_000 },
   );
 
-  // ── Test 4-5: A2A chain — 2+ agents participate ────────────────────────────
-
+  // ── Test 4-5: A2A chain -- 2+ agents participate ────────────────────────────
+  // Verifies: Agent-to-agent communication produces multi-party discussion.
+  // Why it matters: BizRoom's key differentiator is that AI executives discuss
+  //   with each other (not just with the user) — validating A2A turn chains.
+  // Expected: At least 1 named agent (hard), 2+ distinct agents (soft)
   test(
     "4-5  A2A turn chain — minimum 2 distinct agents appear in thread",
     async ({ page }) => {
@@ -204,8 +239,10 @@ test.describe.serial("Phase 4 — Multi-Agent Interaction & A2A", () => {
     { timeout: 120_000 },
   );
 
-  // ── Test 4-6: Performance — agent turn complete time ───────────────────────
-
+  // ── Test 4-6: Performance -- agent turn complete time ───────────────────────
+  // Verifies: A complete agent turn (send -> response) finishes within budget.
+  // Why it matters: Slow agent turns break the conversational flow and frustrate users.
+  // Expected: < 60 s (soft performance assertion)
   test(
     "4-6  Performance — agent turn completes within 60s",
     async ({ page }) => {

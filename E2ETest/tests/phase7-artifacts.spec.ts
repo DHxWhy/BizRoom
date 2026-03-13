@@ -1,17 +1,36 @@
 /**
- * Phase 7 — Artifact Generation & Download
+ * @file phase7-artifacts.spec.ts
+ * @description Phase 7 — Artifact Generation and Download
  *
- * Covers: artifact trigger via chat message, artifact-preview UI element,
- * download button interaction, and GET /api/room/{roomId}/artifacts endpoint.
+ * **Objective**:
+ *   Validate the artifact pipeline — a key differentiator of BizRoom.ai.
+ *   After meeting discussions, the system generates downloadable artifacts
+ *   (Excel spreadsheets, PowerPoint decks, meeting minutes) that users
+ *   can take away as actionable deliverables.
  *
- * Strategy:
- *   - Full lobby → meeting-start flow via UI
- *   - Send an artifact-triggering message (budget analysis)
- *   - Soft-assert artifact preview in chat (may not appear within timeout on
- *     cold-start; tests are resilient via expect.soft)
- *   - Verify artifacts REST endpoint returns a valid response
+ * **Expected Outcomes**:
+ *   - Artifact-triggering message is accepted and processed
+ *   - Agent responds to artifact request within timeout
+ *   - Artifact preview element appears in chat (soft)
+ *   - Download button produces a non-error response (soft)
+ *   - GET /api/room/{roomId}/artifacts returns valid response with correct shape
+ *   - Artifact objects contain expected type (excel/pptx/markdown) and name
  *
- * All timeout values are generous to accommodate cold-start Azure Functions.
+ * **Prerequisites**:
+ *   - Full meeting session active
+ *   - Backend ArtifactService and ArtifactGenerator operational
+ *   - Cosmos DB configured for artifact storage
+ *
+ * **Architecture Components Tested**:
+ *   - ArtifactService — artifact storage and retrieval
+ *   - ArtifactGenerator — Excel (exceljs) and PPT (pptxgenjs) generation
+ *   - ArtifactPreview component (React) — in-chat preview card
+ *   - REST API: GET /api/room/{roomId}/artifacts
+ *   - Sophia meeting-end pipeline (triggers artifact generation)
+ *
+ * **Strategy**:
+ *   All timeouts are generous to accommodate Azure Functions cold-start.
+ *   Soft assertions are used for features dependent on the full AI pipeline.
  */
 
 import { test, expect } from "@playwright/test";
@@ -90,6 +109,10 @@ test.describe.serial("Phase 7 — Artifacts", () => {
 
   // ------------------------------------------------------------------
   // Test 7-1: Full meeting setup + artifact-triggering message
+  // Verifies: Meeting room is entered and an artifact-triggering message is sent.
+  // Why it matters: This sets up the artifact generation pipeline with a budget
+  //   analysis request that should trigger Excel/PPT generation.
+  // Expected: Message sent; room URL and roomId captured for subsequent tests
   // ------------------------------------------------------------------
   test("7-1 | enter meeting room and send artifact-triggering message", async ({
     page,
@@ -143,6 +166,9 @@ test.describe.serial("Phase 7 — Artifacts", () => {
 
   // ------------------------------------------------------------------
   // Test 7-2: Wait for agent response after artifact request
+  // Verifies: At least one agent responds to the artifact-triggering message.
+  // Why it matters: The agent response triggers the Sophia artifact pipeline.
+  // Expected: Message count increases (soft — cold-start may delay)
   // ------------------------------------------------------------------
   test("7-2 | wait for agent response to artifact request", async ({
     page,
@@ -171,6 +197,9 @@ test.describe.serial("Phase 7 — Artifacts", () => {
 
   // ------------------------------------------------------------------
   // Test 7-3: Artifact preview element appears in chat
+  // Verifies: ArtifactPreview component renders in the chat panel.
+  // Why it matters: Users need to see what was generated before downloading.
+  // Expected: Artifact preview element visible within 90 s (soft)
   // ------------------------------------------------------------------
   test("7-3 | artifact preview element appears (soft)", async ({ page }) => {
     const chat = new ChatPanel(page);
@@ -202,7 +231,10 @@ test.describe.serial("Phase 7 — Artifacts", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 7-4: Download button click — verify non-error response
+  // Test 7-4: Download button click -- verify non-error response
+  // Verifies: Clicking download triggers a request that does not produce a 5xx error.
+  // Why it matters: Users must be able to download meeting artifacts (Excel, PPT).
+  // Expected: Download response status < 500 (soft)
   // ------------------------------------------------------------------
   test("7-4 | download button click produces non-error response (soft)", async ({
     page,
@@ -252,7 +284,10 @@ test.describe.serial("Phase 7 — Artifacts", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 7-5: GET /api/room/{roomId}/artifacts — endpoint health check
+  // Test 7-5: GET /api/room/{roomId}/artifacts -- endpoint health check
+  // Verifies: The artifacts REST endpoint responds without server errors.
+  // Why it matters: Validates the backend ArtifactService and Cosmos DB integration.
+  // Expected: Status < 500; if 200, response is an array with typed artifacts
   // ------------------------------------------------------------------
   test("7-5 | GET /api/room/{roomId}/artifacts returns valid response", async ({
     request,
@@ -293,7 +328,10 @@ test.describe.serial("Phase 7 — Artifacts", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 7-6: Artifact type validation — excel or markdown expected
+  // Test 7-6: Artifact type validation -- excel or markdown expected
+  // Verifies: Each artifact from the API has a recognized type and non-empty name.
+  // Why it matters: Ensures ArtifactGenerator produces correctly-typed outputs.
+  // Expected: Type matches excel/xlsx/markdown/pptx; name is non-empty (soft)
   // ------------------------------------------------------------------
   test("7-6 | artifacts from API have expected type and name (soft)", async ({
     request,

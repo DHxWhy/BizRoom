@@ -1,19 +1,36 @@
 /**
- * Phase 2 — Meeting Initialization
+ * @file phase2-meeting-start.spec.ts
+ * @description Phase 2 — Meeting Initialization
  *
- * Covers: room entry → 3D canvas render → "Start Meeting" → COO Hudson's
- * opening message → meeting phase transition → performance measurement.
+ * **Objective**:
+ *   Validate the transition from lobby to an active meeting session. This is
+ *   the critical "first impression" moment: the 3D meeting room renders, the
+ *   user clicks "Start Meeting", and COO Hudson delivers the opening message.
  *
- * Setup strategy:
- *   beforeAll creates the room once via LobbyPage so that all tests within
- *   the describe block operate on an already-entered meeting room.
- *   Individual tests are ordered (test.describe.serial) and rely on the
- *   shared `page` created in beforeAll.
+ * **Expected Outcomes**:
+ *   - Three.js 3D canvas renders after room entry
+ *   - "Start Meeting" button is visible and clickable
+ *   - Clicking Start triggers the orchestration pipeline
+ *   - COO Hudson's opening message appears within 10 s (soft) / 60 s (hard)
+ *   - Meeting phase transitions from idle to opening
  *
- * Note: Playwright does not support a shared `page` across `test()` calls
- * natively with `test.describe.serial`.  We work around this by using a
- * module-level variable and a single browser/context created via the
- * `browser` fixture in beforeAll.
+ * **Prerequisites**:
+ *   - Frontend deployed with 3D meeting room components
+ *   - Backend Azure Functions running (for AI agent responses)
+ *   - Azure OpenAI configured (for COO opening message generation)
+ *
+ * **Architecture Components Tested**:
+ *   - MeetingRoom3D (React Three Fiber scene)
+ *   - MeetingContext (global state management)
+ *   - SignalR connection establishment
+ *   - TurnManager initialization
+ *   - AgentFactory.invokeAgent() for COO opening
+ *   - SnippetManager phase transition (idle -> opening)
+ *
+ * **Setup Strategy**:
+ *   beforeAll creates the room once via LobbyPage so all serial tests operate
+ *   on a shared browser context. Module-level variables hold the shared page
+ *   and performance timestamps across test boundaries.
  */
 
 import { test, expect, Browser, BrowserContext, Page } from "@playwright/test";
@@ -114,7 +131,11 @@ test.describe.serial("Phase 2 — Meeting Start", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 1: 3D canvas is rendered
+  // Test 2-1: 3D canvas is rendered
+  // Verifies: Three.js canvas element is visible after entering the meeting room.
+  // Why it matters: The 3D meeting room is the core visual experience — agents,
+  //   BigScreen, and Sophia blob all render inside the R3F canvas.
+  // Expected: <canvas> element is visible in the DOM
   // ------------------------------------------------------------------
   test("2-1 | 3D canvas renders after room entry", async () => {
     const meeting = new MeetingRoomPage(sharedPage);
@@ -123,7 +144,10 @@ test.describe.serial("Phase 2 — Meeting Start", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 2: Start Meeting button is present and clickable
+  // Test 2-2: Start Meeting button is present and clickable
+  // Verifies: The call-to-action button that initiates the AI meeting is rendered.
+  // Why it matters: Without this button, users cannot trigger the orchestration pipeline.
+  // Expected: Button with text "Start" or equivalent is visible within 15 s
   // ------------------------------------------------------------------
   test("2-2 | Start Meeting button is visible and clickable", async () => {
     const startBtn = sharedPage
@@ -137,7 +161,10 @@ test.describe.serial("Phase 2 — Meeting Start", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 3: Click "Start Meeting" — meeting initialises
+  // Test 2-3: Click "Start Meeting" -- meeting initialises
+  // Verifies: Clicking Start fires the orchestration pipeline and canvas persists.
+  // Why it matters: This triggers TurnManager, SignalR connection, and COO agent invocation.
+  // Expected: Canvas remains visible after click (no crash/redirect)
   // ------------------------------------------------------------------
   test("2-3 | clicking Start Meeting initiates the meeting", async () => {
     const meeting = new MeetingRoomPage(sharedPage);
@@ -151,7 +178,11 @@ test.describe.serial("Phase 2 — Meeting Start", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 4: COO Hudson's opening message appears within 10 s (60 s budget)
+  // Test 2-4: COO Hudson's opening message appears
+  // Verifies: The AI meeting chair (Hudson/COO) delivers an opening statement.
+  // Why it matters: This is the first AI-generated content the user sees —
+  //   it proves the full pipeline works: SignalR -> TurnManager -> AgentFactory -> LLM -> ResponseParser -> chat UI.
+  // Expected: Non-empty message bubble visible within 60 s (10 s soft target)
   // ------------------------------------------------------------------
   test("2-4 | COO Hudson's opening message appears within 10 s", async () => {
     const chat = new ChatPanel(sharedPage);
@@ -187,7 +218,11 @@ test.describe.serial("Phase 2 — Meeting Start", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 5: Meeting phase transitions away from "idle"
+  // Test 2-5: Meeting phase transitions away from "idle"
+  // Verifies: SnippetManager phase indicator updates after meeting start.
+  // Why it matters: Phase state (Open -> Discuss -> Decide -> Act) drives
+  //   agent behavior and UI elements throughout the meeting lifecycle.
+  // Expected: Phase is not "idle" when indicator is present
   // ------------------------------------------------------------------
   test("2-5 | meeting phase transitions from idle to opening", async () => {
     const meeting = new MeetingRoomPage(sharedPage);
@@ -206,7 +241,11 @@ test.describe.serial("Phase 2 — Meeting Start", () => {
   });
 
   // ------------------------------------------------------------------
-  // Test 6: Performance — meeting start → first message time
+  // Test 2-6: Performance -- meeting start to first message time
+  // Verifies: End-to-end latency from clicking Start to first agent message.
+  // Why it matters: This metric represents the "time to value" — how long
+  //   users wait before receiving their first piece of AI-generated insight.
+  // Expected: < 120 s (hard), message count > 0
   // ------------------------------------------------------------------
   test("2-6 | performance — meeting start to first agent message", async () => {
     // meetingStartedAt was set in test 2-3.
