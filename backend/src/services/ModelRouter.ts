@@ -23,6 +23,7 @@ import OpenAI from "openai";
 export type TaskType =
   | "agent-response"
   | "visual-gen"
+  | "visual-gen-fast"
   | "minutes"
   | "parse-fallback"
   | "deep-analysis"
@@ -105,7 +106,7 @@ function getAnthropicModel(task: TaskType): ModelSelection {
         maxTokens: getMaxTokens(task),
       };
 
-    // Sonnet 4.6 — balanced speed+quality for visualization
+    // Sonnet 4.6 — balanced speed+quality for complex visualizations
     case "visual-gen":
     case "artifact":
       return {
@@ -115,7 +116,8 @@ function getAnthropicModel(task: TaskType): ModelSelection {
         maxTokens: getMaxTokens(task),
       };
 
-    // Haiku 4.5 — fastest for parsing and classification
+    // Haiku 4.5 — fast visuals for simple types (summary, checklist, monitor)
+    case "visual-gen-fast":
     case "parse-fallback":
       return {
         provider: "anthropic",
@@ -194,6 +196,7 @@ function getTemperature(task: TaskType): number {
     case "research":
       return 0.5;
     case "visual-gen":
+    case "visual-gen-fast":
       return 0.2;
     case "minutes":
     case "summary":
@@ -222,6 +225,8 @@ function getMaxTokens(task: TaskType): number {
       return 1000;
     case "visual-gen":
       return 1500;
+    case "visual-gen-fast":
+      return 800;
     case "parse-fallback":
       return 500;
     case "realtime-voice":

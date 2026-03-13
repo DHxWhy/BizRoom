@@ -214,11 +214,31 @@ export function unwireVoiceLiveForRoom(roomId: string): void {
 // Fallback: Anthropic Sonnet 4.6 (fast + high-quality visualization)
 // See ModelRouter.ts for provider selection logic
 
+/**
+ * Determine task type for Sophia visual generation based on hint complexity.
+ * Simple types (summary, checklist) → Haiku (fast, ~1.6s)
+ * Complex types (architecture, comparison, charts) → Sonnet (quality, ~5s)
+ */
+function classifyVisualComplexity(hint: VisualHint, contextLength: number): "visual-gen" | "visual-gen-fast" {
+  // Simple types that need minimal reasoning
+  const fastTypes = new Set(["summary", "checklist"]);
+  if (fastTypes.has(hint.type)) return "visual-gen-fast";
+
+  // Short context + simple chart → fast model is sufficient
+  const basicChartTypes = new Set(["pie-chart", "bar-chart"]);
+  if (basicChartTypes.has(hint.type) && contextLength < 500) return "visual-gen-fast";
+
+  // Complex types that need spatial reasoning or data extraction
+  // architecture, comparison, timeline, or charts with long context
+  return "visual-gen";
+}
+
 /** Call LLM to generate BigScreenRenderData from a visual hint */
 async function callSophiaVisualLLM(roomId: string, hint: VisualHint): Promise<BigScreenRenderData> {
   const recentContext = sophiaAgent.getRecentSpeeches(roomId, 5).join("\n");
   const userContent = `visual_hint: ${JSON.stringify(hint)}\n\n최근 대화:\n${recentContext}\n\ntype="${hint.type}"에 맞는 BigScreenRenderData JSON을 생성하세요.`;
-  const selection = getModelForTask("visual-gen");
+  const taskType = classifyVisualComplexity(hint, recentContext.length);
+  const selection = getModelForTask(taskType);
 
   let content: string;
 
