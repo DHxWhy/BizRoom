@@ -147,6 +147,9 @@ export const S = {
     nextAgenda: "다음 안건",
     pauseAi: "AI 일시정지",
     resumeAi: "AI 재개",
+    endMeeting: "회의 종료",
+    endMeetingConfirm:
+      "회의를 종료하시겠습니까?\n종료 후 회의록과 산출물이 생성됩니다.",
   },
   mic: {
     on: "마이크 켜짐",

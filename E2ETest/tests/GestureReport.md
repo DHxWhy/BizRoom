@@ -1,7 +1,7 @@
 ---
-version: "1.0.0"
+version: "1.1.0"
 created: "2026-03-14 09:00"
-updated: "2026-03-14 09:00"
+updated: "2026-03-14 18:30"
 ---
 
 # Avatar Presence System
@@ -29,6 +29,10 @@ Ready Player Me GLB models share a Mixamo skeleton. Bone deltas for a seated pos
 | Audio playback            | PCM16 24 kHz chunks queued via Web Audio API          | Connected        | SignalR `agentAudioDelta` -> `useAgentAudio` -> `AudioBufferSourceNode` chain                  |
 | Fallback jaw animation    | Dual-sine jaw oscillation (8 Hz + 13 Hz harmonics)    | Active (default) | Engages automatically when no viseme data is present; lerp-smoothed                           |
 | Subtle smile              | `mouthSmileLeft/Right` morph targets                  | Active (default) | Slight upturn while speaking (0.2), resting micro-smile (0.05) -- part of fallback path       |
+| Hand micro-lift           | Procedural UpperArm/ForeArm rotation (speaking)       | Implemented      | Subtle forearm lift during speech emphasis; amplitude < 8 degrees                             |
+| Finger fidget             | Procedural finger bone rotation (speaking)             | Implemented      | Stochastic finger curls on speaking beats; per-agent seed avoids synchronization               |
+| Head nod                  | Procedural head pitch oscillation (listening)          | Implemented      | Micro-nods at ~0.6 Hz while another agent speaks; pitch < 5 degrees                          |
+| Posture shift             | Procedural spine/hip rotation (idle)                   | Implemented      | Slow weight-shift every 8-15 s; roll < 3 degrees; breaks static symmetry                     |
 
 ---
 
@@ -132,13 +136,73 @@ Morph target updates happen via direct array index writes to `morphTargetInfluen
 
 ---
 
-## Future: Gesture System
+## Micro-Gesture System
 
-The current skeleton pose is static (seated, hands on lap). A planned extension would layer procedural gesture animations on top of the seated base:
+The micro-gesture system extends the static seated posture with procedural, state-driven bone animations. No motion capture data is required -- all movement is generated at runtime from parameterized sine waves and noise functions, composed additively on top of the existing quaternion-delta sitting pose.
 
-- **Emphasis gestures** -- subtle hand lifts on key points, driven by `key_points[]` in `StructuredAgentOutput`
-- **Head nods** -- agreement/acknowledgment micro-nods during other agents' speech, triggered by `mention` routing
+### State Machine
+
+Each avatar evaluates one of three gesture states per frame, determined by orchestrator events:
+
+| State       | Trigger                                      | Active Bone Targets                     | Typical Duration |
+| ----------- | -------------------------------------------- | --------------------------------------- | ---------------- |
+| Speaking    | Agent is the current `speakingAgent`         | UpperArm, ForeArm, Fingers, Head        | Until turn ends  |
+| Listening   | Another agent is speaking                    | Head, Neck, Spine (upper)               | Continuous       |
+| Idle        | No agent is speaking or during pause         | Spine, Hips                             | Continuous       |
+
+State transitions use the same `lerp` smoothing as viseme interpolation (rate = 8/s), preventing abrupt pose snaps when turn ownership changes.
+
+### Design Constraints
+
+The cardinal rule: **all rotations remain below 10 degrees**. Larger movements compete with speech content for the viewer's attention and risk crossing into uncanny territory. Specific limits:
+
+- **Hand micro-lift** (speaking): UpperArm pitch delta 4-8 degrees, ForeArm follow-through 3-5 degrees. Triggered stochastically on speech emphasis beats, not continuously.
+- **Finger fidget** (speaking): Individual finger bone curls of 2-6 degrees, randomized per bone. A seeded PRNG per agent ensures no two avatars fidget in unison.
+- **Head nod** (listening): Pitch oscillation at ~0.6 Hz, amplitude 3-5 degrees. Mimics the unconscious agreement nod observed in active listeners.
+- **Posture shift** (idle): Slow spine roll (< 3 degrees) and hip sway at intervals of 8-15 seconds. Breaks the static symmetry that makes idle avatars feel lifeless.
+
+### Per-Agent Random Seed
+
+Each agent is assigned a deterministic seed derived from their role index. This seed offsets the phase and frequency of all procedural oscillators, producing asynchronous movement across the table. The effect is subtle but critical -- synchronized gestures read as robotic; desynchronized gestures read as individual.
+
+### Bone Targets
+
+The gesture system operates on five bone groups within the Mixamo skeleton hierarchy:
+
+```
+Spine2 (upper torso lean, posture shift)
+  |
+  +-- Neck -> Head (nod, gaze micro-adjustments)
+  |
+  +-- LeftShoulder -> LeftArm -> LeftForeArm -> LeftHand -> Fingers
+  +-- RightShoulder -> RightArm -> RightForeArm -> RightHand -> Fingers
+```
+
+All gesture rotations are composed via quaternion multiplication on the existing seated-pose deltas, preserving the base posture. The additive composition means gestures can be layered, blended, and removed without side effects on other animation channels.
+
+### Future Extensions
+
+- **Emphasis gestures** -- hand lifts driven by `key_points[]` in `StructuredAgentOutput`
 - **Lean-in** -- forward torso tilt when an agent is about to speak, cued by `TurnManager` priority queue transitions
 - **Steepled fingers** -- contemplative pose during extended thinking phases
 
-These would follow the same philosophy: small, infrequent, and never competing with speech for the viewer's attention. The bone delta system already supports additive composition, so gesture layers can be blended without modifying the base sitting pose.
+These would follow the same philosophy: small, infrequent, and never competing with speech for the viewer's attention.
+
+---
+
+## Meeting Lifecycle
+
+The meeting session is not purely a real-time conversation loop -- it has a defined lifecycle with a structured teardown phase that triggers backend artifact generation.
+
+When the chairman ends a meeting via the `POST /api/meeting/end` endpoint, the backend orchestrates the following pipeline:
+
+1. **COO closing statement** -- Hudson delivers a brief summary based on the accumulated `ContextBroker` state.
+2. **Meeting minutes generation** -- `generateMeetingMinutesGPT()` synthesizes the full conversation history into a structured summary (decisions, action items, key discussion points).
+3. **Artifact generation** -- `ArtifactGenerator` produces downloadable deliverables:
+   - **PowerPoint** (pptxgenjs) -- executive summary deck with per-agent contribution slides.
+   - **Excel** (exceljs) -- structured data export of action items, financials discussed, and timeline commitments.
+4. **OneDrive upload** -- artifacts are persisted to the team's OneDrive folder via Microsoft Graph API.
+5. **Planner task creation** -- action items extracted from the minutes are pushed to Microsoft Planner as assignable tasks.
+6. **Client notification** -- the `artifactsReady` SignalR event broadcasts download URLs and metadata to all connected participants.
+
+This pipeline runs asynchronously after the meeting-end signal. The frontend receives artifact data through the existing `onArtifactsReady` callback and surfaces download links in the UI. The 3D scene transitions to a closing state, and the meeting phase advances to `closing` then `idle`.
