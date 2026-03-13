@@ -87,7 +87,7 @@ function CenterScreen() {
   return (
     <group>
       {/* Screen frame (light moves with it) */}
-      <mesh ref={ref} position={[0, 1.05, -0.4]} rotation={[-0.15, 0, 0]}>
+      <mesh ref={ref} position={[0, 1.05, -0.4]} rotation={[Math.PI / 12, 0, 0]}>
         <boxGeometry args={[0.6, 0.35, 0.01]} />
         <meshStandardMaterial
           color="#0a0a1a"

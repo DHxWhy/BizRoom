@@ -27,6 +27,7 @@ export const S = {
     cto: { name: "Kelvin", role: "CTO", title: "최고기술책임자" },
     cdo: { name: "Jonas", role: "CDO", title: "최고디자인책임자" },
     clo: { name: "Bradley", role: "CLO", title: "최고법무책임자" },
+    sophia: { name: "Sophia", role: "AI Secretary", title: "AI 비서" },
   },
   input: {
     placeholder: "안건을 입력하세요...",

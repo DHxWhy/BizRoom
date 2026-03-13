@@ -115,7 +115,7 @@ function getMonitorTransform(pos: [number, number, number]): {
   return {
     position: [pos[0] + nx * offset, 1.05, pos[2] + nz * offset],
     rotationY: Math.atan2(pos[0], pos[2]) + Math.PI,
-    rotationX: -Math.PI / 6, // ~30° tilt toward table center
+    rotationX: Math.PI / 12, // ~15° tilt — natural tablet viewing angle
   };
 }
 

@@ -1,16 +1,18 @@
 /**
- * SophiaBlob3D — Futuristic AI secretary blob floating above the meeting table.
+ * SophiaBlob3D — Futuristic AI assistant presence floating above the meeting table.
  *
- * CSS gradient blob rendered via Html (drei) for rich visual effects.
- * Inspired by @reactbits gradient-blob: morphing border-radius + gradient
- * rotation + breathing animation + metallic highlight.
- * State-reactive: faster animations when thinking/speaking.
+ * Real 3D shader blob using SphereGeometry + custom ShaderMaterial with:
+ * - Vertex: layered sine-wave displacement + breathing scale
+ * - Fragment: gradient color blending on world normals, fresnel rim glow,
+ *   metallic specular highlight, additive blending for ethereal feel
+ *
+ * State-reactive: idle (slow morph), speaking (medium), thinking (fast).
  */
 
 import { useRef, useMemo, memo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { Html, Billboard, Text } from "@react-three/drei";
+import { Billboard, Text } from "@react-three/drei";
 import { S } from "../../constants/strings";
 
 interface SophiaBlob3DProps {
@@ -21,115 +23,104 @@ interface SophiaBlob3DProps {
   isSpeaking?: boolean;
 }
 
-// ── CSS keyframes — injected once globally ──
+// ── GLSL Shaders ──
 
-const BLOB_CSS_ID = "sophia-blob-css";
+const vertexShader = /* glsl */ `
+  uniform float uTime;
+  uniform float uMorphIntensity;
+  uniform float uBreatheSpeed;
 
-const BLOB_CSS = /* css */ `
-@keyframes sophia-morph-1 {
-  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
-  25%      { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
-  50%      { border-radius: 50% 50% 30% 70% / 40% 60% 60% 40%; }
-  75%      { border-radius: 40% 60% 50% 50% / 60% 40% 50% 60%; }
-}
+  varying vec3 vNormal;
+  varying vec3 vWorldPosition;
+  varying vec3 vViewDirection;
 
-@keyframes sophia-morph-2 {
-  0%, 100% { border-radius: 40% 60% 50% 50% / 50% 50% 60% 40%; }
-  33%      { border-radius: 55% 45% 40% 60% / 60% 40% 45% 55%; }
-  66%      { border-radius: 45% 55% 60% 40% / 40% 60% 55% 45%; }
-}
+  void main() {
+    vec3 pos = position;
 
-@keyframes sophia-gradient {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
+    // --- Layered sine-wave displacement (3 wave layers) ---
+    float wave1 = sin(pos.x * 2.0 + uTime) * sin(pos.y * 2.0 + uTime * 0.5);
+    float wave2 = sin(pos.y * 3.0 + uTime * 0.7) * sin(pos.z * 2.5 + uTime * 1.1);
+    float wave3 = sin(pos.z * 1.8 + uTime * 1.3) * sin(pos.x * 3.2 + uTime * 0.8);
 
-@keyframes sophia-breathe {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.08); }
-}
+    float displacement = (wave1 + wave2 * 0.7 + wave3 * 0.5) * 0.15 * uMorphIntensity;
 
-@keyframes sophia-core-pulse {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50%      { opacity: 0.8; transform: scale(1.12); }
-}
+    // Displace along the normal direction
+    pos += normal * displacement;
+
+    // --- Breathing: uniform scale oscillation ---
+    float breathe = 1.0 + sin(uTime * uBreatheSpeed) * 0.08;
+    pos *= breathe;
+
+    // Compute world-space values for fragment shader
+    vec4 worldPos = modelMatrix * vec4(pos, 1.0);
+    vWorldPosition = worldPos.xyz;
+    vNormal = normalize(normalMatrix * normal);
+    vViewDirection = normalize(cameraPosition - worldPos.xyz);
+
+    gl_Position = projectionMatrix * viewMatrix * worldPos;
+  }
 `;
 
-// Inject CSS once into <head> at module load
-if (typeof document !== "undefined" && !document.getElementById(BLOB_CSS_ID)) {
-  const tag = document.createElement("style");
-  tag.id = BLOB_CSS_ID;
-  tag.textContent = BLOB_CSS;
-  document.head.appendChild(tag);
-}
+const fragmentShader = /* glsl */ `
+  uniform float uTime;
+  uniform vec3 uPrimaryColor;
+  uniform vec3 uSecondaryColor;
+  uniform vec3 uAccentColor;
+  uniform vec3 uBaseColor;
+  uniform float uOpacity;
+  uniform float uFresnelPower;
+  uniform float uGlowIntensity;
 
-// ── Static style constants (never recreated) ──
+  varying vec3 vNormal;
+  varying vec3 vWorldPosition;
+  varying vec3 vViewDirection;
 
-const CONTAINER_STYLE: React.CSSProperties = {
-  position: "relative",
-  width: 140,
-  height: 140,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
+  void main() {
+    vec3 normal = normalize(vNormal);
+    vec3 viewDir = normalize(vViewDirection);
 
-const HALO_BASE: React.CSSProperties = {
-  position: "absolute",
-  width: 180,
-  height: 180,
-  background:
-    "radial-gradient(circle, rgba(245,158,11,0.2) 0%, rgba(99,102,241,0.12) 45%, transparent 70%)",
-  borderRadius: "50%",
-  filter: "blur(20px)",
-};
+    // --- Gradient color blending based on world normal direction ---
+    // Smooth transitions using smoothstep on normal components
+    float xFactor = smoothstep(-0.5, 0.5, normal.x);
+    float yFactor = smoothstep(-0.3, 0.7, normal.y);
+    float timeFactor = sin(uTime * 0.3) * 0.5 + 0.5;
 
-const OUTER_BLOB_BASE: React.CSSProperties = {
-  position: "absolute",
-  width: 130,
-  height: 130,
-  background:
-    "linear-gradient(135deg, #F59E0B 0%, #818CF8 40%, #6366F1 70%, #F59E0B 100%)",
-  backgroundSize: "300% 300%",
-  opacity: 0.45,
-  filter: "blur(14px)",
-};
+    // Blend four colors based on normal direction + time
+    vec3 color = mix(uPrimaryColor, uSecondaryColor, xFactor);
+    color = mix(color, uAccentColor, yFactor * 0.6);
+    color = mix(color, uBaseColor, timeFactor * 0.25);
 
-const INNER_BLOB_BASE: React.CSSProperties = {
-  position: "absolute",
-  width: 100,
-  height: 100,
-  background:
-    "linear-gradient(135deg, #FBBF24 0%, #A78BFA 30%, #6366F1 60%, #F59E0B 100%)",
-  backgroundSize: "300% 300%",
-  opacity: 0.88,
-};
+    // --- Fresnel rim glow for ethereal edge effect ---
+    float fresnel = pow(1.0 - max(dot(viewDir, normal), 0.0), uFresnelPower);
+    vec3 fresnelColor = mix(uAccentColor, uSecondaryColor, fresnel);
+    color += fresnelColor * fresnel * uGlowIntensity;
 
-const METALLIC_STYLE: React.CSSProperties = {
-  position: "absolute",
-  width: 55,
-  height: 55,
-  background:
-    "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.45) 0%, transparent 60%)",
-  borderRadius: "50%",
-  opacity: 0.55,
-};
+    // --- Metallic specular highlight from directional light above ---
+    vec3 lightDir = normalize(vec3(0.3, 1.0, 0.5));
+    vec3 halfVec = normalize(lightDir + viewDir);
+    float specular = pow(max(dot(normal, halfVec), 0.0), 32.0);
+    color += vec3(1.0, 0.95, 0.9) * specular * 0.5;
 
-const CORE_BASE: React.CSSProperties = {
-  position: "absolute",
-  width: 30,
-  height: 30,
-  background:
-    "radial-gradient(circle, rgba(251,191,36,0.8) 0%, rgba(167,139,250,0.4) 50%, transparent 70%)",
-  borderRadius: "50%",
-  filter: "blur(4px)",
-};
+    // --- Inner glow: darker center, brighter edges ---
+    float innerGlow = fresnel * 0.3 + 0.7;
+    color *= innerGlow;
 
-const HTML_WRAPPER: React.CSSProperties = {
-  pointerEvents: "none",
-  userSelect: "none",
-};
+    // --- Subtle pulsing emission ---
+    float pulse = sin(uTime * 1.5) * 0.05 + 0.05;
+    color += uSecondaryColor * pulse;
+
+    // Final opacity: more transparent at center, more opaque at edges
+    float alpha = uOpacity * (0.5 + fresnel * 0.5);
+
+    gl_FragColor = vec4(color, alpha);
+  }
+`;
+
+// ── Color constants (hex → THREE.Color) ──
+const COLOR_PRIMARY = new THREE.Color("#6366F1"); // indigo
+const COLOR_SECONDARY = new THREE.Color("#F59E0B"); // amber
+const COLOR_ACCENT = new THREE.Color("#A78BFA"); // purple
+const COLOR_BASE = new THREE.Color("#818CF8"); // lighter indigo
 
 export const SophiaBlob3D = memo(function SophiaBlob3D({
   position,
@@ -138,91 +129,146 @@ export const SophiaBlob3D = memo(function SophiaBlob3D({
 }: SophiaBlob3DProps) {
   const groupRef = useRef<THREE.Group>(null);
   const lightRef = useRef<THREE.PointLight>(null);
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
   const timeRef = useRef(0);
 
   // Cache base Y from initial position to prevent useFrame override
   const baseY = position[1];
 
-  useFrame((_, delta) => {
-    timeRef.current += delta;
+  // State-derived parameters (memoized)
+  const stateParams = useMemo(() => {
+    if (isThinking) {
+      return {
+        morphIntensity: 1.5,
+        breatheSpeed: 3.0,
+        fresnelPower: 2.0,
+        glowIntensity: 1.8,
+        opacity: 0.75,
+        lightTarget: 3.5,
+        morphSpeed: 1.5,
+      };
+    }
+    if (isSpeaking) {
+      return {
+        morphIntensity: 0.8,
+        breatheSpeed: 2.0,
+        fresnelPower: 2.5,
+        glowIntensity: 1.3,
+        opacity: 0.7,
+        lightTarget: 2.5,
+        morphSpeed: 0.8,
+      };
+    }
+    // Idle
+    return {
+      morphIntensity: 0.3,
+      breatheSpeed: 1.0,
+      fresnelPower: 3.0,
+      glowIntensity: 0.8,
+      opacity: 0.6,
+      lightTarget: 1.2,
+      morphSpeed: 0.3,
+    };
+  }, [isThinking, isSpeaking]);
 
-    // Floating bob (preserve base Y from position prop)
+  // Shader uniforms (created once, updated via ref in useFrame)
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uMorphIntensity: { value: stateParams.morphIntensity },
+      uBreatheSpeed: { value: stateParams.breatheSpeed },
+      uPrimaryColor: { value: COLOR_PRIMARY.clone() },
+      uSecondaryColor: { value: COLOR_SECONDARY.clone() },
+      uAccentColor: { value: COLOR_ACCENT.clone() },
+      uBaseColor: { value: COLOR_BASE.clone() },
+      uOpacity: { value: stateParams.opacity },
+      uFresnelPower: { value: stateParams.fresnelPower },
+      uGlowIntensity: { value: stateParams.glowIntensity },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [], // uniforms object created once; values updated in useFrame
+  );
+
+  useFrame((_, delta) => {
+    timeRef.current += delta * stateParams.morphSpeed;
+
+    // Float bob (gentle Y oscillation)
     if (groupRef.current) {
       groupRef.current.position.y =
         baseY + Math.sin(timeRef.current * 0.8) * 0.06;
     }
 
+    // Smoothly interpolate uniform values toward targets
+    if (materialRef.current) {
+      const u = materialRef.current.uniforms;
+      const lerp = Math.min(delta * 3, 1);
+
+      u.uTime.value = timeRef.current;
+      u.uMorphIntensity.value +=
+        (stateParams.morphIntensity - u.uMorphIntensity.value) * lerp;
+      u.uBreatheSpeed.value +=
+        (stateParams.breatheSpeed - u.uBreatheSpeed.value) * lerp;
+      u.uOpacity.value +=
+        (stateParams.opacity - u.uOpacity.value) * lerp;
+      u.uFresnelPower.value +=
+        (stateParams.fresnelPower - u.uFresnelPower.value) * lerp;
+      u.uGlowIntensity.value +=
+        (stateParams.glowIntensity - u.uGlowIntensity.value) * lerp;
+    }
+
     // Point light intensity follows activity
     if (lightRef.current) {
-      const target = isThinking ? 3.0 : isSpeaking ? 2.0 : 1.0;
       lightRef.current.intensity +=
-        (target - lightRef.current.intensity) * delta * 3;
+        (stateParams.lightTarget - lightRef.current.intensity) * delta * 3;
     }
   });
 
-  // State-reactive animation styles (memoized to avoid re-creating objects)
-  const dynamicStyles = useMemo(() => {
-    const morphDur = isThinking ? "3s" : isSpeaking ? "5s" : "10s";
-    const breatheDur = isThinking ? "1.5s" : isSpeaking ? "2.5s" : "5s";
-    const gradientDur = isThinking ? "2s" : isSpeaking ? "4s" : "8s";
-    const glowSize = isThinking ? 40 : isSpeaking ? 30 : 20;
-
-    return {
-      halo: {
-        ...HALO_BASE,
-        animation: `sophia-breathe ${breatheDur} ease-in-out infinite`,
-      } as React.CSSProperties,
-
-      outerBlob: {
-        ...OUTER_BLOB_BASE,
-        animation: `sophia-morph-2 ${morphDur} ease-in-out infinite, sophia-gradient ${gradientDur} ease infinite`,
-      } as React.CSSProperties,
-
-      innerBlob: {
-        ...INNER_BLOB_BASE,
-        animation: `sophia-morph-1 ${morphDur} ease-in-out infinite, sophia-gradient ${gradientDur} ease infinite, sophia-breathe ${breatheDur} ease-in-out infinite`,
-        boxShadow: `0 0 ${glowSize}px rgba(245,158,11,0.5), 0 0 ${glowSize * 2}px rgba(99,102,241,0.25), inset 0 0 20px rgba(255,255,255,0.1)`,
-      } as React.CSSProperties,
-
-      metallic: {
-        ...METALLIC_STYLE,
-        animation: `sophia-breathe ${breatheDur} ease-in-out infinite reverse`,
-      } as React.CSSProperties,
-
-      core: {
-        ...CORE_BASE,
-        animation: `sophia-core-pulse ${breatheDur} ease-in-out infinite`,
-      } as React.CSSProperties,
-    };
-  }, [isThinking, isSpeaking]);
-
   return (
     <group position={position} ref={groupRef}>
-      {/* CSS Gradient Blob via Html (drei) */}
-      <Html center distanceFactor={5} style={HTML_WRAPPER}>
-        <div style={CONTAINER_STYLE}>
-          {/* Layer 1: Ambient glow halo (outermost) */}
-          <div style={dynamicStyles.halo} />
+      {/* ═══ 3D Shader Blob ═══ */}
+      <mesh>
+        <sphereGeometry args={[0.25, 64, 64]} />
+        <shaderMaterial
+          ref={materialRef}
+          vertexShader={vertexShader}
+          fragmentShader={fragmentShader}
+          uniforms={uniforms}
+          transparent
+          side={THREE.DoubleSide}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
 
-          {/* Layer 2: Outer blob (blurred, secondary morph) */}
-          <div style={dynamicStyles.outerBlob} />
+      {/* Inner core glow — smaller, brighter sphere */}
+      <mesh>
+        <sphereGeometry args={[0.12, 32, 32]} />
+        <meshBasicMaterial
+          color="#F59E0B"
+          transparent
+          opacity={0.15}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
 
-          {/* Layer 3: Inner blob (sharp, primary morph) */}
-          <div style={dynamicStyles.innerBlob} />
+      {/* Outer halo — larger, very faint sphere */}
+      <mesh>
+        <sphereGeometry args={[0.35, 32, 32]} />
+        <meshBasicMaterial
+          color="#A78BFA"
+          transparent
+          opacity={0.05}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
 
-          {/* Layer 4: Metallic highlight (specular) */}
-          <div style={dynamicStyles.metallic} />
-
-          {/* Layer 5: Core glow (pulsing center) */}
-          <div style={dynamicStyles.core} />
-        </div>
-      </Html>
-
-      {/* Point light for ambient glow on table surface */}
+      {/* Point light for warm glow on table surface below */}
       <pointLight
         ref={lightRef}
         color="#F59E0B"
-        intensity={1.0}
+        intensity={1.2}
         distance={4}
         decay={2}
         position={[0, -0.2, 0]}

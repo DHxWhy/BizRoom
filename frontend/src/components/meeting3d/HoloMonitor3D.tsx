@@ -90,120 +90,120 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
   const hh = MONITOR_H / 2;
 
   return (
-    <group ref={groupRef} position={position} rotation={[rotationX, rotationY, 0]}>
-      {/* ─── Screen panel — dark glass ─── */}
-      <mesh>
-        <planeGeometry args={[MONITOR_W, MONITOR_H]} />
-        <meshStandardMaterial
-          color="#060612"
-          transparent
-          opacity={0.9}
-          roughness={0.06}
-          metalness={0.5}
-          emissive="#0a0a2e"
-          emissiveIntensity={0.2}
-        />
-      </mesh>
+    <group ref={groupRef} position={position} rotation={[0, rotationY, 0]}>
+      {/* Inner group: local X tilt (top leans toward table center) */}
+      <group rotation={[rotationX, 0, 0]}>
+        {/* ─── Screen panel — dark glass ─── */}
+        <mesh>
+          <planeGeometry args={[MONITOR_W, MONITOR_H]} />
+          <meshStandardMaterial
+            color="#060612"
+            transparent
+            opacity={0.9}
+            roughness={0.06}
+            metalness={0.5}
+            emissive="#0a0a2e"
+            emissiveIntensity={0.2}
+          />
+        </mesh>
 
-      {/* ─── Border glow frame ─── */}
-      <mesh position={[0, 0, -0.002]}>
-        <planeGeometry args={[MONITOR_W + 0.016, MONITOR_H + 0.016]} />
-        <meshBasicMaterial color={color} transparent opacity={0.15} />
-      </mesh>
+        {/* ─── Border glow frame ─── */}
+        <mesh position={[0, 0, -0.002]}>
+          <planeGeometry args={[MONITOR_W + 0.016, MONITOR_H + 0.016]} />
+          <meshBasicMaterial color={color} transparent opacity={0.15} />
+        </mesh>
 
-      {/* ─── Edge accents (top + bottom) ─── */}
-      <mesh position={[0, hh - 0.002, 0.002]}>
-        <planeGeometry args={[MONITOR_W, 0.005]} />
-        <meshBasicMaterial color={color} transparent opacity={0.55} />
-      </mesh>
-      <mesh position={[0, -hh + 0.002, 0.002]}>
-        <planeGeometry args={[MONITOR_W, 0.003]} />
-        <meshBasicMaterial color={color} transparent opacity={0.3} />
-      </mesh>
+        {/* ─── Edge accents (top + bottom) ─── */}
+        <mesh position={[0, hh - 0.002, 0.002]}>
+          <planeGeometry args={[MONITOR_W, 0.005]} />
+          <meshBasicMaterial color={color} transparent opacity={0.55} />
+        </mesh>
+        <mesh position={[0, -hh + 0.002, 0.002]}>
+          <planeGeometry args={[MONITOR_W, 0.003]} />
+          <meshBasicMaterial color={color} transparent opacity={0.3} />
+        </mesh>
 
-      {/* ─── Corner brackets ─── */}
-      {[
-        [-hw + 0.01, hh - 0.01, 1, 1],
-        [hw - 0.01, hh - 0.01, -1, 1],
-        [-hw + 0.01, -hh + 0.01, 1, -1],
-        [hw - 0.01, -hh + 0.01, -1, -1],
-      ].map(([cx, cy, sx, sy], i) => (
-        <group key={i} position={[cx, cy, 0.003]}>
-          <mesh position={[(sx * CORNER) / 2, 0, 0]}>
-            <planeGeometry args={[CORNER, 0.004]} />
-            <meshBasicMaterial color={color} transparent opacity={0.6} />
-          </mesh>
-          <mesh position={[0, (sy * CORNER) / 2, 0]}>
-            <planeGeometry args={[0.004, CORNER]} />
-            <meshBasicMaterial color={color} transparent opacity={0.6} />
-          </mesh>
+        {/* ─── Corner brackets ─── */}
+        {[
+          [-hw + 0.01, hh - 0.01, 1, 1],
+          [hw - 0.01, hh - 0.01, -1, 1],
+          [-hw + 0.01, -hh + 0.01, 1, -1],
+          [hw - 0.01, -hh + 0.01, -1, -1],
+        ].map(([cx, cy, sx, sy], i) => (
+          <group key={i} position={[cx, cy, 0.003]}>
+            <mesh position={[(sx * CORNER) / 2, 0, 0]}>
+              <planeGeometry args={[CORNER, 0.004]} />
+              <meshBasicMaterial color={color} transparent opacity={0.6} />
+            </mesh>
+            <mesh position={[0, (sy * CORNER) / 2, 0]}>
+              <planeGeometry args={[0.004, CORNER]} />
+              <meshBasicMaterial color={color} transparent opacity={0.6} />
+            </mesh>
+          </group>
+        ))}
+
+        {/* ─── Role label ─── */}
+        <Text
+          position={[0, 0.065, 0.004]}
+          fontSize={0.045}
+          color={color}
+          anchorX="center"
+          anchorY="middle"
+          letterSpacing={0.1}
+        >
+          {agentRole.toUpperCase()}
+        </Text>
+
+        {/* ─── Name ─── */}
+        <Text
+          position={[0, 0.015, 0.004]}
+          fontSize={0.028}
+          color="#9aaacc"
+          anchorX="center"
+          anchorY="middle"
+        >
+          {agentName}
+        </Text>
+
+        {/* ─── Dynamic content or default status ─── */}
+        <group position={[0, -0.04, 0.004]}>
+          {monitorData ? (
+            renderMonitorContent(monitorData)
+          ) : (
+            <Text
+              fontSize={0.02}
+              color="#667799"
+              anchorX="center"
+              anchorY="middle"
+            >
+              {S.monitor.briefingReady}
+            </Text>
+          )}
         </group>
-      ))}
 
-      {/* ─── Role label ─── */}
-      <Text
-        position={[0, 0.065, 0.004]}
-               fontSize={0.045}
-        color={color}
-        anchorX="center"
-        anchorY="middle"
-        letterSpacing={0.1}
-      >
-        {agentRole.toUpperCase()}
-      </Text>
-
-      {/* ─── Name ─── */}
-      <Text
-        position={[0, 0.015, 0.004]}
-               fontSize={0.028}
-        color="#9aaacc"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {agentName}
-      </Text>
-
-      {/* ─── Dynamic content or default status ─── */}
-      <group position={[0, -0.04, 0.004]}>
-        {monitorData ? (
-          renderMonitorContent(monitorData)
-        ) : (
-          <Text
-            fontSize={0.02}
-            color="#667799"
-            anchorX="center"
-            anchorY="middle"
+        {/* ─── Holographic scanlines ─── */}
+        {[0, 1, 2, 3].map((i) => (
+          <mesh
+            key={i}
+            position={[0, -0.08 + i * 0.025, 0.003]}
           >
-            {S.monitor.briefingReady}
-          </Text>
-        )}
+            <planeGeometry args={[MONITOR_W * 0.65, 0.001]} />
+            <meshBasicMaterial color="#445577" transparent opacity={0.12} />
+          </mesh>
+        ))}
       </group>
 
-      {/* ─── Holographic scanlines ─── */}
-      {[0, 1, 2, 3].map((i) => (
-        <mesh
-          key={i}
-          position={[0, -0.08 + i * 0.025, 0.003]}
-                 >
-          <planeGeometry args={[MONITOR_W * 0.65, 0.001]} />
-          <meshBasicMaterial color="#445577" transparent opacity={0.12} />
-        </mesh>
-      ))}
-
-      {/* ─── Projection beam from table surface ─── */}
+      {/* ─── Projection beam (stays vertical, outside tilt group) ─── */}
       {beamHeight > 0 && (
         <group>
-          {/* Main beam */}
           <mesh position={[0, -beamHeight / 2, 0]}>
             <cylinderGeometry args={[0.003, 0.018, beamHeight, 8]} />
             <meshBasicMaterial color={color} transparent opacity={0.12} />
           </mesh>
-          {/* Outer glow */}
           <mesh position={[0, -beamHeight / 2, 0]}>
             <cylinderGeometry args={[0.01, 0.03, beamHeight, 8]} />
             <meshBasicMaterial color={color} transparent opacity={0.04} />
           </mesh>
-          {/* Base ring on table */}
           <mesh
             position={[0, -beamHeight + 0.005, 0]}
             rotation={[-Math.PI / 2, 0, 0]}
