@@ -104,16 +104,18 @@ const MemoizedTable = memo(MeetingTable3D);
 function getMonitorTransform(pos: [number, number, number]): {
   position: [number, number, number];
   rotationY: number;
+  rotationX: number;
 } {
   const dx = -pos[0];
   const dz = -pos[2];
   const dist = Math.sqrt(dx * dx + dz * dz);
   const nx = dx / dist;
   const nz = dz / dist;
-  const offset = 0.5;
+  const offset = 0.35;
   return {
     position: [pos[0] + nx * offset, 1.05, pos[2] + nz * offset],
     rotationY: Math.atan2(pos[0], pos[2]) + Math.PI,
+    rotationX: -Math.PI / 6, // ~30° tilt toward table center
   };
 }
 
@@ -347,6 +349,7 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
                 key={SEAT_CONFIG[i].agent}
                 position={mt.position}
                 rotationY={mt.rotationY}
+                rotationX={mt.rotationX}
                 agentRole={SEAT_CONFIG[i].agent}
                 agentName={SEAT_CONFIG[i].name}
                 color={SEAT_CONFIG[i].color}
@@ -366,6 +369,7 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
                 <HoloMonitor3D
                   position={seat.monitor.position}
                   rotationY={seat.monitor.rotationY}
+                  rotationX={seat.monitor.rotationX}
                   agentRole="MEMBER"
                   agentName={participant.name}
                   color={pColor}

@@ -13,6 +13,7 @@ const CORNER = 0.06;
 interface HoloMonitorProps {
   position: [number, number, number];
   rotationY: number;
+  rotationX?: number;
   agentRole: string;
   agentName: string;
   color: string;
@@ -68,6 +69,7 @@ function renderMonitorContent(data: MonitorUpdateEvent): JSX.Element {
 export const HoloMonitor3D = memo(function HoloMonitor3D({
   position,
   rotationY,
+  rotationX = 0,
   agentRole,
   agentName,
   color,
@@ -88,9 +90,9 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
   const hh = MONITOR_H / 2;
 
   return (
-    <group ref={groupRef} position={position} rotation={[0, rotationY, 0]}>
+    <group ref={groupRef} position={position} rotation={[rotationX, rotationY, 0]}>
       {/* ─── Screen panel — dark glass ─── */}
-      <mesh rotation={[-0.1, 0, 0]}>
+      <mesh>
         <planeGeometry args={[MONITOR_W, MONITOR_H]} />
         <meshStandardMaterial
           color="#060612"
@@ -104,17 +106,17 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
       </mesh>
 
       {/* ─── Border glow frame ─── */}
-      <mesh position={[0, 0, -0.002]} rotation={[-0.1, 0, 0]}>
+      <mesh position={[0, 0, -0.002]}>
         <planeGeometry args={[MONITOR_W + 0.016, MONITOR_H + 0.016]} />
         <meshBasicMaterial color={color} transparent opacity={0.15} />
       </mesh>
 
       {/* ─── Edge accents (top + bottom) ─── */}
-      <mesh position={[0, hh - 0.002, 0.002]} rotation={[-0.1, 0, 0]}>
+      <mesh position={[0, hh - 0.002, 0.002]}>
         <planeGeometry args={[MONITOR_W, 0.005]} />
         <meshBasicMaterial color={color} transparent opacity={0.55} />
       </mesh>
-      <mesh position={[0, -hh + 0.002, 0.002]} rotation={[-0.1, 0, 0]}>
+      <mesh position={[0, -hh + 0.002, 0.002]}>
         <planeGeometry args={[MONITOR_W, 0.003]} />
         <meshBasicMaterial color={color} transparent opacity={0.3} />
       </mesh>
@@ -126,7 +128,7 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
         [-hw + 0.01, -hh + 0.01, 1, -1],
         [hw - 0.01, -hh + 0.01, -1, -1],
       ].map(([cx, cy, sx, sy], i) => (
-        <group key={i} position={[cx, cy, 0.003]} rotation={[-0.1, 0, 0]}>
+        <group key={i} position={[cx, cy, 0.003]}>
           <mesh position={[(sx * CORNER) / 2, 0, 0]}>
             <planeGeometry args={[CORNER, 0.004]} />
             <meshBasicMaterial color={color} transparent opacity={0.6} />
@@ -141,8 +143,7 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
       {/* ─── Role label ─── */}
       <Text
         position={[0, 0.065, 0.004]}
-        rotation={[-0.1, 0, 0]}
-        fontSize={0.045}
+               fontSize={0.045}
         color={color}
         anchorX="center"
         anchorY="middle"
@@ -154,8 +155,7 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
       {/* ─── Name ─── */}
       <Text
         position={[0, 0.015, 0.004]}
-        rotation={[-0.1, 0, 0]}
-        fontSize={0.028}
+               fontSize={0.028}
         color="#9aaacc"
         anchorX="center"
         anchorY="middle"
@@ -164,7 +164,7 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
       </Text>
 
       {/* ─── Dynamic content or default status ─── */}
-      <group position={[0, -0.04, 0.004]} rotation={[-0.1, 0, 0]}>
+      <group position={[0, -0.04, 0.004]}>
         {monitorData ? (
           renderMonitorContent(monitorData)
         ) : (
@@ -184,8 +184,7 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
         <mesh
           key={i}
           position={[0, -0.08 + i * 0.025, 0.003]}
-          rotation={[-0.1, 0, 0]}
-        >
+                 >
           <planeGeometry args={[MONITOR_W * 0.65, 0.001]} />
           <meshBasicMaterial color="#445577" transparent opacity={0.12} />
         </mesh>
