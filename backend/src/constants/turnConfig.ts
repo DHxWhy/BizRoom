@@ -1,14 +1,14 @@
 // Turn-taking timing constants
 // Ref: Design Spec §2.3, §2.5
 
-/** Chairman flush delay — near-instant AI trigger after Chairman speaks */
-export const CHAIRMAN_FLUSH_MS = 300;
+/** Chairman flush delay — PTT release = speech done, trigger immediately */
+export const CHAIRMAN_FLUSH_MS = 0;
 
-/** Member flush delay — wait for additional inputs */
-export const MEMBER_FLUSH_MS = 2000;
+/** Member flush delay — short wait for PTT users */
+export const MEMBER_FLUSH_MS = 500;
 
-/** Gap between sequential agent responses (DialogLab rule) */
-export const INTER_AGENT_GAP_MS = 1500;
+/** Gap between sequential agent responses — minimal for snappy conversation */
+export const INTER_AGENT_GAP_MS = 500;
 
 /** Maximum agents responding per turn (DialogLab constraint) */
 export const MAX_AGENTS_PER_TURN = 2;
