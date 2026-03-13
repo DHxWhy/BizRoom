@@ -1,6 +1,110 @@
 // Shared types between frontend and backend
 // Ref: docs/TECH_SPEC.md §5
 
+// ──────────────────────────────────────────────
+// Cosmos DB Document Types — Migration Plan §2
+// ──────────────────────────────────────────────
+
+export interface UserDocument {
+  id: string;
+  type: "user";
+  email: string;
+  displayName: string;
+  createdAt: string;
+  brandMemory?: BrandMemorySet;
+  preferences?: {
+    language: "ko" | "en";
+    defaultMeetingMode: "live" | "auto";
+  };
+}
+
+export interface RoomDocument {
+  id: string;
+  type: "room";
+  name: string;
+  createdBy: string;
+  createdAt: string;
+  joinCode: string;
+  joinCodeExpiresAt?: string;
+  maxParticipants: number;
+  isActive: boolean;
+  participants: Array<{
+    userId: string;
+    role: "chairman" | "member";
+    joinedAt: string;
+  }>;
+  currentSessionId?: string;
+  totalSessions: number;
+}
+
+export interface SessionDocument {
+  id: string;
+  type: "session";
+  roomId: string;
+  startedAt: string;
+  endedAt?: string;
+  duration?: number;
+  agenda: string;
+  phase: MeetingPhase;
+  mode: MeetingMode;
+  brandMemorySnapshot?: BrandMemorySet;
+  summary?: {
+    keyPoints: string[];
+    decisions: string[];
+    actionItems: Array<{
+      task: string;
+      assignee: string;
+      deadline?: string;
+    }>;
+  };
+  visualizations: Array<{
+    timestamp: string;
+    type: string;
+    title: string;
+    renderData?: unknown;
+    blobUrl?: string;
+  }>;
+  artifactIds: string[];
+  participants: Array<{
+    userId: string;
+    role: string;
+  }>;
+}
+
+export interface MessageDocument {
+  id: string;
+  type: "meeting-message" | "dm-message";
+  sessionId: string;
+  roomId: string;
+  senderId: string;
+  senderType: SenderType;
+  senderName: string;
+  senderRole?: string;
+  content: string;
+  timestamp: string;
+  structured?: StructuredAgentOutput | null;
+  dmTarget?: string;
+  _ttl?: number;
+}
+
+export interface ArtifactDocument {
+  id: string;
+  type: "artifact";
+  roomId: string;
+  sessionId: string;
+  fileName: string;
+  fileType: "pptx" | "xlsx" | "pdf" | "planner";
+  fileSize?: number;
+  storage: "onedrive" | "blob";
+  storageUrl: string;
+  driveItemId?: string;
+  createdAt: string;
+  createdBy: string;
+  plannerTaskIds?: string[];
+}
+
+// ──────────────────────────────────────────────
+
 export type AgentRole = "coo" | "cfo" | "cmo" | "cto" | "cdo" | "clo";
 export type SenderType = "human" | "agent";
 export type MeetingPhase =

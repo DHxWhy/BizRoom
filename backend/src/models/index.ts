@@ -3,6 +3,7 @@ export type {
   AgentRole,
   SenderType,
   MeetingPhase,
+  MeetingMode,
   Message,
   Artifact,
   Participant,
@@ -32,4 +33,9 @@ export type {
   PricingTier,
   CompetitorInfo,
   ExternalLink,
+  SessionDocument,
+  MessageDocument,
+  UserDocument,
+  RoomDocument,
+  ArtifactDocument,
 } from "../../../shared/types.js";

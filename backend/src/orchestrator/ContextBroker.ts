@@ -1,6 +1,8 @@
 import type { Message, MeetingPhase, BrandMemorySet } from "../models/index.js";
+import * as MessageService from "../services/MessageService.js";
 
 const MAX_CONTEXT_MESSAGES = 50;
+const DUAL_WRITE = process.env.MIGRATE_DUAL_WRITE === "true";
 
 interface Decision {
   id: string;
@@ -18,6 +20,7 @@ interface ActionItem {
 
 interface RoomContext {
   roomId: string;
+  sessionId?: string;
   phase: MeetingPhase;
   agenda: string;
   messages: Message[];
@@ -28,6 +31,12 @@ interface RoomContext {
 
 // In-memory context store (per room)
 const rooms: Map<string, RoomContext> = new Map();
+
+/** Fire-and-forget Cosmos write (logs errors but never throws) */
+function enqueueWrite(fn: () => Promise<unknown>): void {
+  if (!DUAL_WRITE) return;
+  fn().catch((err) => console.error("[DualWrite] Cosmos write failed:", err));
+}
 
 /** Get existing room context or create a new one */
 export function getOrCreateRoom(roomId: string): RoomContext {
@@ -44,6 +53,12 @@ export function getOrCreateRoom(roomId: string): RoomContext {
   return rooms.get(roomId)!;
 }
 
+/** Set the sessionId for dual-write correlation */
+export function setSessionId(roomId: string, sessionId: string): void {
+  const room = getOrCreateRoom(roomId);
+  room.sessionId = sessionId;
+}
+
 /** Add a message to the room context, capping at MAX_CONTEXT_MESSAGES */
 export function addMessage(roomId: string, message: Message): void {
   const room = getOrCreateRoom(roomId);
@@ -52,6 +67,21 @@ export function addMessage(roomId: string, message: Message): void {
   if (room.messages.length > MAX_CONTEXT_MESSAGES) {
     room.messages = room.messages.slice(-MAX_CONTEXT_MESSAGES);
   }
+
+  // Dual-write to Cosmos DB
+  enqueueWrite(() =>
+    MessageService.saveMessage({
+      type: "meeting-message",
+      sessionId: room.sessionId ?? roomId,
+      roomId,
+      senderId: message.senderId,
+      senderType: message.senderType,
+      senderName: message.senderName,
+      senderRole: message.senderRole,
+      content: message.content,
+      timestamp: message.timestamp,
+    }),
+  );
 }
 
 /** Set the current meeting phase for a room */
