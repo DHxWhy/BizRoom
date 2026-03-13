@@ -1,13 +1,13 @@
 ---
-version: "2.0.0"
+version: "3.0.0"
 created: "2026-03-14 07:00"
-updated: "2026-03-14 07:30"
+updated: "2026-03-14 08:00"
 ---
 
 # AI Model Benchmark Report — BizRoom.ai
 
-> 6개 모델의 응답 속도·품질·비용을 동일 프롬프트로 비교 측정한 결과입니다.
-> Realtime 1.5 포함 — WebSocket 실측 완료.
+> 7개 모델의 응답 속도·품질·비용을 동일 프롬프트로 비교 측정한 결과입니다.
+> gpt-realtime-1.5 정식 모델 + gpt-4o-realtime-preview 모두 실측 완료.
 
 ---
 
@@ -28,33 +28,46 @@ updated: "2026-03-14 07:30"
 
 | 순위 | 모델                              | Provider  | 응답 시간   | TTFB       | 토큰 (in/out) | 품질   |
 | ---- | --------------------------------- | --------- | ----------- | ---------- | ------------- | ------ |
-| 1    | **gpt-4o-realtime-preview**       | OpenAI    | **1.8초**   | **0.98초** | -             | ★★★★  |
+| 1    | **gpt-4o-realtime-preview**       | OpenAI    | **1.95초**  | **0.93초** | -             | ★★★★  |
 | 2    | **gpt-4o**                        | OpenAI    | **2.1초**   | -          | 46 / 84       | ★★★★  |
 | 3    | **claude-haiku-4-5-20251001**     | Anthropic | **2.3초**   | -          | 47 / 208      | ★★★☆  |
-| 4    | **gpt-4o-mini**                   | OpenAI    | **2.8초**   | -          | 46 / 80       | ★★★☆  |
-| 5    | **claude-sonnet-4-6**             | Anthropic | **4.8초**   | -          | 48 / 214      | ★★★★  |
-| 6    | **claude-opus-4-6**               | Anthropic | ~7.0초      | ~4.5초     | 60 / 281      | ★★★★★ |
+| 4    | **gpt-realtime-1.5**              | OpenAI    | **2.52초**  | **1.46초** | -             | ★★★★☆ |
+| 5    | **gpt-4o-mini**                   | OpenAI    | **2.8초**   | -          | 46 / 80       | ★★★☆  |
+| 6    | **claude-sonnet-4-6**             | Anthropic | **4.8초**   | -          | 48 / 214      | ★★★★  |
+| 7    | **claude-opus-4-6**               | Anthropic | ~7.0초      | ~4.5초     | 60 / 281      | ★★★★★ |
 
-> TTFB = Time To First Byte (첫 토큰 도착까지 시간). Realtime만 WebSocket이라 별도 측정.
+> TTFB = Time To First Byte (첫 토큰 도착까지 시간). Realtime 모델은 WebSocket 프로토콜.
 
 ---
 
-## GPT Realtime 1.5 — 실측 결과
+## Realtime 모델 비교 — 실측 결과
 
-| 항목             | 측정값                                                                |
-| ---------------- | --------------------------------------------------------------------- |
-| **모델**         | `gpt-4o-realtime-preview`                                             |
-| **프로토콜**     | WebSocket (`wss://api.openai.com/v1/realtime`)                        |
-| **TTFB**         | **980ms** (첫 텍스트 delta 도착)                                      |
-| **전체 완료**    | **1,827ms**                                                           |
-| **Delta 이벤트** | 104개                                                                 |
-| **응답 품질**    | "디지털 채널 60% 투자, 오프라인 30%, 데이터 분석 10%" — 구체적, 자연스러운 한국어 |
-| **특이사항**     | temperature 최소 0.6 (0.5 이하 불가), modalities: ["text"] 사용       |
+| 항목             | gpt-4o-realtime-preview            | gpt-realtime-1.5 (정식)            |
+| ---------------- | ---------------------------------- | ---------------------------------- |
+| **TTFB**         | **926ms**                          | **1,460ms**                        |
+| **전체 완료**    | **1,950ms**                        | **2,520ms**                        |
+| **Delta 이벤트** | 117개                              | 101개                              |
+| **응답 품질**    | 60/30/10 배분, 간결                | 40/30/20/10 4단계 배분, 더 상세    |
+| **프로토콜**     | WebSocket                          | WebSocket                          |
+| **특이사항**     | temperature 최소 0.6               | temperature 최소 0.6               |
+
+### 응답 샘플
+
+**gpt-4o-realtime-preview (TTFB 926ms)**:
+> 30백만 원의 예산이라면 디지털 마케팅에 60%를 배정해 온라인 광고와 소셜 미디어 캠페인을 강화하는 것이 좋습니다. 나머지 30%는 오프라인 프로모션이나 이벤트를 통해 브랜드 인지도를 높이는 데 사용하고, 10%는 데이터 분석과 마케팅 성과 측정에 투자하면 효율적입니다.
+
+**gpt-realtime-1.5 (TTFB 1,460ms)**:
+> 30백만 원 중 40%는 검색광고와 SNS 광고에 집중해 브랜드 인지도와 전환을 높이겠습니다. 30%는 인플루언서 협업과 콘텐츠 제작에 투입해 신뢰도를 확보하고, 20%는 이메일·리타게팅 캠페인으로 재구매를 유도하겠습니다. 나머지 10%는 오프라인 이벤트나 PR에 사용해 고객 접점을 다양화할 계획입니다.
+
+### 판정
+- **속도 우선**: `gpt-4o-realtime-preview` (TTFB 0.93초 — 1초 미만)
+- **품질 우선**: `gpt-realtime-1.5` (4단계 상세 배분, 더 구체적인 전략)
+- **음성 회의 권장**: `gpt-realtime-1.5` — 0.5초 차이로 품질이 확연히 높음
 
 ### Realtime이 빠른 이유
 - **WebSocket 연결 유지**: HTTP 요청/응답 오버헤드 없음
 - **양방향 스트리밍**: 서버가 준비되는 즉시 delta 전송 시작
-- **음성 최적화 모델**: 저지연 추론 아키텍처
+- **음성 최적화 아키텍처**: 저지연 추론 엔진
 
 ---
 
@@ -89,14 +102,14 @@ Yusef  (CMO)  ────[4.8초]────▶
 
 ## 모델별 특성 매트릭스
 
-| 기준           | Opus 4.6  | Sonnet 4.6 | Haiku 4.5 | GPT-4o    | GPT-4o-mini | Realtime  |
-| -------------- | --------- | ---------- | --------- | --------- | ----------- | --------- |
-| **속도**       | ★★☆☆☆    | ★★★☆☆     | ★★★★☆    | ★★★★☆    | ★★★★☆      | ★★★★★    |
-| **품질**       | ★★★★★    | ★★★★☆     | ★★★☆☆    | ★★★★☆    | ★★★☆☆      | ★★★★☆    |
-| **비용**       | $$$$$     | $$$        | $          | $$$       | $           | $$        |
-| **한국어**     | 매우 자연 | 자연       | 자연      | 자연      | 자연        | 자연      |
-| **프로토콜**   | REST      | REST       | REST      | REST      | REST        | WebSocket |
-| **적합 용도**  | 심층 분석 | 일반 회의  | 빠른 응답 | 일반 회의 | 빠른 응답   | 음성 대화 |
+| 기준           | Opus 4.6  | Sonnet 4.6 | Haiku 4.5 | GPT-4o    | GPT-4o-mini | RT-preview | RT-1.5    |
+| -------------- | --------- | ---------- | --------- | --------- | ----------- | ---------- | --------- |
+| **속도**       | ★★☆☆☆    | ★★★☆☆     | ★★★★☆    | ★★★★☆    | ★★★★☆      | ★★★★★     | ★★★★☆    |
+| **품질**       | ★★★★★    | ★★★★☆     | ★★★☆☆    | ★★★★☆    | ★★★☆☆      | ★★★★☆     | ★★★★☆    |
+| **비용**       | $$$$$     | $$$        | $          | $$$       | $           | $$         | $$        |
+| **한국어**     | 매우 자연 | 자연       | 자연      | 자연      | 자연        | 자연       | 자연      |
+| **프로토콜**   | REST      | REST       | REST      | REST      | REST        | WebSocket  | WebSocket |
+| **적합 용도**  | 파일 생성 | BigScreen  | 모니터    | 일반 회의 | 빠른 응답   | 음성 대화  | 음성 대화 |
 
 ---
 
@@ -141,12 +154,14 @@ ANTHROPIC_MODEL_FAST     = claude-haiku-4-5-20251001
 
 예상: 에이전트당 ~3-5초, 3명 순차 ~12초, 병렬 시 ~5초
 
-### 음성 회의 최적
+### 음성 회의 최적 + 소피아 동적 모델
 
 ```bash
-# Live 모드 PTT → GPT Realtime (WebSocket, TTFB <1초)
-# 텍스트 채팅 → Sonnet 4.6 (~5초)
-# Sophia 시각화 → Haiku 4.5 (~2초)
+# Live 모드 PTT → gpt-realtime-1.5 (WebSocket, TTFB 1.5초, 품질↑)
+# 텍스트 채팅 → claude-sonnet-4-6 (~5초)
+# Sophia 의장모니터/key_points → claude-haiku-4-5-20251001 (빠른 응답 ~2초)
+# Sophia BigScreen 시각화 → claude-sonnet-4-6 (Show me 코드 생성 품질)
+# Sophia 파일 생성 (PPT/Excel) → claude-opus-4-6 (구조화 품질 최대)
 ```
 
 ---
@@ -159,14 +174,28 @@ ANTHROPIC_MODEL_FAST     = claude-haiku-4-5-20251001
 | 2  | OpenAI `insufficient_quota`                | **해결** | 사용자 크레딧 충전                                 |
 | 3  | Haiku 모델명 `claude-haiku-4-5` 무응답     | **해결** | 정확한 ID: `claude-haiku-4-5-20251001`             |
 | 4  | Realtime temperature < 0.6 에러            | **해결** | 최소 0.6 적용                                      |
-| 5  | 순차 호출 병목                             | **인지** | 병렬 호출 아키텍처 변경으로 3x 단축 가능           |
+| 5  | 순차 호출 병목                             | **해결** | Promise.all 병렬 호출로 6x 단축 (배포됨)          |
+| 6  | gpt-realtime-1.5 미테스트                  | **해결** | WebSocket 실측 완료 (TTFB 1.46초, Total 2.52초)   |
+
+---
+
+## 소피아 동적 모델 라우팅 권장 설정
+
+| 소피아 태스크         | 모델                          | 이유                           | 예상 시간 |
+| --------------------- | ----------------------------- | ------------------------------ | --------- |
+| 의장 모니터 (key_points) | claude-haiku-4-5-20251001  | 속도 최우선, 간단한 요약       | ~2초      |
+| BigScreen 시각화      | claude-sonnet-4-6             | Show me 코드 생성 품질 필요    | ~5초      |
+| 파일 생성 (PPT/Excel) | claude-opus-4-6               | 구조화·정밀도 최대             | ~7초      |
+| 회의록 생성           | claude-sonnet-4-6             | 품질+속도 균형                 | ~5초      |
 
 ---
 
 ## 현재 적용 설정
 
 ```
-ANTHROPIC_MODEL_PREMIUM  = claude-sonnet-4-6
-ANTHROPIC_MODEL_BALANCED = claude-sonnet-4-6
-ANTHROPIC_MODEL_FAST     = claude-haiku-4-5
+ANTHROPIC_MODEL_PREMIUM  = claude-sonnet-4-6       (에이전트 응답)
+ANTHROPIC_MODEL_BALANCED = claude-sonnet-4-6       (시각화)
+ANTHROPIC_MODEL_FAST     = claude-haiku-4-5        (파싱/분류)
+에이전트 병렬 호출       = Promise.all (배포됨)
+Realtime 음성            = gpt-realtime-1.5        (ModelRouter 기본값)
 ```

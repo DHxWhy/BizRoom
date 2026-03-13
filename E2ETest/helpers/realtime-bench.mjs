@@ -7,7 +7,7 @@ if (!OPENAI_KEY) {
   process.exit(1);
 }
 
-const MODEL = "gpt-4o-realtime-preview";
+const MODEL = process.env.RT_MODEL || "gpt-4o-realtime-preview";
 const URL = `wss://api.openai.com/v1/realtime?model=${MODEL}`;
 const PROMPT = "Q2 marketing budget 30M KRW, suggest channel allocation strategy. Answer in Korean, 3 sentences.";
 const SYSTEM = "You are Hudson, COO of a company. Respond concisely in Korean.";
