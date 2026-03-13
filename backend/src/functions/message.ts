@@ -97,57 +97,67 @@ export async function message(
           secondaryAgents,
         );
 
-        // 순차적으로 각 에이전트의 응답을 스트리밍
-        for (const entry of turnOrder) {
+        // ── 병렬 에이전트 호출: 모든 에이전트를 동시에 시작 ──
+        // 각 에이전트의 delta를 수집한 후 에이전트 순서대로 SSE 전송
+        const agentJobs = turnOrder.map((entry) => {
           const messageId = uuidv4();
           const meta = getAgentMeta(entry.role);
           const contextStr = getContextForAgent(roomId, entry.role);
 
-          try {
-            let fullContent = "";
-
-            // 에이전트 스트림에서 delta를 SSE로 전송
-            const agentStream = invokeAgentStream(entry.role, userMessage.content, {
-              participants: "Chairman (사용자), Hudson (COO), Amelia (CFO), Yusef (CMO)",
-              agenda: room.agenda || userMessage.content,
-              history: contextStr,
-              brandMemory: getBrandMemory(roomId),
-            });
-
-            for await (const delta of agentStream) {
-              fullContent += delta;
-              const sseData = JSON.stringify({
-                messageId,
-                role: meta.role,
-                name: meta.name,
-                delta,
+          // Collect all deltas from this agent into a buffer
+          const job = (async () => {
+            const deltas: string[] = [];
+            try {
+              const agentStream = invokeAgentStream(entry.role, userMessage.content, {
+                participants: "Chairman (사용자), Hudson (COO), Amelia (CFO), Yusef (CMO), Kelvin (CTO), Jonas (CDO), Bradley (CLO)",
+                agenda: room.agenda || userMessage.content,
+                history: contextStr,
+                brandMemory: getBrandMemory(roomId),
               });
-              controller.enqueue(sseEncode(sseData));
-            }
 
-            // 에이전트 응답 완료 — 컨텍스트에 전체 메시지 저장
+              for await (const delta of agentStream) {
+                deltas.push(delta);
+              }
+            } catch (err: unknown) {
+              const errMsg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+              context.log(`Agent ${entry.role} stream failed: ${errMsg}`);
+              deltas.push(`[Error: ${meta.name} 응답 실패 — ${errMsg}]`);
+            }
+            return { messageId, meta, deltas, fullContent: deltas.join("") };
+          })();
+
+          return job;
+        });
+
+        // Wait for ALL agents to complete in parallel
+        const results = await Promise.all(agentJobs);
+
+        // Stream results to client in turn order (agent-by-agent)
+        for (const { messageId, meta, deltas, fullContent } of results) {
+          // Send all deltas for this agent
+          for (const delta of deltas) {
+            const sseData = JSON.stringify({
+              messageId,
+              role: meta.role,
+              name: meta.name,
+              delta,
+            });
+            controller.enqueue(sseEncode(sseData));
+          }
+
+          // Save completed message to context
+          if (fullContent) {
             const msg: Message = {
               id: messageId,
               roomId,
-              senderId: `agent-${entry.role}`,
+              senderId: `agent-${meta.role}`,
               senderType: "agent",
               senderName: meta.name,
-              senderRole: entry.role,
+              senderRole: meta.role,
               content: fullContent,
               timestamp: new Date().toISOString(),
             };
             addMessage(roomId, msg);
-          } catch (err: unknown) {
-            const errMsg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-            context.log(`Agent ${entry.role} stream failed: ${errMsg}`);
-            // Surface error as SSE event so client can see what went wrong
-            const errorSseData = JSON.stringify({
-              messageId,
-              role: meta.role,
-              name: meta.name,
-              delta: `[Error: ${meta.name} 응답 실패 — ${errMsg}]`,
-            });
-            controller.enqueue(sseEncode(errorSseData));
           }
         }
 
