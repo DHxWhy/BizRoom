@@ -16,9 +16,9 @@ export class ApiClient {
     return { status: res.status(), body: await res.json() };
   }
 
-  async joinRoomByCode(code: string, userName: string) {
+  async joinRoomByCode(code: string, userId: string) {
     const res = await this.request.post(`${API_BASE}/api/room/join-by-code`, {
-      data: { code, userName },
+      data: { code, userId },
     });
     return { status: res.status(), body: await res.json() };
   }

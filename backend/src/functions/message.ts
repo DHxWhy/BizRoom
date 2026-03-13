@@ -138,7 +138,16 @@ export async function message(
             };
             addMessage(roomId, msg);
           } catch (err: unknown) {
-            context.log(`Agent ${entry.role} stream failed:`, err);
+            const errMsg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+            context.log(`Agent ${entry.role} stream failed: ${errMsg}`);
+            // Surface error as SSE event so client can see what went wrong
+            const errorSseData = JSON.stringify({
+              messageId,
+              role: meta.role,
+              name: meta.name,
+              delta: `[Error: ${meta.name} 응답 실패 — ${errMsg}]`,
+            });
+            controller.enqueue(sseEncode(errorSseData));
           }
         }
 
