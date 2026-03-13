@@ -9,7 +9,8 @@ import { CameraController } from "./CameraController";
 import { ArtifactScreen3D } from "./ArtifactScreen3D";
 import { HoloMonitor3D } from "./HoloMonitor3D";
 import type { ArtifactData } from "./ArtifactScreen3D";
-import type { BigScreenUpdateEvent } from "../../types";
+import type { BigScreenUpdateEvent, AgentRole } from "../../types";
+import type { BlendShapeWeights } from "../../utils/visemeMap";
 import { S } from "../../constants/strings";
 
 interface AgentSeat {
@@ -184,6 +185,8 @@ interface MeetingRoom3DProps {
   bigScreenPage?: { current: number; total: number } | null;
   /** Callback for Q/E keyboard navigation through BigScreen history */
   onBigScreenNav?: (dir: "prev" | "next") => void;
+  /** Retrieve current viseme blend shape weights for a given agent role */
+  getVisemeWeights?: (role: AgentRole) => BlendShapeWeights;
 }
 
 export const MeetingRoom3D = memo(function MeetingRoom3D({
@@ -194,6 +197,7 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
   bigScreenEvent = null,
   bigScreenPage = null,
   onBigScreenNav,
+  getVisemeWeights,
 }: MeetingRoom3DProps) {
   // useRef instead of useState to avoid re-renders on drag
   const isUserControllingRef = useRef(false);
@@ -443,6 +447,7 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
                 isThinking={thinkingSet.has(seat.agent)}
                 color={seat.color}
                 gazeTarget={seat.agent === speakingAgent ? null : gazeTarget}
+                visemeWeights={getVisemeWeights?.(seat.agent as AgentRole)}
               />
             ),
           )}

@@ -191,14 +191,11 @@ function MeetingRoom() {
     roomId: state.roomId,
     enabled: state.inRoom && state.meetingPhase !== "idle",
   });
-  // Agent audio + viseme hooks — initialized for SignalR event wiring (Chunk 4)
+  // Viseme pipeline — phoneme-accurate lip articulation derived from
+  // agent speech synthesis. 22 morph targets interpolated at 60fps
+  // for natural conversational presence.
   const agentAudio = useAgentAudio();
   const viseme = useViseme();
-  // Expose for future SignalR event handlers:
-  // agentAudio.feedAudio, agentAudio.stopAll, agentAudio.playingRole
-  // viseme.feedViseme, viseme.getTargetWeights, viseme.resetWeights
-  void agentAudio;
-  void viseme;
 
   // Initialize default participants on mount
   useEffect(() => {
@@ -311,6 +308,21 @@ function MeetingRoom() {
         dispatch({ type: "SET_HUMAN_CALLOUT", payload });
       },
       [dispatch],
+    ),
+
+    // ── Viseme + Audio pipeline ──
+
+    onAgentVisemeDelta: useCallback(
+      (payload: { role: string; visemeId: number }) => {
+        viseme.feedViseme(payload.role as AgentRole, payload.visemeId);
+      },
+      [viseme.feedViseme],
+    ),
+    onAgentAudioDelta: useCallback(
+      (payload: { role: string; audioBase64: string }) => {
+        agentAudio.feedAudio(payload.role as AgentRole, payload.audioBase64);
+      },
+      [agentAudio.feedAudio],
     ),
   });
 
@@ -499,6 +511,7 @@ function MeetingRoom() {
             bigScreenEvent={currentBigScreen}
             bigScreenPage={bigScreenPage}
             onBigScreenNav={handleBigScreenNav}
+            getVisemeWeights={viseme.getTargetWeights}
           />
         </Suspense>
       </div>

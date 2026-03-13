@@ -1,3 +1,7 @@
+// Viseme + audio pipeline — agentVisemeDelta and agentAudioDelta events
+// deliver phoneme-level articulation data and PCM16 audio chunks from
+// backend speech synthesis, enabling real-time lip-sync and spatial playback.
+
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   HubConnectionBuilder,
@@ -64,6 +68,13 @@ interface UseSignalROptions {
   onSophiaMessage?: (payload: SophiaMessageEvent) => void;
   /** Called when meeting artifacts are ready for download */
   onArtifactsReady?: (payload: ArtifactsReadyEvent) => void;
+
+  // ── Viseme + Audio pipeline callbacks ──
+
+  /** Called when a viseme delta arrives for agent lip-sync */
+  onAgentVisemeDelta?: (payload: { role: string; visemeId: number }) => void;
+  /** Called when an audio chunk arrives for agent speech playback */
+  onAgentAudioDelta?: (payload: { role: string; audioBase64: string }) => void;
 }
 
 /** Return type of the useSignalR hook. */
@@ -174,6 +185,16 @@ export function useSignalR(
 
         connection.on("artifactsReady", (payload: ArtifactsReadyEvent) => {
           optionsRef.current.onArtifactsReady?.(payload);
+        });
+
+        // --- Viseme + Audio pipeline event handlers ---
+
+        connection.on("agentVisemeDelta", (payload: { role: string; visemeId: number }) => {
+          optionsRef.current.onAgentVisemeDelta?.(payload);
+        });
+
+        connection.on("agentAudioDelta", (payload: { role: string; audioBase64: string }) => {
+          optionsRef.current.onAgentAudioDelta?.(payload);
         });
 
         // --- Reconnection lifecycle handlers ---
