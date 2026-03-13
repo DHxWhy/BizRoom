@@ -4,6 +4,7 @@ import {
   HttpResponseInit,
   InvocationContext,
 } from "@azure/functions";
+import { createHmac } from "node:crypto";
 
 // SignalR negotiate endpoint
 // Client calls this to get connection info for SignalR
@@ -55,7 +56,6 @@ export async function negotiate(
 
   const header = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const payload = b64url(JSON.stringify({ aud: audience, iat: now, exp, sub: userId }));
-  const { createHmac } = await import("node:crypto");
   const signature = createHmac("sha256", accessKey)
     .update(`${header}.${payload}`)
     .digest("base64url");
