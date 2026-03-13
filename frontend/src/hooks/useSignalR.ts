@@ -121,6 +121,14 @@ export function useSignalR(
 
   useEffect(() => {
     let mounted = true;
+    let keepAliveInterval: ReturnType<typeof setInterval> | null = null;
+
+    // Silent keep-alive ping to prevent Azure Functions cold start
+    function startKeepAlive(): void {
+      keepAliveInterval = setInterval(() => {
+        fetch(`${API_BASE}/api/negotiate`, { method: "POST" }).catch(() => {});
+      }, 30_000);
+    }
 
     /** Update both React state and the external status callback. */
     function updateStatus(next: ConnectionStatus): void {
@@ -215,12 +223,14 @@ export function useSignalR(
         await connection.start();
         connectionRef.current = connection;
         updateStatus("connected");
+        startKeepAlive();
       } catch (err: unknown) {
         console.warn(
           "SignalR connection failed, falling back to REST mode:",
           err,
         );
         updateStatus("disconnected");
+        startKeepAlive();
       }
     }
 
@@ -228,6 +238,7 @@ export function useSignalR(
 
     return () => {
       mounted = false;
+      if (keepAliveInterval) clearInterval(keepAliveInterval);
       const conn = connectionRef.current;
       if (conn?.state === HubConnectionState.Connected) {
         void conn.stop();

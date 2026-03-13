@@ -133,11 +133,13 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
   }, []);
 
   // Space bar hold-to-talk: hold Space to record, release to stop & send.
-  // Works even when focus is in textarea — long press (>200ms) activates PTT,
+  // Works even when focus is in textarea — long press (>400ms) activates PTT,
   // short press types a space character as normal.
   useEffect(() => {
     let spaceDownTime = 0;
     let spacePttActivated = false;
+    let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+    let targetElement: EventTarget | null = null;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space" || e.repeat) return;
@@ -155,32 +157,53 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
         return;
       }
 
-      // Inside text fields: record timestamp, decide on keyup
+      // Inside text fields: start a 400ms timer to detect long press
       spaceDownTime = Date.now();
       spacePttActivated = false;
+      targetElement = e.target;
+
+      longPressTimer = setTimeout(() => {
+        // Timer fired — Space is still held, activate PTT
+        spacePttActivated = true;
+        longPressTimer = null;
+
+        // Remove the space character that was typed on keydown
+        if (targetElement instanceof HTMLTextAreaElement || targetElement instanceof HTMLInputElement) {
+          const el = targetElement;
+          const val = el.value;
+          const pos = el.selectionStart ?? val.length;
+          // Delete the trailing space that was inserted at keydown
+          if (pos > 0 && val[pos - 1] === " ") {
+            el.value = val.slice(0, pos - 1) + val.slice(pos);
+            el.selectionStart = pos - 1;
+            el.selectionEnd = pos - 1;
+            // Dispatch input event so React picks up the change
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+        }
+
+        startRecording();
+      }, 400);
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
 
-      const holdDuration = Date.now() - spaceDownTime;
+      // Clear pending long-press timer if it hasn't fired
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
 
       if (spacePttActivated) {
-        // Already activated (outside text field)
+        // PTT was activated (either outside text field or via long press)
         stopRecording();
         spacePttActivated = false;
-        return;
       }
-
-      // Inside text fields: if held long enough → treat as PTT
-      // Otherwise, normal space character (default behavior)
-      if (holdDuration > 400) {
-        // Long hold detected inside textarea — was PTT intent
-        // But we didn't start recording on keydown, so nothing to stop
-        // This path enables the mic button as primary for textarea context
-      }
+      // Short press inside textarea: normal space typing (do nothing)
 
       spaceDownTime = 0;
+      targetElement = null;
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -188,6 +211,7 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      if (longPressTimer) clearTimeout(longPressTimer);
     };
   }, [startRecording, stopRecording]);
 
