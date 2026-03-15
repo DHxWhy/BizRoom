@@ -394,6 +394,19 @@ export function useSignalR(
               });
             }
 
+            // Check for [BIGSCREEN] prefix — route to BigScreen instead of chat
+            const BIGSCREEN_PREFIX = "[BIGSCREEN]";
+            if (delta.startsWith(BIGSCREEN_PREFIX)) {
+              try {
+                const bigScreenPayload = JSON.parse(delta.slice(BIGSCREEN_PREFIX.length));
+                optionsRef.current.onBigScreenUpdate?.(bigScreenPayload);
+              } catch (e) {
+                console.warn("Failed to parse [BIGSCREEN] payload:", e);
+              }
+              // Do NOT add to chat message stream
+              continue;
+            }
+
             // APPEND_MESSAGE_DELTA 호출
             optionsRef.current.onStreamDelta?.({ messageId, delta });
           }

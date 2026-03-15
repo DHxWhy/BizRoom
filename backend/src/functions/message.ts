@@ -6,6 +6,7 @@ import {
   addMessage,
   getOrCreateRoom,
   getBrandMemory,
+  addSearchResult,
 } from "../orchestrator/ContextBroker.js";
 import { invokeAgentStream, getAgentMeta } from "../agents/AgentFactory.js";
 import { MAX_AGENTS_PER_TURN } from "../constants/turnConfig.js";
@@ -113,6 +114,9 @@ export async function message(
           secondaryAgents,
         ).slice(0, MAX_AGENTS_PER_TURN);
 
+        // H1: Initialize Sophia room state for buffer tracking in SSE path
+        sophiaAgent.initRoom(roomId);
+
         // ── 순차 스트리밍: 한 에이전트가 끝나야 다음 에이전트 시작 ──
         // 실시간 delta 전송으로 사용자가 텍스트 타이핑을 볼 수 있음
         for (const entry of turnOrder) {
@@ -164,14 +168,26 @@ export async function message(
             addMessage(roomId, msg);
 
             // ── Sophia task processing in SSE path ──
-            const hasSearch = parsed.data.sophia_request?.type === "search";
+            const sophiaReqType = parsed.data.sophia_request?.type;
+            const hasSophiaReq = !!sophiaReqType;
             const hasVisual = !!parsed.data.visual_hint;
 
+            // H1: Buffer agent speech into SophiaAgent for context
+            sophiaAgent.addToBuffer(roomId, {
+              speaker: meta.name,
+              role: meta.role,
+              speech: parsed.data.speech || fullContent,
+              keyPoints: parsed.data.key_points || [],
+              visualHint: parsed.data.visual_hint || null,
+              timestamp: Date.now(),
+            });
+
             // Step 1: Sophia announces what she'll do
-            if (hasSearch || hasVisual) {
+            if (hasSophiaReq || hasVisual) {
               const tasks: string[] = [];
-              if (hasSearch) tasks.push("웹 자료 조사");
-              if (hasVisual) tasks.push("시각화 생성");
+              if (sophiaReqType === "search") tasks.push("웹 자료 조사");
+              if (sophiaReqType === "analyze") tasks.push("분석 조사");
+              if (sophiaReqType === "visualize" || hasVisual) tasks.push("시각화 생성");
               const sophiaAnnounce = uuidv4();
               controller.enqueue(sseEncode(JSON.stringify({
                 messageId: sophiaAnnounce, role: "sophia", name: "Sophia",
@@ -179,28 +195,63 @@ export async function message(
               })));
             }
 
-            // Step 2: Web search (if requested)
-            if (hasSearch) {
-              const req = parsed.data.sophia_request!;
-              try {
-                const results = await searchBing(req.query, 3);
-                if (results.length > 0) {
-                  const searchContext = formatSearchContext(results);
-                  addMessage(roomId, {
-                    id: uuidv4(), roomId,
-                    senderId: "sophia", senderType: "agent",
-                    senderName: "Sophia", senderRole: "sophia" as AgentRole,
-                    content: `[검색 완료] ${req.query}\n${searchContext}`,
-                    timestamp: new Date().toISOString(),
-                  });
-                  const sophiaSearchId = uuidv4();
+            // Step 2: Sophia request processing (search / analyze / visualize)
+            if (parsed.data.sophia_request) {
+              const req = parsed.data.sophia_request;
+
+              if (req.type === "search" || req.type === "analyze") {
+                // Both search and analyze use Bing search; analyze formats as analysis context
+                try {
+                  const results = await searchBing(req.query, 3);
+                  if (results.length > 0) {
+                    const searchContext = formatSearchContext(results);
+
+                    // C3: Inject search results into ContextBroker for subsequent agents
+                    addSearchResult(roomId, req.query, results);
+
+                    addMessage(roomId, {
+                      id: uuidv4(), roomId,
+                      senderId: "sophia", senderType: "agent",
+                      senderName: "Sophia", senderRole: "sophia" as AgentRole,
+                      content: req.type === "analyze"
+                        ? `[분석 완료] ${req.query}\n${searchContext}`
+                        : `[검색 완료] ${req.query}\n${searchContext}`,
+                      timestamp: new Date().toISOString(),
+                    });
+                    const sophiaSearchId = uuidv4();
+                    controller.enqueue(sseEncode(JSON.stringify({
+                      messageId: sophiaSearchId, role: "sophia", name: "Sophia",
+                      delta: req.type === "analyze"
+                        ? `분석 완료: ${req.query}\n${results.map((r, i) => `${i + 1}. ${r.name}: ${r.snippet}`).join("\n")}`
+                        : `조사 완료: ${req.query}\n${results.map((r, i) => `${i + 1}. ${r.name}: ${r.snippet}`).join("\n")}`,
+                    })));
+                  }
+                } catch (err) {
+                  context.log(`Sophia ${req.type} failed:`, err);
+                }
+              }
+
+              if (req.type === "visualize" && !hasVisual) {
+                // Create a visual_hint from the sophia_request query and generate visual
+                const synthHint: VisualHint = { type: "summary", title: req.query };
+                try {
+                  const renderData = await callSophiaVisualInSSE(roomId, synthHint, context);
+                  const sophiaVisId = uuidv4();
                   controller.enqueue(sseEncode(JSON.stringify({
-                    messageId: sophiaSearchId, role: "sophia", name: "Sophia",
-                    delta: `조사 완료: ${req.query}\n${results.map((r, i) => `${i + 1}. ${r.name}: ${r.snippet}`).join("\n")}`,
+                    messageId: sophiaVisId, role: "sophia", name: "Sophia",
+                    delta: `${synthHint.title} 시각화를 빅스크린에 표시했습니다.`,
+                  })));
+                  controller.enqueue(sseEncode(JSON.stringify({
+                    messageId: uuidv4(), role: "sophia", name: "Sophia",
+                    delta: `[BIGSCREEN]${JSON.stringify({ visualType: synthHint.type, title: synthHint.title, renderData })}`,
+                  })));
+                } catch (err) {
+                  context.log("Sophia visualize (from sophia_request) failed:", err);
+                  controller.enqueue(sseEncode(JSON.stringify({
+                    messageId: uuidv4(), role: "sophia", name: "Sophia",
+                    delta: `시각화 생성에 실패했습니다. 다시 시도해 주세요.`,
                   })));
                 }
-              } catch (err) {
-                context.log("Sophia search failed:", err);
               }
             }
 
@@ -297,9 +348,14 @@ async function callSophiaVisualInSSE(
 
   context.log(`[Sophia Visual] Generated for "${hint.title}" via ${selection.provider}/${selection.model}`);
 
-  const parsed = JSON.parse(content) as Record<string, unknown>;
-  if (typeof parsed.type !== "string") parsed.type = hint.type;
-  return parsed as unknown as BigScreenRenderData;
+  // H2: Graceful fallback if LLM returns invalid JSON
+  try {
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    if (typeof parsed.type !== "string") parsed.type = hint.type;
+    return parsed as unknown as BigScreenRenderData;
+  } catch {
+    return { type: hint.type, title: hint.title, items: [] } as unknown as BigScreenRenderData;
+  }
 }
 
 app.http("message", {
