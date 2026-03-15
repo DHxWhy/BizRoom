@@ -77,20 +77,20 @@ export const SEL = {
   // Chat Panel — messages, typing indicator, streaming
   // ═══════════════════════════════════════════════════════════════════════
   chat: {
-    /** Chat panel root container */
-    root: "[data-testid='chat-room'], .chat-room, .chat-panel",
+    /** Chat panel root container — ChatRoom uses role="log" */
+    root: "[data-testid='chat-room'], [role='log'], .chat-room, .chat-panel",
 
     /** Message list scrollable container */
-    messageList: "[data-testid='message-list'], .message-list, .chat-messages",
+    messageList: "[data-testid='message-list'], [role='log'], .message-list, .chat-messages",
 
-    /** Individual message bubble (agent or human) */
-    messageBubble: "[data-testid='message-bubble'], .message-bubble, .chat-message",
+    /** Individual message bubble (agent or human) — MessageBubble uses role="article" */
+    messageBubble: "[role='article'], [data-testid='message-bubble'], .message-bubble, .chat-message",
 
-    /** Agent-sent message bubbles */
-    agentMessage: ".agent-message, [data-sender-type='agent']",
+    /** Agent-sent message bubbles — match aria-label containing known agent names */
+    agentMessage: "[role='article'][aria-label*='Hudson'], [role='article'][aria-label*='Amelia'], [role='article'][aria-label*='Yusef'], [role='article'][aria-label*='Kelvin'], [role='article'][aria-label*='Jonas'], [role='article'][aria-label*='Bradley']",
 
-    /** Human-sent message bubbles */
-    humanMessage: ".human-message, [data-sender-type='human']",
+    /** Human-sent message bubbles — article elements NOT matching any agent name */
+    humanMessage: "[role='article']:not([aria-label*='Hudson']):not([aria-label*='Amelia']):not([aria-label*='Yusef']):not([aria-label*='Kelvin']):not([aria-label*='Jonas']):not([aria-label*='Bradley'])",
 
     /** Typing indicator (shown while agent is processing) */
     typingIndicator: "[data-testid='typing-indicator'], .typing-indicator",

@@ -210,7 +210,40 @@ function meetingReducer(state: MeetingState, action: MeetingAction): MeetingStat
     case "END_STREAM": {
       const endStreamIds = new Set(state.streamingMessageIds);
       endStreamIds.delete(action.payload.messageId);
-      return { ...state, streamingMessageIds: endStreamIds };
+
+      // Extract speech from StructuredAgentOutput JSON if present.
+      // The LLM streams raw JSON (```json { "speech": "...", ... } ```)
+      // but the UI should only display the speech text.
+      const endIdx = state.messages.findIndex((m) => m.id === action.payload.messageId);
+      if (endIdx === -1) {
+        return { ...state, streamingMessageIds: endStreamIds };
+      }
+
+      const endMsg = state.messages[endIdx];
+      let finalContent = endMsg.content;
+
+      // Try to parse StructuredAgentOutput from accumulated content
+      const jsonFenceMatch = finalContent.match(/```json\s*([\s\S]*?)```/);
+      const rawJsonMatch = !jsonFenceMatch && finalContent.trimStart().startsWith("{")
+        ? finalContent.match(/^\s*(\{[\s\S]*\})\s*$/)
+        : null;
+
+      const jsonStr = jsonFenceMatch?.[1] ?? rawJsonMatch?.[1];
+      if (jsonStr) {
+        try {
+          const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+          if (typeof parsed.speech === "string" && parsed.speech.length > 0) {
+            finalContent = parsed.speech;
+          }
+        } catch {
+          // JSON parse failed — keep original content (graceful degradation)
+        }
+      }
+
+      const endMessages = [...state.messages];
+      endMessages[endIdx] = { ...endMsg, content: finalContent };
+
+      return { ...state, messages: endMessages, streamingMessageIds: endStreamIds };
     }
 
     // ── Room/user session actions ──
