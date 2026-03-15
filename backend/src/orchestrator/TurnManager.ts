@@ -27,6 +27,7 @@ interface RoomTurnState {
   combinedInput: string; // cached for triggerNextAgent
   chairmanUserId: string | null; // MVP: single mic = chairman
   followUpRound: number; // track A2A follow-up rounds
+  agentResponseCount: number; // total agents responded this turn (hard stop at MAX)
   awaitingTimer: ReturnType<typeof setTimeout> | null;
   awaitingGeneration: number;
 }
@@ -62,6 +63,7 @@ export class TurnManager extends EventEmitter {
         combinedInput: "",
         chairmanUserId: null,
         followUpRound: 0,
+        agentResponseCount: 0,
         awaitingTimer: null,
         awaitingGeneration: 0,
       });
@@ -207,28 +209,42 @@ export class TurnManager extends EventEmitter {
     const room = this.getRoom(roomId);
     if (room.state !== "speaking") return;
 
+    // Track total agent responses this turn
+    room.agentResponseCount++;
+
     // Save agent response to ContextBroker
     const agentMessage: Message = {
       id: uuidv4(),
       roomId,
       senderId: `agent-${agentRole}`,
       senderType: "agent",
-      senderName: agentRole, // Will be enriched by caller
+      senderName: agentRole,
       senderRole: agentRole,
       content: fullText,
       timestamp: new Date().toISOString(),
     };
     addMessage(roomId, agentMessage);
 
-    // A2A follow-up check — enforce MAX_FOLLOW_UP_ROUNDS + deduplicate
-    // Skip when structured mention routing already handled follow-ups
+    // HARD STOP: max 2 agents per turn, then return to user
+    if (room.agentResponseCount >= MAX_AGENTS_PER_TURN) {
+      room.agentQueue = []; // Clear any remaining queue
+      room.activeAgent = null;
+      this.emit("agentsDone:" + roomId, roomId);
+      if (room.inputBuffer.length > 0) {
+        this.onFlush(roomId);
+      } else {
+        this.transition(roomId, "idle");
+      }
+      return;
+    }
+
+    // A2A follow-up check — only if under the hard limit
     if (!skipFollowUp) {
       room.followUpRound++;
       if (room.followUpRound <= MAX_FOLLOW_UP_ROUNDS) {
         const followUpRole = checkFollowUp({ role: agentRole, content: fullText });
         if (
           followUpRole &&
-          room.agentQueue.length < MAX_AGENTS_PER_TURN &&
           !room.agentQueue.some((q) => q.role === followUpRole)
         ) {
           room.agentQueue.push({ role: followUpRole, priority: 3 });
@@ -241,7 +257,6 @@ export class TurnManager extends EventEmitter {
       setTimeout(() => this.triggerNextAgent(roomId), INTER_AGENT_GAP_MS);
     } else {
       room.activeAgent = null;
-      // Emit agentsDone for completed cycle, then re-flush if queued input
       this.emit("agentsDone:" + roomId, roomId);
       if (room.inputBuffer.length > 0) {
         this.onFlush(roomId);
@@ -407,10 +422,11 @@ export class TurnManager extends EventEmitter {
       secondaryAgents,
     ).slice(0, MAX_AGENTS_PER_TURN);
 
-    // 4. Clear buffer + reset follow-up counter
+    // 4. Clear buffer + reset counters
     room.inputBuffer = [];
     room.interruptFlag = false;
     room.followUpRound = 0;
+    room.agentResponseCount = 0;
 
     // 5. Trigger first agent
     if (room.agentQueue.length > 0) {
