@@ -673,7 +673,7 @@ function MeetingRoom() {
 
       {/* ═══ START MEETING BUTTON + MODE SELECTOR (when idle) ═══ */}
       {isIdle && (
-        <div className="absolute inset-0 flex items-center justify-center z-30">
+        <div className="absolute inset-0 flex items-center justify-center z-30 bg-neutral-950/60 backdrop-blur-sm">
           <div className="text-center">
             <div className="mb-6">
               <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">

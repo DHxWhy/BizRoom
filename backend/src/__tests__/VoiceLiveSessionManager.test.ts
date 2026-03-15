@@ -80,7 +80,7 @@ describe("VoiceLiveSessionManager — createWebSocket (OpenAI fallback)", () => 
     // Ensure USE_AZURE is false: no AZURE_VOICE_LIVE_ENDPOINT
     vi.stubEnv("AZURE_VOICE_LIVE_ENDPOINT", "");
     vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
-    vi.stubEnv("OPENAI_MODEL_REALTIME", "gpt-realtime-1.5");
+    vi.stubEnv("OPENAI_MODEL_REALTIME", "gpt-4o-realtime-preview");
     FakeWebSocket.reset();
   });
 

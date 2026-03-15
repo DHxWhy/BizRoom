@@ -44,13 +44,22 @@ function addRoomListener(
 
 /**
  * Initialize bidirectional event wiring for a room.
- * Call once per room at meeting start.
+ * Idempotent: calling twice for the same roomId is a no-op (prevents duplicate listeners).
  */
 export function wireVoiceLiveForRoom(
   roomId: string,
   chairmanUserId: string,
   chairmanName: string,
 ): void {
+  // Idempotency guard: if listeners are already registered for this room, skip.
+  // Without this guard, calling wireVoiceLiveForRoom twice (e.g., from a double
+  // HTTP request or React dev-mode double-invoke) would register duplicate
+  // EventEmitter listeners, causing Sophia audio and agent responses to broadcast twice.
+  if (roomListeners.has(roomId)) {
+    console.warn(`[VoiceLive] wireVoiceLiveForRoom called twice for room ${roomId} — skipping duplicate wiring`);
+    return;
+  }
+
   // Set chairman in TurnManager
   turnManager.setChairman(roomId, chairmanUserId);
 

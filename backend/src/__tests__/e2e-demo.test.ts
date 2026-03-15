@@ -1054,10 +1054,12 @@ describe("Category 9: VoiceLiveSessionManager — provider selection", () => {
     expect(textOnly).toBe(true);
   });
 
-  it("OPENAI_REALTIME_MODEL defaults to gpt-realtime-1.5", () => {
-    // Test the default model string used in VoiceLiveSessionManager
-    const model = process.env.OPENAI_MODEL_REALTIME || "gpt-realtime-1.5";
-    expect(model).toBe("gpt-realtime-1.5");
+  it("OPENAI_REALTIME_MODEL defaults to gpt-4o-realtime-preview", () => {
+    // Test the default model string used in VoiceLiveSessionManager.
+    // "gpt-realtime-1.5" does not exist — valid OpenAI Realtime models are:
+    //   gpt-4o-realtime-preview, gpt-4o-realtime-preview-2024-12-17
+    const model = process.env.OPENAI_MODEL_REALTIME || "gpt-4o-realtime-preview";
+    expect(model).toBe("gpt-4o-realtime-preview");
   });
 
   it("VoiceLiveSessionManager can be instantiated without crashing", async () => {
