@@ -426,7 +426,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
 
   private handleAgentEvent(
     roomId: string,
-    role: AgentRole,
+    role: AllAgentRole,
     event: AgentWsEvent,
   ): void {
     switch (event.type) {
