@@ -407,22 +407,30 @@ function MeetingRoom() {
       }
 
       try {
-        // Always use SSE for reliable text display (works without SignalR)
-        await sendMessageStream(state.roomId, content, state.userName || "Chairman", {
-          mode: state.meetingMode,
-          dmTarget: state.dmTarget,
-        });
-
-        // Also trigger TurnManager for VoiceLive audio (fire-and-forget)
-        // Audio arrives via SignalR if connected; silently skipped if not
-        sendMessage(state.roomId, content, state.userName || "Chairman", {
-          isChairman: state.isChairman,
-          mode: state.meetingMode,
-          dmTarget: state.dmTarget,
-        }).catch(() => {});
+        if (connectionStatus === "connected") {
+          // SignalR connected → VoiceLive mode (audio + text via SignalR events)
+          await sendMessage(state.roomId, content, state.userName || "Chairman", {
+            isChairman: state.isChairman,
+            mode: state.meetingMode,
+            dmTarget: state.dmTarget,
+          });
+        } else {
+          // SignalR disconnected → SSE fallback (text only, no audio)
+          await sendMessageStream(state.roomId, content, state.userName || "Chairman", {
+            mode: state.meetingMode,
+            dmTarget: state.dmTarget,
+          });
+        }
       } catch {
-        // SSE failure: fall back to REST only
-        await sendMessage(state.roomId, content, state.userName || "Chairman");
+        // Both failed → try the other path
+        if (connectionStatus === "connected") {
+          await sendMessageStream(state.roomId, content, state.userName || "Chairman", {
+            mode: state.meetingMode,
+            dmTarget: state.dmTarget,
+          });
+        } else {
+          await sendMessage(state.roomId, content, state.userName || "Chairman");
+        }
       }
 
       for (const name of typingNames) {
