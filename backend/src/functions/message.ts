@@ -104,76 +104,9 @@ export async function message(
 
         // ── Sophia direct call: bypass agents when user addresses Sophia ──
         const SOPHIA_DIRECT = /소피아|sophia|시각화|차트|그래프|보여\s*줘|정리해\s*줘|웹\s*서칭|웹\s*검색|조사.*해|리서치|visualize|chart|graph|search/i;
-        if (SOPHIA_DIRECT.test(userMessage.content)) {
-          // User wants Sophia to act — skip ALL agents, Sophia handles directly
-          sophiaAgent.initRoom(roomId);
-
-          const wantsSearch = /웹|서칭|검색|조사|리서치|search|research/i.test(userMessage.content);
-          const wantsVisual = /시각화|차트|그래프|보여|정리|visualize|chart|graph/i.test(userMessage.content);
-
-          const tasks: string[] = [];
-          if (wantsSearch) tasks.push("웹 자료 조사");
-          if (wantsVisual) tasks.push("시각화 생성");
-          if (tasks.length === 0) tasks.push("요청 처리");
-
-          controller.enqueue(sseEncode(JSON.stringify({
-            messageId: uuidv4(), role: "sophia", name: "Sophia",
-            delta: `네, ${tasks.join(" 후 ")}을 바로 진행하겠습니다.`,
-          })));
-
-          // Step 1: Web search if requested
-          if (wantsSearch) {
-            try {
-              const results = await searchBing(userMessage.content, 5);
-              if (results.length > 0) {
-                addSearchResult(roomId, userMessage.content, results);
-                controller.enqueue(sseEncode(JSON.stringify({
-                  messageId: uuidv4(), role: "sophia", name: "Sophia",
-                  delta: `조사 완료:\n${results.map((r, i) => `${i + 1}. ${r.name}: ${r.snippet}`).join("\n")}`,
-                })));
-              } else {
-                controller.enqueue(sseEncode(JSON.stringify({
-                  messageId: uuidv4(), role: "sophia", name: "Sophia",
-                  delta: `웹 검색 결과가 없습니다. 보유 데이터로 진행합니다.`,
-                })));
-              }
-            } catch (err) {
-              context.log("Sophia direct search failed:", err);
-            }
-          }
-
-          // Step 2: Visualization if requested
-          if (wantsVisual) {
-            const hint: VisualHint = { type: "summary", title: userMessage.content.slice(0, 40) };
-            if (/파이|비율|비중|점유율|pie/i.test(userMessage.content)) hint.type = "pie-chart";
-            else if (/막대|bar/i.test(userMessage.content)) hint.type = "bar-chart";
-            else if (/비교|comparison|vs|우선순위/i.test(userMessage.content)) hint.type = "comparison";
-            else if (/일정|타임라인|timeline|로드맵/i.test(userMessage.content)) hint.type = "timeline";
-            else if (/체크|할일|checklist/i.test(userMessage.content)) hint.type = "checklist";
-
-            try {
-              const renderData = await callSophiaVisualInSSE(roomId, hint, context);
-              controller.enqueue(sseEncode(JSON.stringify({
-                messageId: uuidv4(), role: "sophia", name: "Sophia",
-                delta: `시각화를 빅스크린에 표시했습니다.`,
-              })));
-              controller.enqueue(sseEncode(JSON.stringify({
-                messageId: uuidv4(), role: "sophia", name: "Sophia",
-                delta: `[BIGSCREEN]${JSON.stringify({ visualType: hint.type, title: hint.title, renderData })}`,
-              })));
-            } catch (err) {
-              context.log("Sophia direct visual failed:", err);
-              controller.enqueue(sseEncode(JSON.stringify({
-                messageId: uuidv4(), role: "sophia", name: "Sophia",
-                delta: `시각화 생성에 실패했습니다.`,
-              })));
-            }
-          }
-
-          controller.enqueue(sseEncode("[DONE]"));
-          controller.close();
-          return;
-        }
+        // Sophia keyword detection — checked AFTER agents respond (not bypass)
+        const SOPHIA_KEYWORDS = /소피아|sophia|시각화|차트|그래프|보여\s*줘|정리해\s*줘|웹\s*서칭|웹\s*검색|조사.*해|리서치|visualize|chart|graph|search/i;
+        let sophiaTurnNeeded = SOPHIA_KEYWORDS.test(userMessage.content);
 
         // 토픽 분류 및 @멘션 파싱
         const mentions = parseMentions(userMessage.content);
@@ -355,31 +288,71 @@ export async function message(
           }
         }
 
-        // ── Fallback: if user asked for visualization but no agent included visual_hint ──
-        const VISUAL_KEYWORDS = /시각화|차트|그래프|보여줘|정리해줘|파이차트|막대|비교.*표|visualize|chart|graph/i;
-        if (VISUAL_KEYWORDS.test(userMessage.content)) {
-          // Check if any visual was generated in this turn
-          const anyVisualGenerated = turnOrder.some(() => false); // placeholder — check via flag
-          // Simple fallback: always generate a summary visual from the conversation
-          try {
-            const fallbackHint: VisualHint = { type: "summary", title: userMessage.content.slice(0, 30) };
-            const renderData = await callSophiaVisualInSSE(roomId, fallbackHint, context);
-            if (renderData && JSON.stringify(renderData) !== '{}') {
-              controller.enqueue(sseEncode(JSON.stringify({
-                messageId: uuidv4(), role: "sophia", name: "Sophia",
-                delta: `요청하신 시각화를 빅스크린에 표시했습니다.`,
-              })));
-              controller.enqueue(sseEncode(JSON.stringify({
-                messageId: uuidv4(), role: "sophia", name: "Sophia",
-                delta: `[BIGSCREEN]${JSON.stringify({ visualType: fallbackHint.type, title: fallbackHint.title, renderData })}`,
-              })));
+        // ── Sophia Turn: agents discussed, now Sophia acts ──
+        // Also check agent responses for sophia keywords
+        if (!sophiaTurnNeeded) {
+          const allAgentText = turnOrder.map(e => {
+            const msgs = room.messages?.filter(m => m.senderId === `agent-${e.role}`) ?? [];
+            return msgs.map(m => m.content).join(" ");
+          }).join(" ");
+          if (SOPHIA_KEYWORDS.test(allAgentText)) sophiaTurnNeeded = true;
+        }
+
+        if (sophiaTurnNeeded) {
+          const wantsSearch = /웹|서칭|검색|조사|리서치|search|research/i.test(userMessage.content);
+          const wantsVisual = /시각화|차트|그래프|보여|정리|visualize|chart|graph/i.test(userMessage.content);
+
+          const tasks: string[] = [];
+          if (wantsSearch) tasks.push("웹 자료 조사");
+          if (wantsVisual) tasks.push("시각화 생성");
+          if (tasks.length === 0) tasks.push("자료 정리");
+
+          controller.enqueue(sseEncode(JSON.stringify({
+            messageId: uuidv4(), role: "sophia", name: "Sophia",
+            delta: `${tasks.join(" 후 ")}을 진행하겠습니다.`,
+          })));
+
+          // Search
+          if (wantsSearch) {
+            try {
+              const results = await searchBing(userMessage.content, 5);
+              if (results.length > 0) {
+                addSearchResult(roomId, userMessage.content, results);
+                controller.enqueue(sseEncode(JSON.stringify({
+                  messageId: uuidv4(), role: "sophia", name: "Sophia",
+                  delta: `조사 완료:\n${results.map((r, i) => `${i + 1}. ${r.name}: ${r.snippet}`).join("\n")}`,
+                })));
+              }
+            } catch (err) {
+              context.log("Sophia search failed:", err);
             }
-          } catch (err) {
-            context.log("Fallback visual generation failed:", err);
+          }
+
+          // Visualize
+          if (wantsVisual) {
+            const hint: VisualHint = { type: "summary", title: userMessage.content.slice(0, 40) };
+            if (/파이|비율|비중|점유율|pie/i.test(userMessage.content)) hint.type = "pie-chart";
+            else if (/막대|bar/i.test(userMessage.content)) hint.type = "bar-chart";
+            else if (/비교|comparison|vs|우선순위/i.test(userMessage.content)) hint.type = "comparison";
+            else if (/일정|타임라인|timeline|로드맵/i.test(userMessage.content)) hint.type = "timeline";
+
+            try {
+              const renderData = await callSophiaVisualInSSE(roomId, hint, context);
+              controller.enqueue(sseEncode(JSON.stringify({
+                messageId: uuidv4(), role: "sophia", name: "Sophia",
+                delta: `시각화를 빅스크린에 표시했습니다.`,
+              })));
+              controller.enqueue(sseEncode(JSON.stringify({
+                messageId: uuidv4(), role: "sophia", name: "Sophia",
+                delta: `[BIGSCREEN]${JSON.stringify({ visualType: hint.type, title: hint.title, renderData })}`,
+              })));
+            } catch (err) {
+              context.log("Sophia visual failed:", err);
+            }
           }
         }
 
-        // 모든 에이전트 응답 완료
+        // 모든 에이전트 + 소피아 응답 완료
         controller.enqueue(sseEncode("[DONE]"));
         controller.close();
       } catch (err: unknown) {
