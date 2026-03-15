@@ -20,6 +20,9 @@ interface MessageRequest {
   senderId: string;
   senderName: string;
   mentions?: AgentRole[];
+  isChairman?: boolean;
+  mode?: string;
+  dmTarget?: string | null;
 }
 
 /** SSE 이벤트 한 줄을 UTF-8 인코딩하여 반환 */
