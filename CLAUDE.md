@@ -55,44 +55,57 @@ export const S = {
 | vitest                                      | 1.x (테스트 프레임워크)           |
 | ws                                          | 8.x (WebSocket — GPT Realtime)    |
 
-### AI Model
-| 용도                     | 모델                                         | Temperature |
-| ------------------------ | -------------------------------------------- | ----------- |
-| 실시간 음성 대화         | GPT Realtime 1.5 (OpenAI WebSocket)          | 에이전트별  |
-| 음성 인식 (STT)          | Whisper-1 (OpenAI)                           | -           |
-| 시각화 생성 (Sophia)     | Claude Sonnet 4.6 / Haiku 4.5 (Anthropic)   | 0.2         |
-| 회의록 생성              | Claude Opus 4.6 (Anthropic)                  | 0.4         |
-| 아티팩트 생성            | Claude Haiku 4.5 (Anthropic)                 | 0.1         |
+### AI Model (실제 사용 중)
+| 용도                     | 모델                                         | 제공사       | Temperature |
+| ------------------------ | -------------------------------------------- | ------------ | ----------- |
+| 실시간 음성 대화 (TTS)   | GPT Realtime 1.5                             | OpenAI       | 에이전트별  |
+| 음성 인식 (STT)          | Whisper-1                                    | OpenAI       | -           |
+| 시각화 생성 (Sophia)     | Claude Sonnet 4.6 / Haiku 4.5               | Anthropic    | 0.2         |
+| 회의록 생성              | Claude Opus 4.6                              | Anthropic    | 0.4         |
+| 아티팩트 생성            | Claude Haiku 4.5                             | Anthropic    | 0.1         |
 
-> ModelRouter (`backend/src/services/ModelRouter.ts`)가 TaskType별 모델/temperature를 자동 라우팅한다.
-> **참고: Azure OpenAI GPT-4o는 사용하지 않음. OpenAI Direct API + Anthropic Claude 사용.**
+> **⚠️ GPT-4o는 사용하지 않음.** 코드에 폴백 참조만 존재하며 실제 호출되지 않음.
+> - 음성: OpenAI GPT Realtime 1.5 (Direct WebSocket API)
+> - 텍스트/시각화: Anthropic Claude 모델 (Opus/Sonnet/Haiku)
+> - STT: OpenAI Whisper-1
+> - ModelRouter (`backend/src/services/ModelRouter.ts`)가 TaskType별 자동 라우팅
 
 ### Infrastructure (Microsoft Azure)
 | 기술                          | 용도                                             |
 | ----------------------------- | ------------------------------------------------ |
-| Azure Functions               | 백엔드 서버리스 API (23개 엔드포인트)            |
-| Azure SignalR Service         | 실시간 양방향 통신 (Serverless 모드)             |
-| Azure Static Web Apps         | 프론트엔드 배포 + CDN                            |
-| Azure AI Speech               | 음성 합성 기반 기술 (DragonHDLatest 음성 예정)   |
+| Azure Functions v4            | 백엔드 서버리스 API (23개 엔드포인트)            |
+| Azure SignalR Service         | 실시간 양방향 통신 (Serverless, Premium_P1)      |
+| Azure Static Web Apps         | 프론트엔드 배포 + CDN + API 프록시               |
 | Microsoft Graph API           | OneDrive 파일 저장, Planner 태스크 생성          |
 
-### 고객 가치 (Customer Value Proposition)
+### 핵심 가치 (Core Value Proposition)
 
-**"혼자서도 C-Suite 임원진과 회의할 수 있는 AI 가상 사무실"**
+> **"혼자서도 C-Suite 임원진과 회의할 수 있는 AI 가상 사무실"**
+> Your AI Executive Team — 언제 어디서든, 6명의 전문 AI 임원과 실시간 음성 회의
 
-| 고객 세그먼트              | 해결하는 문제                                     | 제공 가치                                              |
+**해결하는 근본 문제:**
+모든 비즈니스 의사결정에는 다양한 전문 관점(재무, 마케팅, 법률, 기술, 디자인, 운영)이 필요하지만,
+1인 창업자·스타트업·중소기업은 이 모든 역할을 갖출 여력이 없습니다.
+
+**BizRoom.ai의 답:**
+음성으로 대화하는 AI C-Suite 임원 6인이 실시간으로 전문 의견을 제시하고,
+회의 결과를 자동으로 문서화합니다.
+
+| 핵심 가치                     | 설명                                                                  |
+| ----------------------------- | --------------------------------------------------------------------- |
+| **실시간 음성 회의**           | 텍스트가 아닌 음성으로 자연스럽게 대화 — 실제 회의처럼 몰입            |
+| **다관점 의사결정 지원**       | COO·CFO·CMO·CTO·CDO·CLO 6명이 각자 전문 영역에서 의견 제시            |
+| **자연스러운 턴 테이킹**       | TurnManager가 인간 회의처럼 순차 발언 조율 — 최대 2명 연속 후 사용자 턴 |
+| **실시간 시각화**              | Sophia AI 비서가 논의 내용을 즉시 차트/요약으로 빅스크린에 표시        |
+| **회의 산출물 자동화**         | PPT·Excel·회의록이 자동 생성 → OneDrive 저장 + Planner 태스크 연동    |
+| **3D 몰입 경험**              | React Three Fiber 기반 가상 회의실에서 아바타와 함께 회의              |
+
+| 고객 세그먼트              | Pain Point                                        | BizRoom.ai 솔루션                                      |
 | -------------------------- | ------------------------------------------------- | ------------------------------------------------------ |
-| **1인 창업자/프리랜서**    | 혼자서 모든 의사결정을 내려야 함                  | 6명의 AI 임원이 재무·마케팅·법률·기술 관점에서 즉시 조언 |
-| **스타트업 대표**          | C-Suite 채용 전 전략적 의사결정 지원 부재         | 전문 영역별 AI 임원이 데이터 기반 의견 제시             |
-| **중소기업 경영진**        | 회의 준비·회의록·액션아이템 관리에 시간 소모       | 자동 회의록 생성, PPT/Excel 산출물, Planner 태스크 연동 |
-| **글로벌 팀**              | 시차·언어 장벽으로 실시간 회의 어려움             | 24/7 AI 임원 상시 대기, 다국어 지원 예정               |
-
-**핵심 차별점:**
-- **음성 기반 실시간 대화** — 텍스트가 아닌 목소리로 AI와 회의
-- **3D 가상 회의실** — 몰입감 있는 시각적 경험 (React Three Fiber)
-- **구조화된 회의 진행** — TurnManager가 순차적 턴테이킹 관리
-- **즉각적 시각화** — Sophia가 논의 내용을 실시간 차트/요약으로 빅스크린에 표시
-- **회의 산출물 자동화** — PPT, Excel, 회의록이 자동 생성되어 OneDrive에 저장
+| **1인 창업자/프리랜서**    | 혼자서 모든 의사결정                               | 6명 AI 임원이 재무·마케팅·법률·기술 관점에서 즉시 조언  |
+| **스타트업 대표**          | C-Suite 미구성 상태에서 전략적 판단 필요           | 전문 영역별 AI 임원이 데이터 기반 의견 제시              |
+| **중소기업 경영진**        | 회의 준비·기록·후속조치에 시간 낭비                | 자동 회의록·PPT·Excel + Planner 태스크                  |
+| **글로벌 원격 팀**         | 시차·언어 장벽                                    | 24/7 AI 임원 상시 대기, 다국어 지원 예정                |
 
 ---
 
