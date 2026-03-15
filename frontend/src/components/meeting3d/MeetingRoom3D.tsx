@@ -254,6 +254,8 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
     for (const seat of SEAT_CONFIG) {
       map[seat.agent] = seat.position;
     }
+    // Sophia blob at table center — camera looks here when she speaks
+    map["sophia"] = SOPHIA_BLOB_POSITION;
     return map;
   }, []);
 
