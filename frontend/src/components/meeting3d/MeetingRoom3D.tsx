@@ -348,9 +348,8 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
           {/* ═══ TABLE + PROPS (memoized) ═══ */}
           <MemoizedTable />
 
-          {/* ═══ HOLOGRAPHIC MONITORS — AI agents ═══ */}
-          {monitorTransforms.map((mt, i) =>
-            SEAT_CONFIG[i].agent === "chairman" ? null : (
+          {/* ═══ HOLOGRAPHIC MONITORS — all seats including chairman ═══ */}
+          {monitorTransforms.map((mt, i) => (
               <HoloMonitor3D
                 key={SEAT_CONFIG[i].agent}
                 position={mt.position}
@@ -359,7 +358,11 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
                 agentRole={SEAT_CONFIG[i].agent}
                 agentName={SEAT_CONFIG[i].name}
                 color={SEAT_CONFIG[i].color}
-                monitorData={monitorData?.[SEAT_CONFIG[i].agent]}
+                monitorData={
+                  SEAT_CONFIG[i].agent === "chairman"
+                    ? monitorData?.["chairman"]
+                    : monitorData?.[SEAT_CONFIG[i].agent]
+                }
               />
             ),
           )}
