@@ -6,7 +6,7 @@ import { float32ToPcm16, pcm16ToBase64 } from "../utils/audioUtils";
 import { API_BASE } from "../config/api";
 
 const STORAGE_KEY_MIC = "bizroom_mic_enabled";
-const AUDIO_CHUNK_SIZE = 12000; // 500ms at 24kHz — larger chunks reduce HTTP request frequency
+const AUDIO_CHUNK_SIZE = 6000; // 250ms at 24kHz — faster detection, lower latency
 
 interface UseVoiceLiveOptions {
   roomId: string;

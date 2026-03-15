@@ -87,14 +87,20 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let finalTranscript = "";
+      let interimTranscript = "";
       for (let i = 0; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
         }
       }
-      if (finalTranscript) {
-        transcriptRef.current = finalTranscript;
-        setTranscript(finalTranscript);
+      // Use final transcript if available, otherwise use interim as fallback
+      // (short utterances may not reach isFinal before stop() is called)
+      const best = finalTranscript || interimTranscript;
+      if (best) {
+        transcriptRef.current = best;
+        setTranscript(best);
       }
     };
 
