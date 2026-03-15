@@ -374,15 +374,18 @@ function MeetingRoom() {
     [state.typingAgents],
   );
 
-  // Resolve which agents should show typing based on current mode
+  // VoiceLive mode: typing indicators come from SignalR agentTyping events
+  // SSE fallback: show typing for the responding agents (determined by backend)
   const getTypingAgentsForMode = useCallback((): string[] => {
     if (state.meetingMode === "dm" && state.dmTarget) {
       const name = ROLE_TO_NAME[state.dmTarget];
       return name ? [name] : [];
     }
-    // live & auto: all agents
-    return ["Hudson", "Amelia", "Yusef", "Kelvin", "Jonas", "Bradley"];
-  }, [state.meetingMode, state.dmTarget]);
+    // In connected mode, SignalR agentTyping events handle typing indicators
+    // Only show generic typing for SSE fallback
+    if (connectionStatus === "connected") return [];
+    return ["Hudson", "Amelia"];
+  }, [state.meetingMode, state.dmTarget, connectionStatus]);
 
   // Send a user message to the room (uses streaming when available)
   const handleSend = useCallback(

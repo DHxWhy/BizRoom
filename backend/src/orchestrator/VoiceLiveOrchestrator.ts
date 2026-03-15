@@ -232,6 +232,13 @@ export function wireVoiceLiveForRoom(
     voiceLiveManager,
     "agentDone:" + roomId,
     (_rid: string, role: AgentRole, fullText: string) => {
+      // Clear typing indicator for this agent
+      const doneDisplayName = AGENT_CONFIGS[role]?.name ?? role;
+      broadcastEvent(roomId, {
+        type: "agentTyping",
+        payload: { agentId: `agent-${role}`, agentName: doneDisplayName, isTyping: false },
+      });
+
       // Sophia voice announcements bypass the C-Suite pipeline entirely
       if ((role as string) === "sophia") return;
 
@@ -319,7 +326,7 @@ export function wireVoiceLiveForRoom(
       voiceLiveManager.triggerAgentResponse(roomId, role, instructions);
       broadcastEvent(roomId, {
         type: "agentTyping",
-        payload: { agentId: `agent-${role}`, agentName: role, isTyping: true },
+        payload: { agentId: `agent-${role}`, agentName: AGENT_CONFIGS[role]?.name ?? role, isTyping: true },
       });
     },
   );
@@ -328,7 +335,7 @@ export function wireVoiceLiveForRoom(
     voiceLiveManager.cancelAgentResponse(roomId, role);
     broadcastEvent(roomId, {
       type: "agentTyping",
-      payload: { agentId: `agent-${role}`, agentName: role, isTyping: false },
+      payload: { agentId: `agent-${role}`, agentName: AGENT_CONFIGS[role]?.name ?? role, isTyping: false },
     });
   });
 }
