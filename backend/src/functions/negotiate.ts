@@ -56,7 +56,8 @@ export async function negotiate(
 
   const header = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const payload = b64url(JSON.stringify({ aud: audience, iat: now, exp, sub: userId }));
-  const signature = createHmac("sha256", accessKey)
+  // AccessKey in connection string is base64-encoded — decode before HMAC
+  const signature = createHmac("sha256", Buffer.from(accessKey, "base64"))
     .update(`${header}.${payload}`)
     .digest("base64url");
 
