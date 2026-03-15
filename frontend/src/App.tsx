@@ -632,22 +632,44 @@ function MeetingRoom() {
             <div className="mr-4 mt-2 flex items-center gap-2">
               <ModeSelector currentMode={state.meetingMode} onModeChange={handleModeChange} />
               {/* Artifact drawer toggle */}
-              <button
-                onClick={toggleDrawer}
-                className="w-8 h-8 rounded-lg
-                           bg-neutral-800/40 backdrop-blur-sm border border-neutral-700/20
-                           flex items-center justify-center
-                           hover:bg-neutral-700/50 hover:border-neutral-600/30
-                           transition-all
-                           opacity-0 animate-[fadeIn_0.3s_ease-out_forwards]"
-                title={S.drawer.title}
-                aria-label={S.drawer.title}
-              >
-                <svg className="w-3.5 h-3.5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                </svg>
-              </button>
+              {(() => {
+                const hasArtifacts =
+                  (state.readyArtifacts?.files?.length ?? 0) > 0 ||
+                  state.bigScreenHistory.length > 0;
+                return (
+                  <button
+                    onClick={toggleDrawer}
+                    className={`relative w-8 h-8 rounded-lg
+                               flex items-center justify-center
+                               transition-all
+                               opacity-0 animate-[fadeIn_0.3s_ease-out_forwards]
+                               ${hasArtifacts
+                                 ? "bg-indigo-500/20 border border-indigo-400/50 shadow-[0_0_12px_rgba(99,102,241,0.5)]"
+                                 : "bg-neutral-800/40 backdrop-blur-sm border border-neutral-700/20 hover:bg-neutral-700/50 hover:border-neutral-600/30"
+                               }`}
+                    title={S.drawer.title}
+                    aria-label={S.drawer.title}
+                  >
+                    {hasArtifacts && (
+                      <span className="absolute inset-0 rounded-lg border-2 border-indigo-400/60
+                                       animate-[spin_3s_linear_infinite]"
+                            style={{
+                              borderImage: "conic-gradient(from 0deg, #818cf8, #6366f1, #4f46e5, transparent 40%) 1",
+                            }}
+                      />
+                    )}
+                    <svg className={`w-3.5 h-3.5 ${hasArtifacts ? "text-indigo-300" : "text-neutral-400"}`}
+                         fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    {hasArtifacts && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full
+                                       bg-indigo-400 animate-pulse shadow-[0_0_6px_rgba(129,140,248,0.8)]" />
+                    )}
+                  </button>
+                );
+              })()}
             </div>
           )}
         </div>
