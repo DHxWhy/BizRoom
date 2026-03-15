@@ -107,8 +107,16 @@ venv/
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Docs (keep locally, never push)
-*.md
+# Deploy artifacts
+*.zip
+backend-deploy*.zip
+
+# E2E test reports (generated, not source)
+E2ETest/reports/
+E2ETest/test-results/
+
+# Superpowers plugin cache
+.superpowers/
 
 # Misc
 *.tmp
