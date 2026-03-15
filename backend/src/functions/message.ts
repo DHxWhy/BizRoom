@@ -102,6 +102,47 @@ export async function message(
         const room = getOrCreateRoom(roomId);
         addMessage(roomId, userMessage);
 
+        // ── Sophia direct call: bypass agents when user addresses Sophia ──
+        const SOPHIA_DIRECT = /소피아|sophia|시각화해|차트.*만들|그래프.*만들|보여줘.*차트|visualize|show.*chart/i;
+        if (SOPHIA_DIRECT.test(userMessage.content)) {
+          // User is talking to Sophia directly — skip agents, execute immediately
+          const hint: VisualHint = { type: "summary", title: userMessage.content.slice(0, 40) };
+          // Detect specific chart type from user message
+          if (/파이|비율|비중|점유율|pie/i.test(userMessage.content)) hint.type = "pie-chart";
+          else if (/막대|bar/i.test(userMessage.content)) hint.type = "bar-chart";
+          else if (/비교|comparison|vs/i.test(userMessage.content)) hint.type = "comparison";
+          else if (/일정|타임라인|timeline|로드맵/i.test(userMessage.content)) hint.type = "timeline";
+          else if (/체크|할일|checklist/i.test(userMessage.content)) hint.type = "checklist";
+
+          controller.enqueue(sseEncode(JSON.stringify({
+            messageId: uuidv4(), role: "sophia", name: "Sophia",
+            delta: `네, 시각화를 바로 생성하겠습니다.`,
+          })));
+
+          try {
+            sophiaAgent.initRoom(roomId);
+            const renderData = await callSophiaVisualInSSE(roomId, hint, context);
+            controller.enqueue(sseEncode(JSON.stringify({
+              messageId: uuidv4(), role: "sophia", name: "Sophia",
+              delta: `${hint.title} 시각화를 빅스크린에 표시했습니다.`,
+            })));
+            controller.enqueue(sseEncode(JSON.stringify({
+              messageId: uuidv4(), role: "sophia", name: "Sophia",
+              delta: `[BIGSCREEN]${JSON.stringify({ visualType: hint.type, title: hint.title, renderData })}`,
+            })));
+          } catch (err) {
+            context.log("Sophia direct visual failed:", err);
+            controller.enqueue(sseEncode(JSON.stringify({
+              messageId: uuidv4(), role: "sophia", name: "Sophia",
+              delta: `시각화 생성 중 오류가 발생했습니다.`,
+            })));
+          }
+
+          controller.enqueue(sseEncode("[DONE]"));
+          controller.close();
+          return;
+        }
+
         // 토픽 분류 및 @멘션 파싱
         const mentions = parseMentions(userMessage.content);
         const { primaryAgent, secondaryAgents } = classifyTopic(userMessage.content);
