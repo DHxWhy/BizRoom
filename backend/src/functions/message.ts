@@ -8,6 +8,7 @@ import {
   getBrandMemory,
 } from "../orchestrator/ContextBroker.js";
 import { invokeAgentStream, getAgentMeta } from "../agents/AgentFactory.js";
+import { MAX_AGENTS_PER_TURN } from "../constants/turnConfig.js";
 import type { AgentRole, Message } from "../models/index.js";
 import { v4 as uuidv4 } from "uuid";
 
@@ -94,60 +95,47 @@ export async function message(
         const mentions = parseMentions(userMessage.content);
         const { primaryAgent, secondaryAgents } = classifyTopic(userMessage.content);
 
-        // 에이전트 응답 순서 결정 (SSE path: limit to 2 agents like VoiceLive)
+        // 에이전트 응답 순서 결정
         const turnOrder = determineAgentOrder(
           userMessage.content,
           mentions,
           primaryAgent,
           secondaryAgents,
-        ).slice(0, 2);
+        ).slice(0, MAX_AGENTS_PER_TURN);
 
-        // ── 병렬 에이전트 호출: 모든 에이전트를 동시에 시작 ──
-        // 각 에이전트의 delta를 수집한 후 에이전트 순서대로 SSE 전송
-        const agentJobs = turnOrder.map((entry) => {
+        // ── 순차 스트리밍: 한 에이전트가 끝나야 다음 에이전트 시작 ──
+        // 실시간 delta 전송으로 사용자가 텍스트 타이핑을 볼 수 있음
+        for (const entry of turnOrder) {
           const messageId = uuidv4();
           const meta = getAgentMeta(entry.role);
           const contextStr = getContextForAgent(roomId, entry.role);
 
-          // Collect all deltas from this agent into a buffer
-          const job = (async () => {
-            const deltas: string[] = [];
-            try {
-              const agentStream = invokeAgentStream(entry.role, userMessage.content, {
-                participants: "Chairman (사용자), Hudson (COO), Amelia (CFO), Yusef (CMO), Kelvin (CTO), Jonas (CDO), Bradley (CLO)",
-                agenda: room.agenda || userMessage.content,
-                history: contextStr,
-                brandMemory: getBrandMemory(roomId),
-              });
-
-              for await (const delta of agentStream) {
-                deltas.push(delta);
-              }
-            } catch (err: unknown) {
-              const errMsg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-              context.log(`Agent ${entry.role} stream failed: ${errMsg}`);
-              deltas.push(`[Error: ${meta.name} 응답 실패 — ${errMsg}]`);
-            }
-            return { messageId, meta, deltas, fullContent: deltas.join("") };
-          })();
-
-          return job;
-        });
-
-        // Wait for ALL agents to complete in parallel
-        const results = await Promise.all(agentJobs);
-
-        // Stream results to client in turn order (agent-by-agent)
-        for (const { messageId, meta, deltas, fullContent } of results) {
-          // Send all deltas for this agent
-          for (const delta of deltas) {
-            const sseData = JSON.stringify({
-              messageId,
-              role: meta.role,
-              name: meta.name,
-              delta,
+          let fullContent = "";
+          try {
+            const agentStream = invokeAgentStream(entry.role, userMessage.content, {
+              participants: "Chairman (사용자), Hudson (COO), Amelia (CFO), Yusef (CMO), Kelvin (CTO), Jonas (CDO), Bradley (CLO)",
+              agenda: room.agenda || userMessage.content,
+              history: contextStr,
+              brandMemory: getBrandMemory(roomId),
             });
-            controller.enqueue(sseEncode(sseData));
+
+            for await (const delta of agentStream) {
+              fullContent += delta;
+              const sseData = JSON.stringify({
+                messageId,
+                role: meta.role,
+                name: meta.name,
+                delta,
+              });
+              controller.enqueue(sseEncode(sseData));
+            }
+          } catch (err: unknown) {
+            const errMsg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+            context.log(`Agent ${entry.role} stream failed: ${errMsg}`);
+            controller.enqueue(sseEncode(JSON.stringify({
+              messageId, role: meta.role, name: meta.name,
+              delta: `[Error: ${meta.name} 응답 실패 — ${errMsg}]`,
+            })));
           }
 
           // Save completed message to context
