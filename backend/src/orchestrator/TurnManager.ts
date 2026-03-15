@@ -251,6 +251,12 @@ export class TurnManager extends EventEmitter {
     }
   }
 
+  /** Get the combined user input for the current turn (used by visual-intent detection) */
+  getCombinedInput(roomId: string): string {
+    const room = this.rooms.get(roomId);
+    return room?.combinedInput ?? "";
+  }
+
   /** Initialize a room explicitly (for tests and external setup) */
   initRoom(roomId: string, chairmanUserId: string): void {
     const room = this.getRoom(roomId);
