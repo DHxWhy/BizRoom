@@ -310,8 +310,11 @@ async function callSophiaVisualInSSE(
   hint: VisualHint,
   context: InvocationContext,
 ): Promise<BigScreenRenderData> {
-  const recentContext = sophiaAgent.getRecentSpeeches(roomId, 5).join("\n");
-  const userContent = `visual_hint: ${JSON.stringify(hint)}\n\n최근 대화:\n${recentContext}\n\ntype="${hint.type}"에 맞는 BigScreenRenderData JSON을 생성하세요.`;
+  // Combine Sophia buffer (agent speeches) + room context for rich grounding
+  const recentSpeeches = sophiaAgent.getRecentSpeeches(roomId, 5).join("\n");
+  const roomContext = getContextForAgent(roomId, "coo" as AgentRole); // use COO's full context as fallback
+  const combinedContext = recentSpeeches || roomContext || "컨텍스트 없음";
+  const userContent = `visual_hint: ${JSON.stringify(hint)}\n\n최근 대화:\n${combinedContext}\n\ntype="${hint.type}"에 맞는 BigScreenRenderData JSON을 생성하세요. items 배열에 반드시 3-7개의 데이터를 포함하세요.`;
 
   // Use fast model for simple visuals, balanced for complex
   const fastTypes = new Set(["summary", "checklist"]);
