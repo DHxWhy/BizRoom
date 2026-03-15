@@ -2,7 +2,7 @@ import { Suspense, useMemo, useRef, useState, useCallback, useEffect, memo } fro
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows, Billboard, Text } from "@react-three/drei";
 import { RPMAgentAvatar } from "./RPMAgentAvatar";
-import { AgentAvatar3D } from "./AgentAvatar3D";
+import { SophiaBlob3D } from "./SophiaBlob3D";
 import { MeetingTable3D } from "./MeetingTable3D";
 import { RoomEnvironment3D } from "./RoomEnvironment3D";
 import { CameraController } from "./CameraController";
@@ -87,14 +87,8 @@ const HUMAN_EXTRA_SEATS: [number, number, number][] = [
   [0.9, 0, 2.1],
 ];
 
-/** Sophia secretary — standing beside the big screen */
-const SOPHIA_CONFIG = {
-  position: [2.0, 0, -6.5] as [number, number, number],
-  rotation: [0, -Math.PI / 4, 0] as [number, number, number],
-  name: "Sophia",
-  role: "Secretary",
-  color: "#F59E0B",
-};
+/** Sophia blob — floating above the center of the round table */
+const SOPHIA_BLOB_POSITION: [number, number, number] = [0, 1.25, 0];
 
 // Memoize static sub-scenes to prevent unnecessary re-renders
 const MemoizedRoom = memo(RoomEnvironment3D);
@@ -399,25 +393,12 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
             );
           })}
 
-          {/* ═══ SOPHIA — standing beside big screen ═══ */}
-          <group position={SOPHIA_CONFIG.position} rotation={SOPHIA_CONFIG.rotation}>
-            <AgentAvatar3D
-              agentName={SOPHIA_CONFIG.name}
-              agentRole={SOPHIA_CONFIG.role.toLowerCase()}
-              position={[0, 0, 0]}
-              rotation={[0, 0, 0]}
-              isSpeaking={false}
-              isThinking={false}
-              color={SOPHIA_CONFIG.color}
-            />
-            <HoloMonitor3D
-              position={[0, 1.8, 0.3]}
-              rotationY={0}
-              agentRole="secretary"
-              agentName="Sophia"
-              color={SOPHIA_CONFIG.color}
-            />
-          </group>
+          {/* ═══ SOPHIA — floating blob beside big screen ═══ */}
+          <SophiaBlob3D
+            position={SOPHIA_BLOB_POSITION}
+            isSpeaking={speakingAgent === "sophia"}
+            isThinking={thinkingSet.has("sophia")}
+          />
 
           {/* ═══ ARTIFACT SCREEN (back wall) ═══ */}
           <ArtifactScreen3D

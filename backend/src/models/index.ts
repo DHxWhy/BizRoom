@@ -1,6 +1,8 @@
 // Re-export shared types for backend usage
 export type {
   AgentRole,
+  SecretaryRole,
+  AllAgentRole,
   SenderType,
   MeetingPhase,
   MeetingMode,

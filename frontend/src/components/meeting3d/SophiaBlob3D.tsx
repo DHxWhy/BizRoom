@@ -1,12 +1,9 @@
 /**
- * SophiaBlob3D — Futuristic AI assistant presence floating above the meeting table.
+ * SophiaBlob3D — AIBlob-style animated gradient globe on a Billboard CircleGeometry.
  *
- * Real 3D shader blob using SphereGeometry + custom ShaderMaterial with:
- * - Vertex: layered sine-wave displacement + breathing scale
- * - Fragment: gradient color blending on world normals, fresnel rim glow,
- *   metallic specular highlight, additive blending for ethereal feel
- *
- * State-reactive: idle (slow morph), speaking (medium), thinking (fast).
+ * Exact port of the AIBlob fragment shader (perlin noise + 4-color gradient
+ * + rim glow + inner caustics) onto an R3F Billboard mesh.
+ * State-reactive animation speed for idle / speaking / thinking.
  */
 
 import { useRef, useMemo, memo } from "react";
@@ -17,110 +14,167 @@ import { S } from "../../constants/strings";
 
 interface SophiaBlob3DProps {
   position: [number, number, number];
-  /** Sophia is generating a visualization */
   isThinking?: boolean;
-  /** Sophia is "speaking" (broadcasting a message) */
   isSpeaking?: boolean;
 }
 
-// ── GLSL Shaders ──
-
 const vertexShader = /* glsl */ `
-  uniform float uTime;
-  uniform float uMorphIntensity;
-  uniform float uBreatheSpeed;
-
-  varying vec3 vNormal;
-  varying vec3 vWorldPosition;
-  varying vec3 vViewDirection;
-
+  varying vec2 vUv;
   void main() {
-    vec3 pos = position;
-
-    // --- Layered sine-wave displacement (3 wave layers) ---
-    float wave1 = sin(pos.x * 2.0 + uTime) * sin(pos.y * 2.0 + uTime * 0.5);
-    float wave2 = sin(pos.y * 3.0 + uTime * 0.7) * sin(pos.z * 2.5 + uTime * 1.1);
-    float wave3 = sin(pos.z * 1.8 + uTime * 1.3) * sin(pos.x * 3.2 + uTime * 0.8);
-
-    float displacement = (wave1 + wave2 * 0.7 + wave3 * 0.5) * 0.15 * uMorphIntensity;
-
-    // Displace along the normal direction
-    pos += normal * displacement;
-
-    // --- Breathing: uniform scale oscillation ---
-    float breathe = 1.0 + sin(uTime * uBreatheSpeed) * 0.08;
-    pos *= breathe;
-
-    // Compute world-space values for fragment shader
-    vec4 worldPos = modelMatrix * vec4(pos, 1.0);
-    vWorldPosition = worldPos.xyz;
-    vNormal = normalize(normalMatrix * normal);
-    vViewDirection = normalize(cameraPosition - worldPos.xyz);
-
-    gl_Position = projectionMatrix * viewMatrix * worldPos;
+    // CircleGeometry uv: (0.5,0.5) at center, 0..1 range
+    // Map to -1.5..1.5 to match original AIBlob coordinate space
+    vUv = (uv * 2.0 - 1.0) * 1.5;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
+// Exact AIBlob fragment shader — only change: use vUv instead of gl_FragCoord
 const fragmentShader = /* glsl */ `
-  uniform float uTime;
-  uniform vec3 uPrimaryColor;
-  uniform vec3 uSecondaryColor;
-  uniform vec3 uAccentColor;
-  uniform vec3 uBaseColor;
-  uniform float uOpacity;
-  uniform float uFresnelPower;
-  uniform float uGlowIntensity;
+  precision mediump float;
 
-  varying vec3 vNormal;
-  varying vec3 vWorldPosition;
-  varying vec3 vViewDirection;
+  uniform float uTime;
+  uniform float uSpeed;
+  uniform float uInnerSpeed;
+  uniform float uGlowIntensity;
+  uniform float uNoiseScale;
+  uniform float uInnerScale;
+  uniform vec3 uColor1;
+  uniform vec3 uColor2;
+  uniform vec3 uColor3;
+  uniform vec3 uColor4;
+
+  varying vec2 vUv;
+
+  #define PI_TWO 6.28318530718
+
+  float rng(vec2 n) {
+    return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+  }
+
+  float perlin(vec2 p) {
+    vec2 ip = floor(p);
+    vec2 u = fract(p);
+    u = u * u * (3.0 - 2.0 * u);
+    float res = mix(
+      mix(rng(ip), rng(ip + vec2(1.0, 0.0)), u.x),
+      mix(rng(ip + vec2(0.0, 1.0)), rng(ip + vec2(1.0, 1.0)), u.x), u.y);
+    return res * res;
+  }
+
+  float fractal(vec2 p, int octaves) {
+    float s = 0.0;
+    float m = 0.0;
+    float a = 0.5;
+    s += a * perlin(p); m += a; a *= 0.5; p *= 2.0;
+    if (octaves >= 2) { s += a * perlin(p); m += a; }
+    return s / m;
+  }
+
+  float brightness(vec3 color) {
+    return dot(color, vec3(0.299, 0.587, 0.114));
+  }
+
+  mat3 rotateX(float angle) {
+    float s = sin(angle), c = cos(angle);
+    return mat3(1,0,0, 0,c,-s, 0,s,c);
+  }
+  mat3 rotateY(float angle) {
+    float s = sin(angle), c = cos(angle);
+    return mat3(c,0,s, 0,1,0, -s,0,c);
+  }
+  mat3 rotateZ(float angle) {
+    float s = sin(angle), c = cos(angle);
+    return mat3(c,-s,0, s,c,0, 0,0,1);
+  }
 
   void main() {
-    vec3 normal = normalize(vNormal);
-    vec3 viewDir = normalize(vViewDirection);
+    vec2 uv = vUv;
+    float t = uTime * uSpeed;
+    float it = uTime * uInnerSpeed; // separate inner wave time
 
-    // --- Gradient color blending based on world normal direction ---
-    // Smooth transitions using smoothstep on normal components
-    float xFactor = smoothstep(-0.5, 0.5, normal.x);
-    float yFactor = smoothstep(-0.3, 0.7, normal.y);
-    float timeFactor = sin(uTime * 0.3) * 0.5 + 0.5;
+    float l = dot(uv, uv);
+    if (l > 2.5) discard;
 
-    // Blend four colors based on normal direction + time
-    vec3 color = mix(uPrimaryColor, uSecondaryColor, xFactor);
-    color = mix(color, uAccentColor, yFactor * 0.6);
-    color = mix(color, uBaseColor, timeFactor * 0.25);
+    float sm = smoothstep(1.04, 0.96, l);
 
-    // --- Fresnel rim glow for ethereal edge effect ---
-    float fresnel = pow(1.0 - max(dot(viewDir, normal), 0.0), uFresnelPower);
-    vec3 fresnelColor = mix(uAccentColor, uSecondaryColor, fresnel);
-    color += fresnelColor * fresnel * uGlowIntensity;
+    float z = sqrt(max(0.0, 1.0 - min(l, 1.0)));
+    vec3 noisePos = normalize(vec3(uv.x, uv.y, z));
 
-    // --- Metallic specular highlight from directional light above ---
-    vec3 lightDir = normalize(vec3(0.3, 1.0, 0.5));
-    vec3 halfVec = normalize(lightDir + viewDir);
-    float specular = pow(max(dot(normal, halfVec), 0.0), 32.0);
-    color += vec3(1.0, 0.95, 0.9) * specular * 0.5;
+    float angleX = sin(t * 0.23) * 1.5 + cos(t * 0.37) * 0.6;
+    float angleY = sin(t * 0.19) * 1.3 + cos(t * 0.41) * 0.7;
+    float angleZ = sin(t * 0.31) * 1.1 + cos(t * 0.29) * 0.5;
 
-    // --- Inner glow: darker center, brighter edges ---
-    float innerGlow = fresnel * 0.3 + 0.7;
-    color *= innerGlow;
+    noisePos = rotateX(angleX) * noisePos;
+    noisePos = rotateY(angleY) * noisePos;
+    noisePos = rotateZ(angleZ) * noisePos;
 
-    // --- Subtle pulsing emission ---
-    float pulse = sin(uTime * 1.5) * 0.05 + 0.05;
-    color += uSecondaryColor * pulse;
+    float d = sm * l * l * l * 2.0;
+    vec3 norm = normalize(vec3(uv.x, uv.y, 0.7 - d));
 
-    // Final opacity: more transparent at center, more opaque at edges
-    float alpha = uOpacity * (0.5 + fresnel * 0.5);
+    float nx = fractal(noisePos.xy * 2.0 * uNoiseScale / 3.0 + it * 0.4 + 25.69, 2);
+    float ny = fractal(noisePos.xy * 2.0 * uNoiseScale / 3.0 + it * 0.4 + 86.31, 2);
+    float n = fractal(noisePos.xy * uNoiseScale + 2.0 * vec2(nx, ny), 2);
+    vec3 col = vec3(n * 0.5 + 0.25);
+    float a = atan(noisePos.y, noisePos.x) / PI_TWO + t * 0.1;
 
-    gl_FragColor = vec4(color, alpha);
+    // 4-color gradient
+    float gradPos = fract(a);
+    vec3 gradientColor;
+    if (gradPos < 0.25) {
+      gradientColor = mix(uColor1, uColor2, gradPos * 4.0);
+    } else if (gradPos < 0.5) {
+      gradientColor = mix(uColor2, uColor3, (gradPos - 0.25) * 4.0);
+    } else if (gradPos < 0.75) {
+      gradientColor = mix(uColor3, uColor4, (gradPos - 0.5) * 4.0);
+    } else {
+      gradientColor = mix(uColor4, uColor1, (gradPos - 0.75) * 4.0);
+    }
+
+    col *= gradientColor;
+    col *= 2.0 * uGlowIntensity * 1.25;
+    vec3 cd = abs(col);
+    vec3 c = col * d;
+
+    float lightDot = max(0.0, dot(norm, vec3(0, 0, -1)));
+    c += (c * 0.5 + vec3(1.0) - brightness(c)) * vec3(pow(lightDot, 5.0) * 3.0);
+
+    float g = 1.5 * smoothstep(0.5, 1.0, fractal(noisePos.xy * uInnerScale / (1.0 + noisePos.z), 1)) * d;
+    c += g * uGlowIntensity;
+
+    float uvLen = length(uv);
+    col = c + col * pow((1.0 - smoothstep(1.0, 0.98, l) - pow(max(0.0, uvLen - 1.0), 0.2)) * 2.0, 4.0);
+
+    float f = fractal(noisePos.xy * 2.0 + it, 2) + 0.1;
+    vec2 innerUV = uv * (f + 0.1) * 0.5 / uInnerScale;
+    float innerL = dot(innerUV, innerUV);
+    vec3 ins = normalize(cd) + 0.1;
+    float ind = 0.2 + pow(smoothstep(0.0, 1.5, sqrt(innerL)) * 48.0, 0.25);
+    ind *= ind * ind * ind;
+    ind = 1.0 / ind;
+    ins *= ind;
+    col += ins * ins * sm * smoothstep(0.7, 1.0, ind) * uGlowIntensity;
+    col += abs(norm) * (1.0 - d) * sm * 0.25;
+
+    float colBrightness = brightness(col);
+    float alpha = sm * pow(colBrightness, 2.5) * 2.0;
+    alpha = clamp(alpha, 0.0, 1.0);
+
+    float edgeFalloff = smoothstep(1.0, 0.95, uvLen);
+    alpha *= edgeFalloff;
+
+    col = pow(col, vec3(0.95));
+
+    if (alpha < 0.01) discard;
+
+    gl_FragColor = vec4(col, alpha);
   }
 `;
 
-// ── Color constants (hex → THREE.Color) ──
-const COLOR_PRIMARY = new THREE.Color("#6366F1"); // indigo
-const COLOR_SECONDARY = new THREE.Color("#F59E0B"); // amber
-const COLOR_ACCENT = new THREE.Color("#A78BFA"); // purple
-const COLOR_BASE = new THREE.Color("#818CF8"); // lighter indigo
+// Microsoft signature 4 colors
+const COLOR1 = new THREE.Vector3(0.949, 0.314, 0.133); // #F25022 Red
+const COLOR2 = new THREE.Vector3(0.498, 0.729, 0.000); // #7FBA00 Green
+const COLOR3 = new THREE.Vector3(0.000, 0.643, 0.937); // #00A4EF Blue
+const COLOR4 = new THREE.Vector3(1.000, 0.725, 0.000); // #FFB900 Yellow
 
 export const SophiaBlob3D = memo(function SophiaBlob3D({
   position,
@@ -128,157 +182,82 @@ export const SophiaBlob3D = memo(function SophiaBlob3D({
   isSpeaking = false,
 }: SophiaBlob3DProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const lightRef = useRef<THREE.PointLight>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
-  const timeRef = useRef(0);
 
-  // Cache base Y from initial position to prevent useFrame override
   const baseY = position[1];
 
-  // State-derived parameters (memoized)
-  const stateParams = useMemo(() => {
-    if (isThinking) {
-      return {
-        morphIntensity: 1.5,
-        breatheSpeed: 3.0,
-        fresnelPower: 2.0,
-        glowIntensity: 1.8,
-        opacity: 0.75,
-        lightTarget: 3.5,
-        morphSpeed: 1.5,
-      };
-    }
-    if (isSpeaking) {
-      return {
-        morphIntensity: 0.8,
-        breatheSpeed: 2.0,
-        fresnelPower: 2.5,
-        glowIntensity: 1.3,
-        opacity: 0.7,
-        lightTarget: 2.5,
-        morphSpeed: 0.8,
-      };
-    }
-    // Idle
-    return {
-      morphIntensity: 0.3,
-      breatheSpeed: 1.0,
-      fresnelPower: 3.0,
-      glowIntensity: 0.8,
-      opacity: 0.6,
-      lightTarget: 1.2,
-      morphSpeed: 0.3,
-    };
+  const speed = useMemo(() => {
+    if (isThinking) return 1.6;
+    if (isSpeaking) return 1.0;
+    return 0.5;
   }, [isThinking, isSpeaking]);
 
-  // Shader uniforms (created once, updated via ref in useFrame)
+  const innerSpeed = useMemo(() => {
+    if (isThinking) return 2.0;
+    if (isSpeaking) return 2.5; // inner waves pulse faster when speaking
+    return 0.5;
+  }, [isThinking, isSpeaking]);
+
+  const glowIntensity = useMemo(() => {
+    if (isThinking) return 1.2;
+    if (isSpeaking) return 1.1;
+    return 0.8;
+  }, [isThinking, isSpeaking]);
+
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uMorphIntensity: { value: stateParams.morphIntensity },
-      uBreatheSpeed: { value: stateParams.breatheSpeed },
-      uPrimaryColor: { value: COLOR_PRIMARY.clone() },
-      uSecondaryColor: { value: COLOR_SECONDARY.clone() },
-      uAccentColor: { value: COLOR_ACCENT.clone() },
-      uBaseColor: { value: COLOR_BASE.clone() },
-      uOpacity: { value: stateParams.opacity },
-      uFresnelPower: { value: stateParams.fresnelPower },
-      uGlowIntensity: { value: stateParams.glowIntensity },
+      uSpeed: { value: speed },
+      uInnerSpeed: { value: innerSpeed },
+      uGlowIntensity: { value: glowIntensity },
+      uNoiseScale: { value: 3.0 },
+      uInnerScale: { value: 1.0 },
+      uColor1: { value: COLOR1.clone() },
+      uColor2: { value: COLOR2.clone() },
+      uColor3: { value: COLOR3.clone() },
+      uColor4: { value: COLOR4.clone() },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [], // uniforms object created once; values updated in useFrame
+    [],
   );
 
   useFrame((_, delta) => {
-    timeRef.current += delta * stateParams.morphSpeed;
-
-    // Float bob (gentle Y oscillation)
     if (groupRef.current) {
       groupRef.current.position.y =
-        baseY + Math.sin(timeRef.current * 0.8) * 0.06;
+        baseY + Math.sin(Date.now() * 0.001 * 0.8) * 0.025;
     }
-
-    // Smoothly interpolate uniform values toward targets
     if (materialRef.current) {
       const u = materialRef.current.uniforms;
+      u.uTime.value += delta;
       const lerp = Math.min(delta * 3, 1);
-
-      u.uTime.value = timeRef.current;
-      u.uMorphIntensity.value +=
-        (stateParams.morphIntensity - u.uMorphIntensity.value) * lerp;
-      u.uBreatheSpeed.value +=
-        (stateParams.breatheSpeed - u.uBreatheSpeed.value) * lerp;
-      u.uOpacity.value +=
-        (stateParams.opacity - u.uOpacity.value) * lerp;
-      u.uFresnelPower.value +=
-        (stateParams.fresnelPower - u.uFresnelPower.value) * lerp;
-      u.uGlowIntensity.value +=
-        (stateParams.glowIntensity - u.uGlowIntensity.value) * lerp;
-    }
-
-    // Point light intensity follows activity
-    if (lightRef.current) {
-      lightRef.current.intensity +=
-        (stateParams.lightTarget - lightRef.current.intensity) * delta * 3;
+      u.uSpeed.value += (speed - u.uSpeed.value) * lerp;
+      u.uInnerSpeed.value += (innerSpeed - u.uInnerSpeed.value) * lerp;
+      u.uGlowIntensity.value += (glowIntensity - u.uGlowIntensity.value) * lerp;
     }
   });
 
   return (
     <group position={position} ref={groupRef}>
-      {/* ═══ 3D Shader Blob ═══ */}
-      <mesh>
-        <sphereGeometry args={[0.25, 64, 64]} />
-        <shaderMaterial
-          ref={materialRef}
-          vertexShader={vertexShader}
-          fragmentShader={fragmentShader}
-          uniforms={uniforms}
-          transparent
-          side={THREE.DoubleSide}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
+      <Billboard>
+        <mesh>
+          <circleGeometry args={[0.14, 64]} />
+          <shaderMaterial
+            ref={materialRef}
+            vertexShader={vertexShader}
+            fragmentShader={fragmentShader}
+            uniforms={uniforms}
+            transparent
+            depthWrite={false}
+            side={THREE.DoubleSide}
+            blending={THREE.NormalBlending}
+          />
+        </mesh>
+      </Billboard>
 
-      {/* Inner core glow — smaller, brighter sphere */}
-      <mesh>
-        <sphereGeometry args={[0.12, 32, 32]} />
-        <meshBasicMaterial
-          color="#F59E0B"
-          transparent
-          opacity={0.15}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Outer halo — larger, very faint sphere */}
-      <mesh>
-        <sphereGeometry args={[0.35, 32, 32]} />
-        <meshBasicMaterial
-          color="#A78BFA"
-          transparent
-          opacity={0.05}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Point light for warm glow on table surface below */}
-      <pointLight
-        ref={lightRef}
-        color="#F59E0B"
-        intensity={1.2}
-        distance={4}
-        decay={2}
-        position={[0, -0.2, 0]}
-      />
-
-      {/* Name label */}
-      <Billboard position={[0, 0.65, 0]}>
+      <Billboard position={[0, 0.22, 0]}>
         <Text
-          fontSize={0.08}
-          color="#F59E0B"
+          fontSize={0.036}
+          color="#00A4EF"
           anchorX="center"
           anchorY="middle"
           fillOpacity={0.7}
@@ -286,11 +265,11 @@ export const SophiaBlob3D = memo(function SophiaBlob3D({
           {S.agents.sophia.name.toUpperCase()}
         </Text>
         <Text
-          fontSize={0.045}
+          fontSize={0.02}
           color="#a0a0b0"
           anchorX="center"
           anchorY="middle"
-          position={[0, -0.08, 0]}
+          position={[0, -0.04, 0]}
           fillOpacity={0.5}
         >
           {S.agents.sophia.role.toUpperCase()}

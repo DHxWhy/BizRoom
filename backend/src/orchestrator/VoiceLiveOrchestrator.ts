@@ -133,6 +133,9 @@ export function wireVoiceLiveForRoom(
         payload: { role, fullText },
       });
 
+      // Sophia voice announcements bypass the C-Suite pipeline entirely
+      if ((role as string) === "sophia") return;
+
       // Sophia background pipeline — parse, buffer, route, visualize
       const parsed = parseStructuredOutput(fullText, role);
 
@@ -298,6 +301,8 @@ function processVisualQueue(roomId: string): void {
         type: "sophiaMessage",
         payload: { text: `${item.hint.title}를 빅스크린에 띄웠습니다` },
       });
+      // Sophia voice announcement — brief TTS
+      voiceLiveManager.triggerSophiaVoice(roomId, `${item.hint.title}를 빅스크린에 띄웠습니다`);
       sophiaAgent.addVisualToHistory(roomId, {
         type: item.hint.type,
         title: item.hint.title,

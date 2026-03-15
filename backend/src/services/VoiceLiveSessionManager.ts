@@ -1,28 +1,38 @@
 // 7-session lifecycle manager for Voice Live API
+// Supports Azure Voice Live (primary) + OpenAI Realtime API (fallback)
 // Ref: Design Spec §7
 
 import { EventEmitter } from "events";
 import WebSocket from "ws";
-import type { AgentRole, ListenerWsEvent, AgentWsEvent } from "../models/index.js";
-import { AGENT_VOICES } from "../constants/agentVoices.js";
+import type { AgentRole, AllAgentRole, ListenerWsEvent, AgentWsEvent } from "../models/index.js";
+import { AGENT_VOICES, SOPHIA_VOICE } from "../constants/agentVoices.js";
 
+// Azure Voice Live (primary)
 const VOICE_LIVE_ENDPOINT = process.env.AZURE_VOICE_LIVE_ENDPOINT || "";
 const VOICE_LIVE_KEY = process.env.AZURE_VOICE_LIVE_KEY || "";
+
+// OpenAI Realtime API (fallback when Azure endpoint is not set)
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const OPENAI_REALTIME_MODEL = process.env.OPENAI_MODEL_REALTIME || "gpt-4o-realtime-preview";
+const OPENAI_REALTIME_URL = `wss://api.openai.com/v1/realtime?model=${OPENAI_REALTIME_MODEL}`;
+
+const USE_AZURE = !!VOICE_LIVE_ENDPOINT;
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
 interface RoomSessions {
   listener: WebSocket | null;
-  agents: Map<AgentRole, WebSocket>;
+  agents: Map<AllAgentRole, WebSocket>;
   heartbeats: Map<string, ReturnType<typeof setInterval>>;
 }
 
 /**
  * Manages Voice Live WebSocket sessions per room.
+ * Auto-selects Azure Voice Live or OpenAI Realtime based on env config.
  *
  * Events emitted:
- *  - "speechStarted"  (roomId, userId)
- *  - "speechStopped"  (roomId, userId)
- *  - "transcript"     (roomId, userId, text)
+ *  - "speechStarted"    (roomId, userId)
+ *  - "speechStopped"    (roomId, userId)
+ *  - "transcript"       (roomId, userId, text)
  *  - "agentAudioDelta"  (roomId, role, audioBase64)
  *  - "agentTextDelta"   (roomId, role, text)
  *  - "agentVisemeDelta" (roomId, role, visemeId, audioOffsetMs)
@@ -30,6 +40,17 @@ interface RoomSessions {
  */
 export class VoiceLiveSessionManager extends EventEmitter {
   private rooms = new Map<string, RoomSessions>();
+
+  constructor() {
+    super();
+    if (USE_AZURE) {
+      console.log("[VoiceLive] Using Azure Voice Live API");
+    } else if (OPENAI_API_KEY) {
+      console.log(`[VoiceLive] Using OpenAI Realtime API (${OPENAI_REALTIME_MODEL})`);
+    } else {
+      console.warn("[VoiceLive] No voice endpoint configured — text-only mode");
+    }
+  }
 
   /** Initialize room — opens Listener session immediately, agents lazily */
   async initializeRoom(
@@ -46,7 +67,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
     this.rooms.set(roomId, sessions);
 
     // Open Listener session immediately (critical path)
-    if (VOICE_LIVE_ENDPOINT) {
+    if (USE_AZURE || OPENAI_API_KEY) {
       try {
         sessions.listener = await this.createListenerSession(
           roomId,
@@ -135,6 +156,35 @@ export class VoiceLiveSessionManager extends EventEmitter {
     );
   }
 
+  /** Trigger Sophia voice announcement — short TTS-only, no turn management */
+  async triggerSophiaVoice(roomId: string, text: string): Promise<void> {
+    const sessions = this.rooms.get(roomId);
+    if (!sessions) return;
+
+    const sophiaKey: AllAgentRole = "sophia";
+    let ws = sessions.agents.get(sophiaKey);
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      try {
+        ws = await this.createSophiaSession(roomId);
+        sessions.agents.set(sophiaKey, ws);
+      } catch (err) {
+        console.error("[VoiceLive] Failed to create Sophia voice session:", err);
+        return;
+      }
+    }
+
+    ws.send(
+      JSON.stringify({
+        type: "response.create",
+        response: {
+          conversation: "none",
+          modalities: ["audio", "text"],
+          instructions: `당신은 Sophia, BizRoom.ai의 AI 비서입니다. 아래 안내를 한국어로 짧고 자연스럽게 말하세요 (1문장, 15자 이내):\n${text}`,
+        },
+      }),
+    );
+  }
+
   /** Cancel current agent response */
   cancelAgentResponse(roomId: string, role: AgentRole): void {
     const sessions = this.rooms.get(roomId);
@@ -144,44 +194,81 @@ export class VoiceLiveSessionManager extends EventEmitter {
     ws.send(JSON.stringify({ type: "response.cancel" }));
   }
 
+  // ── Private: WebSocket Connection ──
+
+  /** Create a WebSocket connection with appropriate auth for Azure or OpenAI */
+  private createWebSocket(): WebSocket {
+    if (USE_AZURE) {
+      return new WebSocket(VOICE_LIVE_ENDPOINT, {
+        headers: { "api-key": VOICE_LIVE_KEY },
+      });
+    }
+    return new WebSocket(OPENAI_REALTIME_URL, {
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "OpenAI-Beta": "realtime=v1",
+      },
+    });
+  }
+
   // ── Private: Session Creation ──
 
   private async createListenerSession(
     roomId: string,
     chairmanUserId: string,
   ): Promise<WebSocket> {
-    const ws = new WebSocket(VOICE_LIVE_ENDPOINT, {
-      headers: { "api-key": VOICE_LIVE_KEY },
-    });
+    const ws = this.createWebSocket();
 
     return new Promise((resolve, reject) => {
       ws.on("open", () => {
-        // Send session.update — Spec §1.2
-        ws.send(
-          JSON.stringify({
-            type: "session.update",
-            session: {
-              turn_detection: {
-                type: "azure_semantic_vad",
-                silence_duration_ms: 500,
-                remove_filler_words: true,
-                languages: ["ko", "en"],
-                create_response: false,
+        if (USE_AZURE) {
+          // Azure Voice Live — full featured
+          ws.send(
+            JSON.stringify({
+              type: "session.update",
+              session: {
+                turn_detection: {
+                  type: "azure_semantic_vad",
+                  silence_duration_ms: 500,
+                  remove_filler_words: true,
+                  languages: ["ko", "en"],
+                  create_response: false,
+                },
+                input_audio_noise_reduction: {
+                  type: "azure_deep_noise_suppression",
+                },
+                input_audio_echo_cancellation: {
+                  type: "server_echo_cancellation",
+                },
+                input_audio_transcription: {
+                  model: "azure-speech",
+                  language: "ko",
+                },
+                modalities: ["text"],
               },
-              input_audio_noise_reduction: {
-                type: "azure_deep_noise_suppression",
+            }),
+          );
+        } else {
+          // OpenAI Realtime API — server_vad + whisper
+          ws.send(
+            JSON.stringify({
+              type: "session.update",
+              session: {
+                turn_detection: {
+                  type: "server_vad",
+                  threshold: 0.5,
+                  prefix_padding_ms: 300,
+                  silence_duration_ms: 500,
+                  create_response: false,
+                },
+                input_audio_transcription: {
+                  model: "whisper-1",
+                },
+                modalities: ["text"],
               },
-              input_audio_echo_cancellation: {
-                type: "server_echo_cancellation",
-              },
-              input_audio_transcription: {
-                model: "azure-speech",
-                language: "ko",
-              },
-              modalities: ["text"],
-            },
-          }),
-        );
+            }),
+          );
+        }
         this.setupHeartbeat(roomId, "listener", ws);
         resolve(ws);
       });
@@ -205,30 +292,43 @@ export class VoiceLiveSessionManager extends EventEmitter {
     role: AgentRole,
   ): Promise<WebSocket> {
     const voiceConfig = AGENT_VOICES[role];
-    const ws = new WebSocket(VOICE_LIVE_ENDPOINT, {
-      headers: { "api-key": VOICE_LIVE_KEY },
-    });
+    const ws = this.createWebSocket();
 
     return new Promise((resolve, reject) => {
       ws.on("open", () => {
-        // Send session.update — Spec §1.3
-        ws.send(
-          JSON.stringify({
-            type: "session.update",
-            session: {
-              instructions: `You are the ${role.toUpperCase()} agent.`,
-              turn_detection: { type: "none" },
-              voice: {
-                name: voiceConfig.voiceName,
-                type: "azure-standard",
-                temperature: voiceConfig.temperature,
+        if (USE_AZURE) {
+          // Azure Voice Live — HD voice + viseme
+          ws.send(
+            JSON.stringify({
+              type: "session.update",
+              session: {
+                instructions: `You are the ${role.toUpperCase()} agent.`,
+                turn_detection: { type: "none" },
+                voice: {
+                  name: voiceConfig.voiceName,
+                  type: "azure-standard",
+                  temperature: voiceConfig.temperature,
+                },
+                modalities: ["audio", "text"],
+                output_audio_timestamp_types: ["word"],
+                animation: { outputs: ["viseme_id"] },
               },
-              modalities: ["audio", "text"],
-              output_audio_timestamp_types: ["word"],
-              animation: { outputs: ["viseme_id"] },
-            },
-          }),
-        );
+            }),
+          );
+        } else {
+          // OpenAI Realtime API — simple voice string
+          ws.send(
+            JSON.stringify({
+              type: "session.update",
+              session: {
+                instructions: `You are the ${role.toUpperCase()} agent.`,
+                turn_detection: null,
+                voice: voiceConfig.openaiVoice,
+                modalities: ["audio", "text"],
+              },
+            }),
+          );
+        }
         this.setupHeartbeat(roomId, role, ws);
         resolve(ws);
       });
@@ -244,6 +344,60 @@ export class VoiceLiveSessionManager extends EventEmitter {
 
       ws.on("error", (err) => reject(err));
       ws.on("close", () => this.handleSessionClose(roomId, role));
+    });
+  }
+
+  /** Sophia-specific voice session — uses alloy voice, broadcasts as "sophia" role */
+  private async createSophiaSession(roomId: string): Promise<WebSocket> {
+    const ws = this.createWebSocket();
+    const sophiaRole: AllAgentRole = "sophia";
+
+    return new Promise((resolve, reject) => {
+      ws.on("open", () => {
+        if (USE_AZURE) {
+          ws.send(
+            JSON.stringify({
+              type: "session.update",
+              session: {
+                instructions: "You are Sophia, a brief AI secretary.",
+                turn_detection: { type: "none" },
+                voice: {
+                  name: SOPHIA_VOICE.voiceName,
+                  type: "azure-standard",
+                  temperature: SOPHIA_VOICE.temperature,
+                },
+                modalities: ["audio", "text"],
+              },
+            }),
+          );
+        } else {
+          ws.send(
+            JSON.stringify({
+              type: "session.update",
+              session: {
+                instructions: "You are Sophia, a brief AI secretary.",
+                turn_detection: null,
+                voice: SOPHIA_VOICE.openaiVoice,
+                modalities: ["audio", "text"],
+              },
+            }),
+          );
+        }
+        this.setupHeartbeat(roomId, "sophia", ws);
+        resolve(ws);
+      });
+
+      ws.on("message", (data) => {
+        try {
+          const event = JSON.parse(data.toString());
+          this.handleAgentEvent(roomId, sophiaRole, event);
+        } catch {
+          /* ignore parse errors */
+        }
+      });
+
+      ws.on("error", (err) => reject(err));
+      ws.on("close", () => this.handleSessionClose(roomId, "sophia"));
     });
   }
 
@@ -280,6 +434,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
         if (event.delta) this.emit("agentTextDelta:" + roomId, roomId, role, event.delta);
         break;
       case "response.animation_viseme.delta":
+        // Azure-only — OpenAI won't send this event
         this.emit("agentVisemeDelta:" + roomId, roomId, role, event.viseme_id, event.audio_offset_ms ?? 0);
         break;
       case "response.done": {
