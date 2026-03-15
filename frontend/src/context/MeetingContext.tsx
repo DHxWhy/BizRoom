@@ -49,8 +49,12 @@ interface MeetingState {
   bigScreenHistory: BigScreenUpdateEvent[];
   /** Index into bigScreenHistory: -1 = auto-follow latest */
   bigScreenIndex: number;
-  /** Per-agent/chairman monitor data */
+  /** Per-agent/chairman monitor data (latest) */
   monitorData: Record<string, MonitorUpdateEvent>;
+  /** Monitor history per agent for Q/E pagination */
+  monitorHistory: Record<string, MonitorUpdateEvent[]>;
+  /** Current page per agent (-1 = latest) */
+  monitorPage: Record<string, number>;
   /** Sophia secretary messages */
   sophiaMessages: SophiaMessageEvent[];
   /** Meeting artifacts ready for download */
@@ -108,6 +112,7 @@ type MeetingAction =
   | { type: "PUSH_BIG_SCREEN"; payload: BigScreenUpdateEvent }
   | { type: "NAV_BIG_SCREEN"; payload: "prev" | "next" }
   | { type: "SET_MONITOR"; payload: MonitorUpdateEvent }
+  | { type: "NAV_MONITOR"; payload: { target: string; dir: "prev" | "next" } }
   | { type: "ADD_SOPHIA_MESSAGE"; payload: SophiaMessageEvent }
   | { type: "SET_READY_ARTIFACTS"; payload: ArtifactsReadyEvent }
   | { type: "SET_THINKING_AGENTS"; payload: { roles: AgentRole[] } }
@@ -136,6 +141,8 @@ const initialState: MeetingState = {
   bigScreenHistory: [],
   bigScreenIndex: -1,
   monitorData: {},
+  monitorHistory: {},
+  monitorPage: {},
   sophiaMessages: [],
   readyArtifacts: null,
   thinkingAgents: [],
@@ -272,6 +279,8 @@ function meetingReducer(state: MeetingState, action: MeetingAction): MeetingStat
         bigScreenHistory: [],
         bigScreenIndex: -1,
         monitorData: {},
+  monitorHistory: {},
+  monitorPage: {},
         sophiaMessages: [],
         readyArtifacts: null,
         thinkingAgents: [],
@@ -308,11 +317,25 @@ function meetingReducer(state: MeetingState, action: MeetingAction): MeetingStat
         action.payload === "prev" ? Math.max(0, current - 1) : Math.min(len - 1, current + 1);
       return { ...state, bigScreenIndex: nextIdx === len - 1 ? -1 : nextIdx };
     }
-    case "SET_MONITOR":
+    case "SET_MONITOR": {
+      const target = action.payload.target;
+      const prevHistory = state.monitorHistory[target] ?? [];
       return {
         ...state,
-        monitorData: { ...state.monitorData, [action.payload.target]: action.payload },
+        monitorData: { ...state.monitorData, [target]: action.payload },
+        monitorHistory: { ...state.monitorHistory, [target]: [...prevHistory, action.payload] },
+        // Auto-follow latest page
+        monitorPage: { ...state.monitorPage, [target]: prevHistory.length },
       };
+    }
+    case "NAV_MONITOR": {
+      const { target: navTarget, dir } = action.payload;
+      const hist = state.monitorHistory[navTarget] ?? [];
+      if (hist.length === 0) return state;
+      const cur = state.monitorPage[navTarget] ?? hist.length - 1;
+      const next = dir === "prev" ? Math.max(0, cur - 1) : Math.min(hist.length - 1, cur + 1);
+      return { ...state, monitorPage: { ...state.monitorPage, [navTarget]: next } };
+    }
     case "ADD_SOPHIA_MESSAGE": {
       const next = [...state.sophiaMessages, action.payload];
       // Also inject the Sophia message into the main chat messages array so it

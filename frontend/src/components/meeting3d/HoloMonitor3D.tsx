@@ -23,6 +23,12 @@ interface HoloMonitorProps {
   isSophiaThinking?: boolean;
   /** Message to show during Sophia processing */
   sophiaStatus?: string;
+  /** Full history of monitor pages for Q/E pagination */
+  monitorHistory?: MonitorUpdateEvent[];
+  /** Current page index in history */
+  monitorPage?: number;
+  /** Callback for Q/E navigation */
+  onMonitorNav?: (dir: "prev" | "next") => void;
 }
 
 /** Render dynamic content based on monitor mode */
@@ -81,15 +87,23 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
   monitorData,
   isSophiaThinking = false,
   sophiaStatus,
+  monitorHistory = [],
+  monitorPage,
+  onMonitorNav,
 }: HoloMonitorProps) {
   const groupRef = useRef<Group>(null);
   const shimmerRef = useRef<THREE.Mesh>(null);
   const contentOpacityRef = useRef(0);
   const baseY = position[1];
 
-  // Fade-in when monitorData arrives
+  // Determine which data to display: history page or latest monitorData
+  const displayData = monitorHistory.length > 0 && monitorPage !== undefined
+    ? monitorHistory[monitorPage]
+    : monitorData;
+
+  // Fade-in when display data changes
   const [prevDataId, setPrevDataId] = useState<string | null>(null);
-  const dataId = monitorData ? JSON.stringify(monitorData.content).slice(0, 50) : null;
+  const dataId = displayData ? JSON.stringify(displayData.content).slice(0, 50) : null;
 
   useEffect(() => {
     if (dataId && dataId !== prevDataId) {
@@ -207,7 +221,6 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
         {/* ─── Dynamic content or default status ─── */}
         <group position={[0, -0.04, 0.004]}>
           {isSophiaThinking ? (
-            /* Sophia processing indicator — shimmer + status text */
             <group>
               <Text fontSize={0.018} color="#58a6ff" anchorX="center" anchorY="middle" position={[0, 0.01, 0]}>
                 {sophiaStatus || "시각화 생성 중..."}
@@ -216,20 +229,23 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
                 Sophia AI
               </Text>
             </group>
-          ) : monitorData ? (
-            /* Rendered content with fade-in (opacity controlled in useFrame) */}
-            renderMonitorContent(monitorData)
+          ) : displayData ? (
+            renderMonitorContent(displayData)
           ) : (
-            <Text
-              fontSize={0.02}
-              color="#667799"
-              anchorX="center"
-              anchorY="middle"
-            >
+            <Text fontSize={0.02} color="#667799" anchorX="center" anchorY="middle">
               {S.monitor.briefingReady}
             </Text>
           )}
         </group>
+
+        {/* ─── Page indicator (Q/E navigation) ─── */}
+        {monitorHistory.length > 1 && (
+          <group position={[0, -MONITOR_H / 2 + 0.015, 0.005]}>
+            <Text fontSize={0.012} color="#667799" anchorX="center" anchorY="middle">
+              {`◀ Q  ${(monitorPage ?? monitorHistory.length - 1) + 1}/${monitorHistory.length}  E ▶`}
+            </Text>
+          </group>
+        )}
 
         {/* ─── Holographic scanlines ─── */}
         {[0, 1, 2, 3].map((i) => (
