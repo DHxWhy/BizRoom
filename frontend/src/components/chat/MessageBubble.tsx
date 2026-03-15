@@ -20,6 +20,18 @@ const AGENT_COLORS: Record<string, string> = {
   coo: "border-l-blue-500",
   cfo: "border-l-emerald-500",
   cmo: "border-l-orange-500",
+  cto: "border-l-cyan-500",
+  cdo: "border-l-pink-500",
+  clo: "border-l-lime-500",
+};
+
+const AGENT_NAME_COLORS: Record<string, string> = {
+  coo: "text-blue-400",
+  cfo: "text-emerald-400",
+  cmo: "text-orange-400",
+  cto: "text-cyan-400",
+  cdo: "text-pink-400",
+  clo: "text-lime-400",
 };
 
 /** Memoized: only re-renders when message object reference changes.
@@ -46,7 +58,7 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
       )}
       <div className={`max-w-[70%] ${isAgent ? "" : "text-right"}`}>
         <div className="flex items-baseline gap-2 mb-0.5">
-          <span className="text-sm font-semibold">{message.senderName}</span>
+          <span className={`text-sm font-semibold ${isAgent ? (AGENT_NAME_COLORS[message.senderRole] ?? "text-neutral-200") : "text-neutral-200"}`}>{message.senderName}</span>
           {isAgent && (
             <span className="text-xs text-neutral-500 uppercase">{message.senderRole}</span>
           )}
