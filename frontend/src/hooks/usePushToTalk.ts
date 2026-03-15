@@ -105,23 +105,32 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
     };
 
     recognition.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
+      // "aborted" is expected when stop() is called — not a real error
+      if (event.error !== "aborted") {
+        console.error("Speech recognition error:", event.error);
+      }
       setStatus("idle");
       isRecordingRef.current = false;
     };
 
     recognition.onend = () => {
-      if (isRecordingRef.current) {
-        setStatus("processing");
-        isRecordingRef.current = false;
+      const wasRecording = isRecordingRef.current;
+      isRecordingRef.current = false;
 
-        // Deliver final transcript to consumer via callback
-        const finalText = transcriptRef.current;
-        if (finalText) {
-          optionsRef.current.onTranscript?.(finalText);
-        }
+      // Deliver transcript whether stopped by user (button release)
+      // or auto-stopped by browser timeout (~60s)
+      const finalText = transcriptRef.current;
+      if (finalText) {
+        setStatus("processing");
+        optionsRef.current.onTranscript?.(finalText);
       }
       setStatus("idle");
+
+      // If browser auto-stopped but user is still holding the button,
+      // the stopRecording() call will be a no-op (recognition already ended)
+      if (wasRecording) {
+        recognitionRef.current = null;
+      }
     };
 
     recognitionRef.current = recognition;
@@ -133,8 +142,13 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
   }, [isSupported]);
 
   const stopRecording = useCallback(() => {
-    if (recognitionRef.current && isRecordingRef.current) {
-      recognitionRef.current.stop();
+    // Safe to call even if recognition already auto-stopped (browser timeout)
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // Already stopped — ignore
+      }
     }
   }, []);
 
