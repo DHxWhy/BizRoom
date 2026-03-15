@@ -9,7 +9,7 @@ import {
   addSearchResult,
 } from "../orchestrator/ContextBroker.js";
 import { invokeAgentStream, getAgentMeta } from "../agents/AgentFactory.js";
-import { MAX_AGENTS_PER_TURN } from "../constants/turnConfig.js";
+import { MAX_AGENTS_PER_TURN, MAX_FOLLOW_UP_ROUNDS } from "../constants/turnConfig.js";
 import { parseStructuredOutput } from "../orchestrator/ResponseParser.js";
 import { sophiaAgent } from "../agents/SophiaAgent.js";
 import { searchBing, formatSearchContext } from "../services/BingSearchService.js";
@@ -112,7 +112,7 @@ export async function message(
         const mentions = parseMentions(userMessage.content);
         const { primaryAgent, secondaryAgents } = classifyTopic(userMessage.content);
 
-        // 에이전트 응답 순서 결정
+        // 1명만 선택 — 나머지는 mention 체인으로 참여
         const turnOrder = determineAgentOrder(
           userMessage.content,
           mentions,
@@ -123,9 +123,18 @@ export async function message(
         // H1: Initialize Sophia room state for buffer tracking in SSE path
         sophiaAgent.initRoom(roomId);
 
-        // ── 순차 스트리밍: 한 에이전트가 끝나야 다음 에이전트 시작 ──
-        // 실시간 delta 전송으로 사용자가 텍스트 타이핑을 볼 수 있음
-        for (const entry of turnOrder) {
+        // Agent turn queue — starts with 1, grows via mention chain
+        const agentQueue = [...turnOrder];
+        const respondedAgents = new Set<string>();
+        let followUpCount = 0;
+
+        // ── 순차 스트리밍 + mention 체인 ──
+        while (agentQueue.length > 0) {
+          const entry = agentQueue.shift()!;
+          if (respondedAgents.has(entry.role)) continue;
+          respondedAgents.add(entry.role);
+        // for-loop body starts here (same indentation as before)
+        {
           const messageId = uuidv4();
           const meta = getAgentMeta(entry.role);
           const contextStr = getContextForAgent(roomId, entry.role);
@@ -187,6 +196,18 @@ export async function message(
               visualHint: parsed.data.visual_hint || null,
               timestamp: Date.now(),
             });
+
+            // ── Mention chain: agent calls another agent → add to queue ──
+            if (parsed.data.mention?.target &&
+                parsed.data.mention.intent === "opinion" &&
+                !respondedAgents.has(parsed.data.mention.target) &&
+                followUpCount < MAX_FOLLOW_UP_ROUNDS) {
+              const validRoles = ["coo", "cfo", "cmo", "cto", "cdo", "clo"];
+              if (validRoles.includes(parsed.data.mention.target)) {
+                agentQueue.push({ role: parsed.data.mention.target as AgentRole, priority: 2 });
+                followUpCount++;
+              }
+            }
 
             // Step 1: Sophia announces what she'll do
             if (hasSophiaReq || hasVisual) {
@@ -286,7 +307,8 @@ export async function message(
               }
             }
           }
-        }
+        } // end while-body block
+        } // end while loop
 
         // ── Sophia Turn: agents discussed, now Sophia acts ──
         // Also check agent responses for sophia keywords
