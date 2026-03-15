@@ -103,39 +103,71 @@ export async function message(
         addMessage(roomId, userMessage);
 
         // ── Sophia direct call: bypass agents when user addresses Sophia ──
-        const SOPHIA_DIRECT = /소피아|sophia|시각화해|차트.*만들|그래프.*만들|보여줘.*차트|visualize|show.*chart/i;
+        const SOPHIA_DIRECT = /소피아|sophia|시각화|차트|그래프|보여\s*줘|정리해\s*줘|웹\s*서칭|웹\s*검색|조사.*해|리서치|visualize|chart|graph|search/i;
         if (SOPHIA_DIRECT.test(userMessage.content)) {
-          // User is talking to Sophia directly — skip agents, execute immediately
-          const hint: VisualHint = { type: "summary", title: userMessage.content.slice(0, 40) };
-          // Detect specific chart type from user message
-          if (/파이|비율|비중|점유율|pie/i.test(userMessage.content)) hint.type = "pie-chart";
-          else if (/막대|bar/i.test(userMessage.content)) hint.type = "bar-chart";
-          else if (/비교|comparison|vs/i.test(userMessage.content)) hint.type = "comparison";
-          else if (/일정|타임라인|timeline|로드맵/i.test(userMessage.content)) hint.type = "timeline";
-          else if (/체크|할일|checklist/i.test(userMessage.content)) hint.type = "checklist";
+          // User wants Sophia to act — skip ALL agents, Sophia handles directly
+          sophiaAgent.initRoom(roomId);
+
+          const wantsSearch = /웹|서칭|검색|조사|리서치|search|research/i.test(userMessage.content);
+          const wantsVisual = /시각화|차트|그래프|보여|정리|visualize|chart|graph/i.test(userMessage.content);
+
+          const tasks: string[] = [];
+          if (wantsSearch) tasks.push("웹 자료 조사");
+          if (wantsVisual) tasks.push("시각화 생성");
+          if (tasks.length === 0) tasks.push("요청 처리");
 
           controller.enqueue(sseEncode(JSON.stringify({
             messageId: uuidv4(), role: "sophia", name: "Sophia",
-            delta: `네, 시각화를 바로 생성하겠습니다.`,
+            delta: `네, ${tasks.join(" 후 ")}을 바로 진행하겠습니다.`,
           })));
 
-          try {
-            sophiaAgent.initRoom(roomId);
-            const renderData = await callSophiaVisualInSSE(roomId, hint, context);
-            controller.enqueue(sseEncode(JSON.stringify({
-              messageId: uuidv4(), role: "sophia", name: "Sophia",
-              delta: `${hint.title} 시각화를 빅스크린에 표시했습니다.`,
-            })));
-            controller.enqueue(sseEncode(JSON.stringify({
-              messageId: uuidv4(), role: "sophia", name: "Sophia",
-              delta: `[BIGSCREEN]${JSON.stringify({ visualType: hint.type, title: hint.title, renderData })}`,
-            })));
-          } catch (err) {
-            context.log("Sophia direct visual failed:", err);
-            controller.enqueue(sseEncode(JSON.stringify({
-              messageId: uuidv4(), role: "sophia", name: "Sophia",
-              delta: `시각화 생성 중 오류가 발생했습니다.`,
-            })));
+          // Step 1: Web search if requested
+          if (wantsSearch) {
+            try {
+              const results = await searchBing(userMessage.content, 5);
+              if (results.length > 0) {
+                addSearchResult(roomId, userMessage.content, results);
+                controller.enqueue(sseEncode(JSON.stringify({
+                  messageId: uuidv4(), role: "sophia", name: "Sophia",
+                  delta: `조사 완료:\n${results.map((r, i) => `${i + 1}. ${r.name}: ${r.snippet}`).join("\n")}`,
+                })));
+              } else {
+                controller.enqueue(sseEncode(JSON.stringify({
+                  messageId: uuidv4(), role: "sophia", name: "Sophia",
+                  delta: `웹 검색 결과가 없습니다. 보유 데이터로 진행합니다.`,
+                })));
+              }
+            } catch (err) {
+              context.log("Sophia direct search failed:", err);
+            }
+          }
+
+          // Step 2: Visualization if requested
+          if (wantsVisual) {
+            const hint: VisualHint = { type: "summary", title: userMessage.content.slice(0, 40) };
+            if (/파이|비율|비중|점유율|pie/i.test(userMessage.content)) hint.type = "pie-chart";
+            else if (/막대|bar/i.test(userMessage.content)) hint.type = "bar-chart";
+            else if (/비교|comparison|vs|우선순위/i.test(userMessage.content)) hint.type = "comparison";
+            else if (/일정|타임라인|timeline|로드맵/i.test(userMessage.content)) hint.type = "timeline";
+            else if (/체크|할일|checklist/i.test(userMessage.content)) hint.type = "checklist";
+
+            try {
+              const renderData = await callSophiaVisualInSSE(roomId, hint, context);
+              controller.enqueue(sseEncode(JSON.stringify({
+                messageId: uuidv4(), role: "sophia", name: "Sophia",
+                delta: `시각화를 빅스크린에 표시했습니다.`,
+              })));
+              controller.enqueue(sseEncode(JSON.stringify({
+                messageId: uuidv4(), role: "sophia", name: "Sophia",
+                delta: `[BIGSCREEN]${JSON.stringify({ visualType: hint.type, title: hint.title, renderData })}`,
+              })));
+            } catch (err) {
+              context.log("Sophia direct visual failed:", err);
+              controller.enqueue(sseEncode(JSON.stringify({
+                messageId: uuidv4(), role: "sophia", name: "Sophia",
+                delta: `시각화 생성에 실패했습니다.`,
+              })));
+            }
           }
 
           controller.enqueue(sseEncode("[DONE]"));
