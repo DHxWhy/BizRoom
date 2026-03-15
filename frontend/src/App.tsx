@@ -201,6 +201,11 @@ function MeetingRoom() {
   const agentAudio = useAgentAudio();
   const viseme = useViseme();
 
+  // Destructure stable callbacks so useCallback deps arrays are flat references
+  // (avoids React Compiler memoization preservation warning)
+  const { feedAudio } = agentAudio;
+  const { feedViseme, getTargetWeights } = viseme;
+
   // Initialize default participants on mount
   useEffect(() => {
     dispatch({ type: "SET_PARTICIPANTS", payload: DEFAULT_PARTICIPANTS });
@@ -349,15 +354,15 @@ function MeetingRoom() {
 
     onAgentVisemeDelta: useCallback(
       (payload: { role: string; visemeId: number }) => {
-        viseme.feedViseme(payload.role as AgentRole, payload.visemeId);
+        feedViseme(payload.role as AgentRole, payload.visemeId);
       },
-      [viseme.feedViseme],
+      [feedViseme],
     ),
     onAgentAudioDelta: useCallback(
       (payload: { role: string; audioBase64: string }) => {
-        agentAudio.feedAudio(payload.role as AgentRole, payload.audioBase64);
+        feedAudio(payload.role as AgentRole, payload.audioBase64);
       },
-      [agentAudio.feedAudio],
+      [feedAudio],
     ),
   });
 
@@ -402,22 +407,21 @@ function MeetingRoom() {
       }
 
       try {
-        if (connectionStatus === "connected") {
-          // VoiceLive mode: route through TurnManager for audio + text
-          await sendMessage(state.roomId, content, state.userName || "Chairman", {
-            isChairman: state.isChairman,
-            mode: state.meetingMode,
-            dmTarget: state.dmTarget,
-          });
-        } else {
-          // Fallback: SSE streaming for text-only mode
-          await sendMessageStream(state.roomId, content, state.userName || "Chairman", {
-            mode: state.meetingMode,
-            dmTarget: state.dmTarget,
-          });
-        }
+        // Always use SSE for reliable text display (works without SignalR)
+        await sendMessageStream(state.roomId, content, state.userName || "Chairman", {
+          mode: state.meetingMode,
+          dmTarget: state.dmTarget,
+        });
+
+        // Also trigger TurnManager for VoiceLive audio (fire-and-forget)
+        // Audio arrives via SignalR if connected; silently skipped if not
+        sendMessage(state.roomId, content, state.userName || "Chairman", {
+          isChairman: state.isChairman,
+          mode: state.meetingMode,
+          dmTarget: state.dmTarget,
+        }).catch(() => {});
       } catch {
-        // Streaming failure: fall back to REST
+        // SSE failure: fall back to REST only
         await sendMessage(state.roomId, content, state.userName || "Chairman");
       }
 
@@ -572,7 +576,7 @@ function MeetingRoom() {
             bigScreenEvent={currentBigScreen}
             bigScreenPage={bigScreenPage}
             onBigScreenNav={handleBigScreenNav}
-            getVisemeWeights={viseme.getTargetWeights}
+            getVisemeWeights={getTargetWeights}
           />
         </Suspense>
       </div>
