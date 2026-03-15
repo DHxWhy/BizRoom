@@ -513,7 +513,10 @@ export class VoiceLiveSessionManager extends EventEmitter {
 
     switch (event.type) {
       case "response.audio.delta":
-        if (event.delta) this.emit("agentAudioDelta:" + roomId, roomId, role, event.delta);
+        if (event.delta) {
+          console.log(`[VoiceLive] Audio delta for ${String(role)}, size: ${event.delta.length}`);
+          this.emit("agentAudioDelta:" + roomId, roomId, role, event.delta);
+        }
         break;
       case "response.audio_transcript.delta":
         if (event.delta) {

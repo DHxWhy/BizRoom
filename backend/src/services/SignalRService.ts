@@ -173,5 +173,8 @@ export function broadcastEvent(roomId: string, event: MeetingBroadcastEvent): vo
 
   // Push to Azure SignalR Service (fire-and-forget — errors logged but not thrown)
   const args = resolveSignalRArguments(event);
+  if (event.type === "agentAudioDelta") {
+    console.log(`[SignalR] Broadcasting agentAudioDelta to hub`);
+  }
   void sendToSignalR(event.type, args);
 }
