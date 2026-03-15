@@ -415,30 +415,18 @@ function MeetingRoom() {
       }
 
       try {
-        if (connectionStatus === "connected") {
-          // SignalR connected → VoiceLive mode (audio + text via SignalR events)
-          await sendMessage(state.roomId, content, state.userName || "Chairman", {
-            isChairman: state.isChairman,
-            mode: state.meetingMode,
-            dmTarget: state.dmTarget,
-          });
-        } else {
-          // SignalR disconnected → SSE fallback (text only, no audio)
-          await sendMessageStream(state.roomId, content, state.userName || "Chairman", {
-            mode: state.meetingMode,
-            dmTarget: state.dmTarget,
-          });
-        }
+        // Always use SSE streaming — full Sophia pipeline (search + visual + mention chain)
+        await sendMessageStream(state.roomId, content, state.userName || "Chairman", {
+          mode: state.meetingMode,
+          dmTarget: state.dmTarget,
+        });
       } catch {
-        // Both failed → try the other path
-        if (connectionStatus === "connected") {
-          await sendMessageStream(state.roomId, content, state.userName || "Chairman", {
-            mode: state.meetingMode,
-            dmTarget: state.dmTarget,
-          });
-        } else {
-          await sendMessage(state.roomId, content, state.userName || "Chairman");
-        }
+        // Fallback to SignalR if SSE fails
+        await sendMessage(state.roomId, content, state.userName || "Chairman", {
+          isChairman: state.isChairman,
+          mode: state.meetingMode,
+          dmTarget: state.dmTarget,
+        });
       }
 
       for (const name of typingNames) {
