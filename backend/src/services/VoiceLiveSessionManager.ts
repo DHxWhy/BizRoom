@@ -12,8 +12,10 @@ const VOICE_LIVE_ENDPOINT = process.env.AZURE_VOICE_LIVE_ENDPOINT || "";
 const VOICE_LIVE_KEY = process.env.AZURE_VOICE_LIVE_KEY || "";
 
 // OpenAI Realtime API (fallback when Azure endpoint is not set)
+// Valid model names as of 2025: gpt-4o-realtime-preview, gpt-4o-realtime-preview-2024-12-17
+// "gpt-realtime-1.5" does NOT exist and will cause a WebSocket connection error.
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
-const OPENAI_REALTIME_MODEL = process.env.OPENAI_MODEL_REALTIME || "gpt-realtime-1.5";
+const OPENAI_REALTIME_MODEL = process.env.OPENAI_MODEL_REALTIME || "gpt-4o-realtime-preview";
 const OPENAI_REALTIME_URL = `wss://api.openai.com/v1/realtime?model=${OPENAI_REALTIME_MODEL}`;
 
 const USE_AZURE = !!VOICE_LIVE_ENDPOINT;
@@ -142,7 +144,9 @@ export class VoiceLiveSessionManager extends EventEmitter {
           `[VoiceLive] Failed to create agent session ${role}:`,
           err,
         );
-        return; // Degrade: skip this agent's voice response
+        // Emit agentDone to prevent TurnManager dead-lock
+        this.emit("agentDone:" + roomId, roomId, role, "");
+        return;
       }
     }
 
@@ -267,7 +271,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
       },
     });
     ws.on("error", (err) => console.error("[VoiceLive] WebSocket error:", err.message));
-    ws.on("close", (code, reason) => console.log("[VoiceLive] WebSocket closed:", code, reason.toString()));
+    ws.on("close", (code, reason) => console.log("[VoiceLive] WebSocket closed:", code, reason?.toString() ?? ""));
     return ws;
   }
 
@@ -353,11 +357,11 @@ export class VoiceLiveSessionManager extends EventEmitter {
   ): Promise<WebSocket> {
     const voiceConfig = AGENT_VOICES[role];
     const ws = this.createWebSocket();
+    let resolved = false;
 
     return new Promise((resolve, reject) => {
       ws.on("open", () => {
         if (USE_AZURE) {
-          // Azure Voice Live — HD voice + viseme
           ws.send(
             JSON.stringify({
               type: "session.update",
@@ -376,7 +380,6 @@ export class VoiceLiveSessionManager extends EventEmitter {
             }),
           );
         } else {
-          // OpenAI Realtime API — simple voice string
           ws.send(
             JSON.stringify({
               type: "session.update",
@@ -390,19 +393,36 @@ export class VoiceLiveSessionManager extends EventEmitter {
           );
         }
         this.setupHeartbeat(roomId, role, ws);
-        resolve(ws);
+        // Fallback: resolve after 2s if session.updated never arrives
+        setTimeout(() => { if (!resolved) { resolved = true; resolve(ws); } }, 2000);
       });
 
       ws.on("message", (data) => {
         try {
           const event = JSON.parse(data.toString());
+          // Wait for session.updated before resolving — prevents race condition
+          // where response.create is sent before session config is applied
+          if (event.type === "session.updated" && !resolved) {
+            resolved = true;
+            console.log(`[VoiceLive] Agent ${role} session configured`);
+            resolve(ws);
+          }
+          // Handle error events from OpenAI
+          if (event.type === "error") {
+            console.error(`[VoiceLive] Agent ${role} error:`, event.error);
+            if (!resolved) { resolved = true; reject(new Error(event.error?.message || "session error")); }
+            // Emit agentDone to prevent TurnManager dead-lock
+            this.emit("agentDone:" + roomId, roomId, role, "");
+          }
           this.handleAgentEvent(roomId, role, event);
         } catch {
           /* ignore parse errors */
         }
       });
 
-      ws.on("error", (err) => reject(err));
+      ws.on("error", (err) => {
+        if (!resolved) { resolved = true; reject(err); }
+      });
       ws.on("close", () => this.handleSessionClose(roomId, role));
     });
   }
