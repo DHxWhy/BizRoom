@@ -12,7 +12,14 @@ import { MAX_AGENTS_PER_TURN } from "../constants/turnConfig.js";
 import { parseStructuredOutput } from "../orchestrator/ResponseParser.js";
 import { sophiaAgent } from "../agents/SophiaAgent.js";
 import { searchBing, formatSearchContext } from "../services/BingSearchService.js";
-import type { AgentRole, Message } from "../models/index.js";
+import {
+  getModelForTask,
+  getAnthropicClient,
+  getOpenAIClient as getOpenAIClientFromRouter,
+  getFoundryClient,
+} from "../services/ModelRouter.js";
+import { SOPHIA_VISUAL_SYSTEM_PROMPT } from "../agents/prompts/sophia.js";
+import type { AgentRole, Message, VisualHint, BigScreenRenderData } from "../models/index.js";
 import { v4 as uuidv4 } from "uuid";
 
 // Azure Functions v4: HTTP 스트리밍 활성화
@@ -156,44 +163,70 @@ export async function message(
             };
             addMessage(roomId, msg);
 
-            // Process sophia_request (search/analyze) in SSE path
-            if (parsed.data.sophia_request) {
-              const req = parsed.data.sophia_request;
-              if (req.type === "search") {
-                try {
-                  const results = await searchBing(req.query, 3);
-                  if (results.length > 0) {
-                    const searchContext = formatSearchContext(results);
-                    addMessage(roomId, {
-                      id: uuidv4(),
-                      roomId,
-                      senderId: "sophia",
-                      senderType: "agent",
-                      senderName: "Sophia",
-                      senderRole: "sophia" as AgentRole,
-                      content: `[검색 완료] ${req.query}\n${searchContext}`,
-                      timestamp: new Date().toISOString(),
-                    });
-                    // Stream Sophia search result to client
-                    const sophiaId = uuidv4();
-                    controller.enqueue(sseEncode(JSON.stringify({
-                      messageId: sophiaId,
-                      role: "sophia",
-                      name: "Sophia",
-                      delta: `검색 완료: ${req.query}\n${results.map((r, i) => `${i + 1}. ${r.name}: ${r.snippet}`).join("\n")}`,
-                    })));
-                  }
-                } catch (err) {
-                  context.log("Sophia search failed:", err);
+            // ── Sophia task processing in SSE path ──
+            const hasSearch = parsed.data.sophia_request?.type === "search";
+            const hasVisual = !!parsed.data.visual_hint;
+
+            // Step 1: Sophia announces what she'll do
+            if (hasSearch || hasVisual) {
+              const tasks: string[] = [];
+              if (hasSearch) tasks.push("웹 자료 조사");
+              if (hasVisual) tasks.push("시각화 생성");
+              const sophiaAnnounce = uuidv4();
+              controller.enqueue(sseEncode(JSON.stringify({
+                messageId: sophiaAnnounce, role: "sophia", name: "Sophia",
+                delta: `${tasks.join(" 후 ")}을 진행하겠습니다.`,
+              })));
+            }
+
+            // Step 2: Web search (if requested)
+            if (hasSearch) {
+              const req = parsed.data.sophia_request!;
+              try {
+                const results = await searchBing(req.query, 3);
+                if (results.length > 0) {
+                  const searchContext = formatSearchContext(results);
+                  addMessage(roomId, {
+                    id: uuidv4(), roomId,
+                    senderId: "sophia", senderType: "agent",
+                    senderName: "Sophia", senderRole: "sophia" as AgentRole,
+                    content: `[검색 완료] ${req.query}\n${searchContext}`,
+                    timestamp: new Date().toISOString(),
+                  });
+                  const sophiaSearchId = uuidv4();
+                  controller.enqueue(sseEncode(JSON.stringify({
+                    messageId: sophiaSearchId, role: "sophia", name: "Sophia",
+                    delta: `조사 완료: ${req.query}\n${results.map((r, i) => `${i + 1}. ${r.name}: ${r.snippet}`).join("\n")}`,
+                  })));
                 }
+              } catch (err) {
+                context.log("Sophia search failed:", err);
               }
             }
 
-            // Process visual_hint in SSE path
-            if (parsed.data.visual_hint) {
-              sophiaAgent.initRoom(roomId);
-              sophiaAgent.enqueueVisual(roomId, parsed.data.visual_hint);
-              // Visual processing happens async — BigScreen update via event
+            // Step 3: Visual generation (if requested)
+            if (hasVisual) {
+              const hint = parsed.data.visual_hint!;
+              try {
+                const renderData = await callSophiaVisualInSSE(roomId, hint, context);
+                // Stream the visual result notification
+                const sophiaVisId = uuidv4();
+                controller.enqueue(sseEncode(JSON.stringify({
+                  messageId: sophiaVisId, role: "sophia", name: "Sophia",
+                  delta: `${hint.title} 시각화를 빅스크린에 표시했습니다.`,
+                })));
+                // Send bigScreenUpdate as SSE event for frontend
+                controller.enqueue(sseEncode(JSON.stringify({
+                  messageId: uuidv4(), role: "sophia", name: "Sophia",
+                  delta: `[BIGSCREEN]${JSON.stringify({ visualType: hint.type, title: hint.title, renderData })}`,
+                })));
+              } catch (err) {
+                context.log("Sophia visual generation failed:", err);
+                controller.enqueue(sseEncode(JSON.stringify({
+                  messageId: uuidv4(), role: "sophia", name: "Sophia",
+                  delta: `시각화 생성에 실패했습니다. 다시 시도해 주세요.`,
+                })));
+              }
             }
           }
         }
@@ -218,6 +251,55 @@ export async function message(
     },
     body: stream,
   };
+}
+
+/** Generate BigScreenRenderData from visual hint — SSE path version */
+async function callSophiaVisualInSSE(
+  roomId: string,
+  hint: VisualHint,
+  context: InvocationContext,
+): Promise<BigScreenRenderData> {
+  const recentContext = sophiaAgent.getRecentSpeeches(roomId, 5).join("\n");
+  const userContent = `visual_hint: ${JSON.stringify(hint)}\n\n최근 대화:\n${recentContext}\n\ntype="${hint.type}"에 맞는 BigScreenRenderData JSON을 생성하세요.`;
+
+  // Use fast model for simple visuals, balanced for complex
+  const fastTypes = new Set(["summary", "checklist"]);
+  const taskType = fastTypes.has(hint.type) ? "visual-gen-fast" as const : "visual-gen" as const;
+  const selection = getModelForTask(taskType);
+
+  let content: string;
+
+  if (selection.provider === "anthropic") {
+    const client = getAnthropicClient();
+    const response = await client.messages.create({
+      model: selection.model,
+      max_tokens: selection.maxTokens,
+      temperature: selection.temperature,
+      system: SOPHIA_VISUAL_SYSTEM_PROMPT + "\n\nRespond with valid JSON only.",
+      messages: [{ role: "user", content: userContent }],
+    });
+    const block = response.content[0];
+    content = block.type === "text" ? block.text : "{}";
+  } else {
+    const client =
+      selection.provider === "foundry" ? getFoundryClient() : getOpenAIClientFromRouter();
+    const response = await client.chat.completions.create({
+      model: selection.model,
+      temperature: selection.temperature,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: SOPHIA_VISUAL_SYSTEM_PROMPT },
+        { role: "user", content: userContent },
+      ],
+    });
+    content = response.choices[0]?.message?.content ?? "{}";
+  }
+
+  context.log(`[Sophia Visual] Generated for "${hint.title}" via ${selection.provider}/${selection.model}`);
+
+  const parsed = JSON.parse(content) as Record<string, unknown>;
+  if (typeof parsed.type !== "string") parsed.type = hint.type;
+  return parsed as unknown as BigScreenRenderData;
 }
 
 app.http("message", {
