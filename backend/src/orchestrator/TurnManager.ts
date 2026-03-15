@@ -225,9 +225,12 @@ export class TurnManager extends EventEmitter {
     };
     addMessage(roomId, agentMessage);
 
-    // HARD STOP: max 2 agents per turn, then return to user
-    if (room.agentResponseCount >= MAX_AGENTS_PER_TURN) {
-      room.agentQueue = []; // Clear any remaining queue
+    // HARD STOP for initial agents: limit the first batch from TopicClassifier.
+    // Only apply when still in the initial round (followUpRound === 0) so that
+    // mention-routed follow-up agents (added by handleMentionRouting before
+    // onAgentDone is called) are NOT cleared. Follow-up agents are instead
+    // bounded by MAX_FOLLOW_UP_ROUNDS below.
+    if (room.agentResponseCount >= MAX_AGENTS_PER_TURN && room.followUpRound === 0 && room.agentQueue.length === 0) {
       room.activeAgent = null;
       this.emit("agentsDone:" + roomId, roomId);
       if (room.inputBuffer.length > 0) {

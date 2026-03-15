@@ -87,6 +87,11 @@ export function useAgentAudio(): UseAgentAudioReturn {
       const float32 = base64ToPcm16Float32(audioBase64);
       console.log(`[AgentAudio] decoded to ${float32.length} float32 samples, queue size: ${queueRef.current.length}`);
       queueRef.current.push({ role, data: float32 });
+      // Cap queue to prevent unbounded memory growth (drop oldest chunks)
+      if (queueRef.current.length > 20) {
+        queueRef.current.splice(0, queueRef.current.length - 10);
+        console.warn(`[AgentAudio] Queue exceeded 20 — trimmed to latest 10 chunks`);
+      }
       playNext();
     },
     [playNext],

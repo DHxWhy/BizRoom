@@ -323,13 +323,77 @@ export function wireVoiceLiveForRoom(
     },
   );
 
-  // Reset visual-intent flag when all agents finish responding for this turn
+  // When all agents finish responding for this turn:
+  // 1. Reset visual-intent flag
+  // 2. Sophia keyword detection — trigger search/visual if user's original message
+  //    contains Sophia-related keywords (mirrors SSE path Sophia turn logic)
   addRoomListener(
     roomId,
     turnManager,
     "agentsDone:" + roomId,
-    (_rid: string) => {
+    async (_rid: string) => {
       visualIntentChecked.delete(roomId);
+
+      // Sophia keyword detection (same as SSE path)
+      const userInput = turnManager.getCombinedInput(roomId);
+      const SOPHIA_KEYWORDS = /시각화|차트|그래프|보여|정리|웹서칭|웹검색|조사|리서치/i;
+      if (!SOPHIA_KEYWORDS.test(userInput)) return;
+
+      const wantsSearch = /웹|서칭|검색|조사|리서치|search|research/i.test(userInput);
+      const wantsVisual = /시각화|차트|그래프|보여|정리|visualize|chart|graph/i.test(userInput);
+
+      if (!wantsSearch && !wantsVisual) return;
+
+      // Announce Sophia activity
+      const tasks: string[] = [];
+      if (wantsSearch) tasks.push("웹 자료 조사");
+      if (wantsVisual) tasks.push("시각화 생성");
+      if (tasks.length === 0) tasks.push("자료 정리");
+
+      broadcastEvent(roomId, {
+        type: "sophiaMessage",
+        payload: { text: `${tasks.join(" 후 ")}을 진행하겠습니다.` },
+      });
+      voiceLiveManager.triggerSophiaVoice(roomId, `${tasks.join(" 후 ")}을 진행하겠습니다.`);
+
+      // Search
+      if (wantsSearch) {
+        try {
+          // Strip user name prefixes to extract the core query
+          const searchQuery = userInput.replace(/\[.*?\]:\s*/g, "").trim() || userInput;
+          const results = await searchBing(searchQuery, 5);
+          if (results.length > 0) {
+            addSearchResult(roomId, searchQuery, results);
+            broadcastEvent(roomId, {
+              type: "monitorUpdate",
+              payload: {
+                target: "chairman",
+                mode: "searchResults",
+                content: {
+                  type: "searchResults",
+                  query: searchQuery,
+                  requestedBy: "user",
+                  results: results.map((r) => ({ name: r.name, snippet: r.snippet, url: r.url })),
+                },
+              },
+            });
+            broadcastEvent(roomId, {
+              type: "sophiaMessage",
+              payload: { text: `조사 완료: ${results.length}건의 결과를 찾았습니다.` },
+            });
+            voiceLiveManager.triggerSophiaVoice(roomId, `조사 완료했습니다. ${results.length}건의 결과를 찾았습니다.`);
+          }
+        } catch (err) {
+          console.error("[Sophia] agentsDone search failed:", err);
+        }
+      }
+
+      // Visualize
+      if (wantsVisual) {
+        const hint = detectVisualIntent(userInput) ?? { type: "summary" as const, title: userInput.replace(/\[.*?\]:\s*/g, "").slice(0, 40) || "요약" };
+        sophiaAgent.enqueueVisual(roomId, hint);
+        processVisualQueue(roomId);
+      }
     },
   );
 
