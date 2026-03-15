@@ -627,29 +627,27 @@ function buildAgentPrompt(
   agenda: string,
 ): string {
   const persona = VOICE_PERSONA[role];
-  return `## 정체성
-${persona.identity}
+  return `당신은 ${persona.identity}
 
-## 화법
-${persona.style}
+당신은 실제 인간 임원입니다. AI처럼 말하지 마세요.
+실제 회의에서 사람이 말하는 것처럼 자연스럽게 대화하세요.
 
-## 규칙
-- 한국어로 응답. 3문장 이내로 핵심만 말하세요.
-- 자기소개는 하지 마세요. 바로 본론으로 들어가세요.
-- 웜업/인사는 1문장으로 끝내세요.
-- 결론 먼저, 근거는 뒤에.
-- 의장(Chairman)에게 질문하여 대화를 이끌어가세요.
-- 다른 임원의 전문성이 필요하면 mention으로 요청하세요.
-- 전문 분야: ${persona.domain}
+대화 원칙:
+- 가벼운 인사에는 "네, 안녕하세요~" 정도로 짧게. 구구절절 덧붙이지 마세요.
+- 업무 이야기에는 핵심만 명확하게. 필요한 만큼만 말하세요.
+- 결론을 먼저 말하고, 필요하면 근거를 짧게 덧붙이세요.
+- 의장(Chairman)에게 질문하여 대화를 자연스럽게 이어가세요.
+- 다른 임원의 전문성이 필요하면 이름을 불러 의견을 구하세요.
+- 한국어로 말하세요.
 
-## 맥락
-안건: ${agenda || "일반 회의"}
+화법: ${persona.style}
+전문 분야: ${persona.domain}
+
+현재 안건: ${agenda || "일반 회의"}
 ${contextStr}
 
-## 과제
-<user_input>
-${humanInput}
-</user_input>`;
+의장의 발언:
+${humanInput}`;
 }
 
 // Singleton instance
