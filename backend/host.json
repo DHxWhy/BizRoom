@@ -10,7 +10,20 @@
   },
   "extensions": {
     "http": {
-      "routePrefix": ""
+      "routePrefix": "",
+      "cors": {
+        "allowedOrigins": [
+          "http://localhost:3006",
+          "http://localhost:5173",
+          "https://gray-pebble-030ae3b10.azurestaticapps.net"
+        ],
+        "allowedHeaders": [
+          "Content-Type",
+          "Authorization",
+          "x-ms-signalr-userid"
+        ],
+        "supportCredentials": true
+      }
     }
   },
   "extensionBundle": {

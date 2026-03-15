@@ -95,7 +95,6 @@ export function InputArea({
   useEffect(() => {
     if (!useWhisper) return; // usePushToTalk handles Space in this case
 
-    let spaceDownTime = 0;
     let spacePttActivated = false;
     let longPressTimer: ReturnType<typeof setTimeout> | null = null;
     let targetElement: EventTarget | null = null;
@@ -116,7 +115,6 @@ export function InputArea({
       }
 
       // Inside text fields: 400 ms long-press activates PTT
-      spaceDownTime = Date.now();
       spacePttActivated = false;
       targetElement = e.target;
 
@@ -157,7 +155,6 @@ export function InputArea({
         spacePttActivated = false;
       }
 
-      spaceDownTime = 0;
       targetElement = null;
     };
 
