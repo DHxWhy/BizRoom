@@ -24,7 +24,7 @@ export const BRAND_PRESETS: Record<string, { label: string; data: BrandMemorySet
       ],
       targetCustomer: "1인 창업자, 마이크로 기업 대표, 프리랜서",
       techStack:
-        "Azure Functions, Azure OpenAI (GPT-4o), Azure SignalR, React Three Fiber, Microsoft Graph API, Azure AI Speech",
+        "Azure Functions, OpenAI GPT Realtime 1.5 (음성), Whisper-1 (STT), Anthropic Claude (텍스트), Azure SignalR, React Three Fiber, Microsoft Graph API",
       revenueModel: "월 구독 SaaS",
       pricing: [
         { name: "Free", price: "무료", features: "월 3회 회의, 기본 요약" },
