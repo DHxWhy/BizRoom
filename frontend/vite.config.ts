@@ -13,9 +13,14 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          three: ["three"],
-          "r3f": ["@react-three/fiber", "@react-three/drei"],
+        // Vite 8 (Rolldown) requires manualChunks to be a function, not an object
+        manualChunks(id: string) {
+          if (id.includes("node_modules/three/")) return "three";
+          if (
+            id.includes("node_modules/@react-three/fiber/") ||
+            id.includes("node_modules/@react-three/drei/")
+          )
+            return "r3f";
         },
       },
     },

@@ -155,6 +155,7 @@ function ThinkingDots() {
 }
 
 /** Preload all avatar models */
+// eslint-disable-next-line react-refresh/only-export-components
 export function preloadAvatarModels() {
   getUniqueModelUrls().forEach((url) => useGLTF.preload(url));
 }

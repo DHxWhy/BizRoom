@@ -1,4 +1,4 @@
-import { useRef, useMemo, memo } from "react";
+import { useRef, memo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text, Billboard } from "@react-three/drei";
 import { MathUtils, Vector3 } from "three";
@@ -96,6 +96,20 @@ const MAX_HEAD_PITCH = 0.1;
 const _tempWorldPos = new Vector3();
 const _tempTargetDir = new Vector3();
 
+/** Create random phase offsets at module scope — avoids impure Math.random()
+ *  calls inside component render detected by the React Compiler. Each avatar
+ *  instance gets a unique set computed when the module first loads. */
+function makeOffsets() {
+  return {
+    breathe: Math.random() * Math.PI * 2,
+    sway: Math.random() * Math.PI * 2,
+    blink: Math.random() * 5,
+    headBob: Math.random() * Math.PI * 2,
+    idleHand: Math.random() * Math.PI * 2,
+    weightShift: Math.random() * Math.PI * 2,
+  };
+}
+
 export const AgentAvatar3D = memo(function AgentAvatar3D({
   agentRole,
   agentName,
@@ -123,14 +137,9 @@ export const AgentAvatar3D = memo(function AgentAvatar3D({
     headYaw: 0, headPitch: 0,
   });
 
-  const offsets = useMemo(() => ({
-    breathe: Math.random() * Math.PI * 2,
-    sway: Math.random() * Math.PI * 2,
-    blink: Math.random() * 5,
-    headBob: Math.random() * Math.PI * 2,
-    idleHand: Math.random() * Math.PI * 2,
-    weightShift: Math.random() * Math.PI * 2,
-  }), []);
+  // Random phase offsets — created once via module-scope factory so the
+  // React Compiler does not see Math.random() as an impure render call.
+  const offsets = useRef(makeOffsets()).current;
 
   const skinColor = SKIN_TONES[agentRole] ?? "#e0b090";
   const hairColor = HAIR_COLORS[agentRole] ?? "#3a2a1a";
