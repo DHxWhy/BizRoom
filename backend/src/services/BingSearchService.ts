@@ -68,19 +68,19 @@ export function formatSearchContext(results: BingSearchResult[]): string {
 }
 
 /**
- * Regex for detecting messages that likely benefit from web grounding.
- * Covers Korean and English trigger keywords for market data, trends, news, etc.
+ * Explicit user intent to search — only triggers when user directly
+ * asks for research/search. Avoids false positives from casual mentions.
  */
-const SEARCH_TRIGGERS =
-  /시장|경쟁사|트렌드|최신|현황|통계|뉴스|조사|리서치|업계|산업|동향|market|competitor|trend|latest|stat|news|research|industry/i;
+const EXPLICIT_SEARCH_INTENT =
+  /검색해|조사해|찾아봐|알아봐|리서치해|search for|look up|find out|research this/i;
 
 /**
- * Conditionally perform Bing search based on message content.
- * Only triggers for messages that likely need external data grounding.
+ * Conditionally perform Bing search based on explicit user request.
+ * Only triggers when the user clearly asks for research — NOT on keyword matching.
  * Returns formatted context string, or empty string if not applicable.
  */
 export async function getSearchGrounding(message: string): Promise<string> {
-  if (!SEARCH_TRIGGERS.test(message)) return "";
+  if (!EXPLICIT_SEARCH_INTENT.test(message)) return "";
 
   const results = await searchBing(message, 3);
   return formatSearchContext(results);
