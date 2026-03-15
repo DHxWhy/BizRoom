@@ -94,13 +94,13 @@ export async function message(
         const mentions = parseMentions(userMessage.content);
         const { primaryAgent, secondaryAgents } = classifyTopic(userMessage.content);
 
-        // 에이전트 응답 순서 결정
+        // 에이전트 응답 순서 결정 (SSE path: limit to 2 agents like VoiceLive)
         const turnOrder = determineAgentOrder(
           userMessage.content,
           mentions,
           primaryAgent,
           secondaryAgents,
-        );
+        ).slice(0, 2);
 
         // ── 병렬 에이전트 호출: 모든 에이전트를 동시에 시작 ──
         // 각 에이전트의 delta를 수집한 후 에이전트 순서대로 SSE 전송
