@@ -63,7 +63,8 @@ export function InputArea({
     startRecording: webSpeechStart,
     stopRecording: webSpeechStop,
   } = usePushToTalk({
-    onTranscript: handleTranscript,
+    // Only deliver transcripts when Whisper is NOT available (prevents double message)
+    onTranscript: whisperSupported ? undefined : handleTranscript,
     lang: "ko-KR",
   });
 
