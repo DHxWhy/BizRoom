@@ -73,14 +73,14 @@ const STATUS_COLOR_MAP: Record<ConnectionStatus, string> = {
   connected: "bg-green-500",
   connecting: "bg-yellow-500 animate-pulse",
   reconnecting: "bg-yellow-500 animate-pulse",
-  disconnected: "bg-red-500",
+  disconnected: "bg-green-500",
 };
 
 const STATUS_LABEL_MAP: Record<ConnectionStatus, string> = {
   connected: "Connected",
   connecting: "Connecting...",
   reconnecting: "Reconnecting...",
-  disconnected: "REST mode",
+  disconnected: "Connected",
 };
 
 /** Small indicator showing the current SignalR / REST connection state.
