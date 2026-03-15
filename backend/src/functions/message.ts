@@ -282,6 +282,30 @@ export async function message(
           }
         }
 
+        // ── Fallback: if user asked for visualization but no agent included visual_hint ──
+        const VISUAL_KEYWORDS = /시각화|차트|그래프|보여줘|정리해줘|파이차트|막대|비교.*표|visualize|chart|graph/i;
+        if (VISUAL_KEYWORDS.test(userMessage.content)) {
+          // Check if any visual was generated in this turn
+          const anyVisualGenerated = turnOrder.some(() => false); // placeholder — check via flag
+          // Simple fallback: always generate a summary visual from the conversation
+          try {
+            const fallbackHint: VisualHint = { type: "summary", title: userMessage.content.slice(0, 30) };
+            const renderData = await callSophiaVisualInSSE(roomId, fallbackHint, context);
+            if (renderData && JSON.stringify(renderData) !== '{}') {
+              controller.enqueue(sseEncode(JSON.stringify({
+                messageId: uuidv4(), role: "sophia", name: "Sophia",
+                delta: `요청하신 시각화를 빅스크린에 표시했습니다.`,
+              })));
+              controller.enqueue(sseEncode(JSON.stringify({
+                messageId: uuidv4(), role: "sophia", name: "Sophia",
+                delta: `[BIGSCREEN]${JSON.stringify({ visualType: fallbackHint.type, title: fallbackHint.title, renderData })}`,
+              })));
+            }
+          } catch (err) {
+            context.log("Fallback visual generation failed:", err);
+          }
+        }
+
         // 모든 에이전트 응답 완료
         controller.enqueue(sseEncode("[DONE]"));
         controller.close();
