@@ -18,6 +18,7 @@ import {
   type ModelSelection,
 } from "../services/ModelRouter.js";
 import { buildBrandMemoryPrompt } from "./prompts/brandMemory.js";
+import { getSearchGrounding } from "../services/BingSearchService.js";
 
 export interface AgentResponse {
   role: AgentRole;
@@ -151,7 +152,11 @@ export async function invokeAgent(
   }
 
   const selection = getModelForTask(task);
-  const systemPrompt = buildSystemPrompt(role, context);
+
+  // Bing Search grounding: enrich system prompt with web results when relevant
+  const searchContext = await getSearchGrounding(userMessage);
+  const systemPrompt = buildSystemPrompt(role, context) + searchContext;
+
   const startTime = Date.now();
 
   const content =
@@ -204,7 +209,10 @@ export async function* invokeAgentStream(
   }
 
   const selection = getModelForTask(task);
-  const systemPrompt = buildSystemPrompt(role, context);
+
+  // Bing Search grounding: enrich system prompt with web results when relevant
+  const searchContext = await getSearchGrounding(userMessage);
+  const systemPrompt = buildSystemPrompt(role, context) + searchContext;
 
   if (selection.provider === "anthropic") {
     yield* streamAnthropic(systemPrompt, userMessage, selection);
