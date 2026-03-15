@@ -13,8 +13,8 @@ export const INTER_AGENT_GAP_MS = 500;
 /** Maximum agents responding per turn — topic-relevant agents only */
 export const MAX_AGENTS_PER_TURN = 2;
 
-/** Maximum A2A follow-up rounds */
-export const MAX_FOLLOW_UP_ROUNDS = 2;
+/** Maximum A2A follow-up rounds — 1 follow-up then back to user */
+export const MAX_FOLLOW_UP_ROUNDS = 1;
 
 /** Immediate flush for Chairman "AI opinion" button */
 export const IMMEDIATE_FLUSH_MS = 0;

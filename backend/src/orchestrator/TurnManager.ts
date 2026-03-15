@@ -459,7 +459,10 @@ export class TurnManager extends EventEmitter {
 
 // ── Preserved logic from original TurnManager ──
 
-/** Agent response order — DialogLab priority queue (from original TurnManager) */
+/** Agent response order — DialogLab priority queue (from original TurnManager)
+ *  COO only gets P1 when topic is operations/general or explicitly mentioned.
+ *  Otherwise, the TopicClassifier primaryAgent speaks first.
+ */
 export function determineAgentOrder(
   _message: string,
   mentions: AgentRole[],
@@ -469,23 +472,17 @@ export function determineAgentOrder(
   const entries: AgentTurn[] = [];
   const added = new Set<AgentRole>();
 
-  // P1: COO responds only when: no mentions, or COO is mentioned, or COO is primary
-  if (mentions.length === 0 || mentions.includes("coo") || primaryAgent === "coo") {
-    entries.push({ role: "coo", priority: 1 });
-    added.add("coo");
-  }
-
-  // P2: Mentioned agents
+  // P1: Mentioned agents get highest priority
   for (const role of mentions) {
     if (!added.has(role)) {
-      entries.push({ role, priority: 2 });
+      entries.push({ role, priority: 1 });
       added.add(role);
     }
   }
 
-  // P3: Primary agent from topic classification
+  // P2: Primary agent from topic classification speaks first
   if (!added.has(primaryAgent)) {
-    entries.push({ role: primaryAgent, priority: 3 });
+    entries.push({ role: primaryAgent, priority: 2 });
     added.add(primaryAgent);
   }
 
@@ -497,7 +494,7 @@ export function determineAgentOrder(
     }
   }
 
-  // P4: Remaining agents — everyone participates in the meeting
+  // P4: Remaining agents — available if needed
   const allRoles: AgentRole[] = ["coo", "cfo", "cmo", "cto", "cdo", "clo"];
   for (const role of allRoles) {
     if (!added.has(role)) {
@@ -522,19 +519,27 @@ function isNegatedMatch(content: string, keywordMatch: RegExpMatchArray): boolea
   return NEGATION_PATTERN.test(window);
 }
 
-/** A2A follow-up check with per-keyword negation filter */
+/** A2A follow-up check — only triggers when agent explicitly delegates to another domain.
+ *  Requires delegation language (e.g., "확인이 필요", "의견을 듣고 싶", "검토해 주")
+ *  alongside domain keywords. Plain keyword mention is NOT enough. */
 function checkFollowUp(response: { role: AgentRole; content: string }): AgentRole | null {
   const content = response.content.toLowerCase();
+
+  // Delegation signal — agent must be explicitly requesting another's input
+  const DELEGATION_SIGNAL =
+    /확인이?\s*필요|의견을?\s*듣|검토해?\s*주|부탁|말씀해?\s*주|판단이?\s*필요|여쭤|ask\s+\w+\s+to|need\s+\w+\s+input|what does \w+ think/i;
+
+  if (!DELEGATION_SIGNAL.test(content)) return null;
 
   const checks: Array<{ exclude: AgentRole; pattern: RegExp; target: AgentRole }> = [
     {
       exclude: "cfo",
-      pattern: /예산|비용|투자|만원|억원|roi|budget|cost|invest|revenue|financ/i,
+      pattern: /예산|비용|투자|roi|budget|cost|invest|revenue|financ/i,
       target: "cfo",
     },
     {
       exclude: "cmo",
-      pattern: /마케팅|캠페인|고객|브랜드|시장점유|marketing|campaign|customer|brand|market share/i,
+      pattern: /마케팅|캠페인|고객|브랜드|시장점유|marketing|campaign|brand|market share/i,
       target: "cmo",
     },
     {
@@ -611,25 +616,25 @@ function buildAgentPrompt(
 ): string {
   const persona = VOICE_PERSONA[role];
   return `## 정체성
-당신은 BizRoom.ai의 ${persona.identity}
+${persona.identity}
 
 ## 화법
 ${persona.style}
 
 ## 규칙
-- 모든 응답은 한국어로 합니다.
-- 3-5문장 이내로 간결하게 응답합니다.
-- 결론을 먼저 말하고, 근거를 뒤에 붙입니다.
-- 다른 임원: "Amelia CFO", "Yusef CMO" 형식으로 호칭합니다.
-- 투자/법률 조언은 "참고용"임을 명시합니다.
+- 한국어로 응답. 3문장 이내로 핵심만 말하세요.
+- 자기소개는 하지 마세요. 바로 본론으로 들어가세요.
+- 웜업/인사는 1문장으로 끝내세요.
+- 결론 먼저, 근거는 뒤에.
+- 의장(Chairman)에게 질문하여 대화를 이끌어가세요.
+- 다른 임원의 전문성이 필요하면 mention으로 요청하세요.
 - 전문 분야: ${persona.domain}
 
 ## 맥락
-현재 안건: ${agenda || "일반 회의"}
+안건: ${agenda || "일반 회의"}
 ${contextStr}
 
-## 발언 과제
-아래 발언에 응답하세요:
+## 과제
 <user_input>
 ${humanInput}
 </user_input>`;
