@@ -1,6 +1,7 @@
-import { useRef, memo } from "react";
+import { useRef, memo, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
+import * as THREE from "three";
 import type { Group } from "three";
 import { S } from "../../constants/strings";
 import type { MonitorUpdateEvent } from "../../types";
@@ -18,6 +19,10 @@ interface HoloMonitorProps {
   agentName: string;
   color: string;
   monitorData?: MonitorUpdateEvent;
+  /** Sophia is generating a visualization for BigScreen */
+  isSophiaThinking?: boolean;
+  /** Message to show during Sophia processing */
+  sophiaStatus?: string;
 }
 
 /** Render dynamic content based on monitor mode */
@@ -74,15 +79,43 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
   agentName,
   color,
   monitorData,
+  isSophiaThinking = false,
+  sophiaStatus,
 }: HoloMonitorProps) {
   const groupRef = useRef<Group>(null);
+  const shimmerRef = useRef<THREE.Mesh>(null);
+  const contentOpacityRef = useRef(0);
   const baseY = position[1];
 
-  useFrame((state) => {
+  // Fade-in when monitorData arrives
+  const [prevDataId, setPrevDataId] = useState<string | null>(null);
+  const dataId = monitorData ? JSON.stringify(monitorData.content).slice(0, 50) : null;
+
+  useEffect(() => {
+    if (dataId && dataId !== prevDataId) {
+      contentOpacityRef.current = 0; // Reset for fade-in
+      setPrevDataId(dataId);
+    }
+  }, [dataId, prevDataId]);
+
+  useFrame((state, delta) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
     groupRef.current.position.y =
       baseY + Math.sin(t * 1.0 + position[0] * 2) * 0.012;
+
+    // Shimmer animation for Sophia thinking
+    if (shimmerRef.current) {
+      const mat = shimmerRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = isSophiaThinking
+        ? 0.08 + Math.sin(t * 3) * 0.06 // Pulsing shimmer
+        : THREE.MathUtils.lerp(mat.opacity, 0, delta * 3); // Fade out
+    }
+
+    // Fade-in content opacity (0 → 1 over ~0.5s)
+    if (monitorData && contentOpacityRef.current < 1) {
+      contentOpacityRef.current = Math.min(1, contentOpacityRef.current + delta * 2);
+    }
   });
 
   const beamHeight = baseY - TABLE_SURFACE_Y;
@@ -165,9 +198,26 @@ export const HoloMonitor3D = memo(function HoloMonitor3D({
           {agentName}
         </Text>
 
+        {/* ─── Shimmer overlay (Sophia thinking state) ─── */}
+        <mesh ref={shimmerRef} position={[0, 0, 0.001]}>
+          <planeGeometry args={[MONITOR_W - 0.02, MONITOR_H - 0.02]} />
+          <meshBasicMaterial color="#58a6ff" transparent opacity={0} />
+        </mesh>
+
         {/* ─── Dynamic content or default status ─── */}
         <group position={[0, -0.04, 0.004]}>
-          {monitorData ? (
+          {isSophiaThinking ? (
+            /* Sophia processing indicator — shimmer + status text */
+            <group>
+              <Text fontSize={0.018} color="#58a6ff" anchorX="center" anchorY="middle" position={[0, 0.01, 0]}>
+                {sophiaStatus || "시각화 생성 중..."}
+              </Text>
+              <Text fontSize={0.014} color="#445577" anchorX="center" anchorY="middle" position={[0, -0.015, 0]}>
+                Sophia AI
+              </Text>
+            </group>
+          ) : monitorData ? (
+            /* Rendered content with fade-in (opacity controlled in useFrame) */}
             renderMonitorContent(monitorData)
           ) : (
             <Text
