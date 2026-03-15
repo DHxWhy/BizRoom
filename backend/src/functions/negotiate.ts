@@ -56,9 +56,10 @@ export async function negotiate(
 
   const header = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const payload = b64url(JSON.stringify({ aud: audience, iat: now, exp, sub: userId }));
-  // AccessKey in the connection string is used as-is (raw string bytes) for HMAC.
-  // Do NOT base64-decode it — Azure SignalR Service signs with the literal key string.
-  const signature = createHmac("sha256", accessKey)
+  // Azure SignalR connection string AccessKey is base64-encoded.
+  // HMAC must be computed with the decoded bytes — NOT the raw key string.
+  // Using the raw string produces a different signature that Azure SignalR Service rejects.
+  const signature = createHmac("sha256", Buffer.from(accessKey, "base64"))
     .update(`${header}.${payload}`)
     .digest("base64url");
 
