@@ -108,7 +108,6 @@ export function InputArea({
 
       if (!inTextInput) {
         e.preventDefault();
-        spaceDownTime = Date.now();
         spacePttActivated = true;
         startRef.current();
         return;

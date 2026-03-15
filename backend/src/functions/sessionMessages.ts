@@ -18,7 +18,8 @@ export async function sessionMessages(
     return { status: 400, jsonBody: { error: "Session ID is required" } };
   }
 
-  const limit = parseInt(request.query.get("limit") ?? "200", 10);
+  const rawLimit = parseInt(request.query.get("limit") ?? "200", 10);
+  const limit = isNaN(rawLimit) || rawLimit < 1 ? 200 : Math.min(rawLimit, 1000);
 
   try {
     const messages = await MessageService.getMessagesBySession(sessionId, limit);

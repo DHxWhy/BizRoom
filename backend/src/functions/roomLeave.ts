@@ -24,6 +24,13 @@ export async function roomLeave(
     return { status: 400, jsonBody: { error: "Invalid JSON body" } };
   }
 
+  if (!body.roomId?.trim()) {
+    return { status: 400, jsonBody: { error: "roomId is required" } };
+  }
+  if (!body.userId?.trim()) {
+    return { status: 400, jsonBody: { error: "userId is required" } };
+  }
+
   // For MVP: just acknowledge the leave
   return {
     status: 200,

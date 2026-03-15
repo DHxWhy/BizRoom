@@ -26,7 +26,14 @@ export async function roomJoin(
     return { status: 400, jsonBody: { error: "Invalid JSON body" } };
   }
 
-  const room = getOrCreateRoom(body.roomId ?? "room-default");
+  if (!body.roomId?.trim()) {
+    return { status: 400, jsonBody: { error: "roomId is required" } };
+  }
+  if (!body.userId?.trim()) {
+    return { status: 400, jsonBody: { error: "userId is required" } };
+  }
+
+  const room = getOrCreateRoom(body.roomId);
 
   return {
     status: 200,

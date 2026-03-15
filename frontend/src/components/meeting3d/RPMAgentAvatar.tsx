@@ -1,4 +1,4 @@
-import { useRef, useMemo, memo } from "react";
+import { useRef, useMemo, useEffect, memo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF, Text, Billboard } from "@react-three/drei";
 import { MathUtils, Quaternion, Euler, SkinnedMesh, Bone } from "three";
@@ -157,8 +157,8 @@ const SITTING_DELTAS: Record<string, [number, number, number]> = {
   LeftLeg:      [-1.45, 0, 0],      // knee bend ~83°
   RightLeg:     [-1.45, 0, 0],
   // ─── Feet ───
-  LeftFoot:     [0.3, 0, 0],        // feet flat on ground
-  RightFoot:    [0.3, 0, 0],
+  LeftFoot:     [-0.15, 0, 0],       // toes down to rest flat on floor
+  RightFoot:    [-0.15, 0, 0],
   // ─── Shoulders (bring arms closer to body from A-pose) ───
   LeftShoulder:  [0, 0, 0.15],      // shoulder inward toward body
   RightShoulder: [0, 0, -0.15],     // shoulder inward toward body
@@ -166,7 +166,7 @@ const SITTING_DELTAS: Record<string, [number, number, number]> = {
   LeftArm:      [0.4, 0, 0.2],      // arm forward + slightly inward
   RightArm:     [0.4, 0, -0.2],     // arm forward + slightly inward
   // ─── Forearms (gentle bend so hands rest on thighs, not through them) ───
-  LeftForeArm:  [-0.4, 0, 0],       // forearm toward lap (reduced from -0.6)
+  LeftForeArm:  [-0.4, 0, 0],       // forearm toward lap
   RightForeArm: [-0.4, 0, 0],
   // ─── Hands (angle slightly inward for natural resting pose) ───
   LeftHand:     [0.15, 0, 0.1],     // wrist angled to rest on thigh
@@ -222,26 +222,12 @@ export const RPMAgentAvatar = memo(function RPMAgentAvatar({
   const config = AVATAR_CONFIGS[agentRole] ?? DEFAULT_AVATAR;
   const { scene } = useGLTF(config.url);
 
-  // SkeletonUtils.clone properly handles SkinnedMesh + bone bindings
+  // SkeletonUtils.clone properly handles SkinnedMesh + bone bindings.
+  // Only scene graph mutation (sitting deltas) happens in useMemo.
+  // Ref assignments are deferred to useEffect below to satisfy React 19 rules.
   const clonedScene = useMemo(() => {
     const cloned = skeletonClone(scene);
 
-    // Reset refs for this clone (useMemo runs during render; refs are safe
-    // here because this only runs when `scene` changes — a new GLB load)
-    // eslint-disable-next-line react-hooks/refs
-    headBoneRef.current = null;
-    // eslint-disable-next-line react-hooks/refs
-    neckBoneRef.current = null;
-    // eslint-disable-next-line react-hooks/refs
-    meshRef.current = null;
-
-    // Reset gesture bone refs
-    // eslint-disable-next-line react-hooks/refs
-    for (const key of GESTURE_BONE_NAMES) {
-      gestureBones.current[key] = null;
-    }
-
-    // eslint-disable-next-line react-hooks/refs
     cloned.traverse((child) => {
       // Apply sitting pose deltas to bones (quaternion multiply, not overwrite)
       if ((child as Bone).isBone) {
@@ -252,34 +238,52 @@ export const RPMAgentAvatar = memo(function RPMAgentAvatar({
           _deltaQuat.setFromEuler(_deltaEuler);
           bone.quaternion.multiply(_deltaQuat);
         }
-        if (bone.name === "Head") headBoneRef.current = bone;
-        if (bone.name === "Neck") neckBoneRef.current = bone;
-
-        // Capture gesture bone refs
-        const gestureKey = BONE_NAME_MAP[bone.name];
-        if (gestureKey) {
-          gestureBones.current[gestureKey] = bone;
-        }
       }
 
-      // Store mesh ref for morph targets
+      // Configure skinned mesh rendering
       if ((child as SkinnedMesh).isSkinnedMesh) {
         const sm = child as SkinnedMesh;
-        meshRef.current = sm;
         sm.castShadow = true;
         sm.receiveShadow = true;
         sm.frustumCulled = false;
       }
     });
 
+    return cloned;
+  }, [scene]);
+
+  // Populate bone/mesh refs AFTER the cloned scene is ready (outside render)
+  useEffect(() => {
+    headBoneRef.current = null;
+    neckBoneRef.current = null;
+    meshRef.current = null;
+
+    for (const key of GESTURE_BONE_NAMES) {
+      gestureBones.current[key] = null;
+    }
+
+    clonedScene.traverse((child) => {
+      if ((child as Bone).isBone) {
+        const bone = child as Bone;
+        if (bone.name === "Head") headBoneRef.current = bone;
+        if (bone.name === "Neck") neckBoneRef.current = bone;
+
+        const gestureKey = BONE_NAME_MAP[bone.name];
+        if (gestureKey) {
+          gestureBones.current[gestureKey] = bone;
+        }
+      }
+
+      if ((child as SkinnedMesh).isSkinnedMesh) {
+        meshRef.current = child as SkinnedMesh;
+      }
+    });
+
     // Snapshot rest-pose Euler values AFTER sitting deltas are baked.
-    // Three.js recomputes Euler from quaternion when we read rotation.
-    // eslint-disable-next-line react-hooks/refs
     for (const boneName of Object.keys(BONE_NAME_MAP)) {
       const key = BONE_NAME_MAP[boneName];
       const bone = gestureBones.current[key];
       if (bone) {
-        // Force Euler update from the modified quaternion
         bone.rotation.setFromQuaternion(bone.quaternion);
         gestureRestPoses.current[boneName] = {
           x: bone.rotation.x,
@@ -288,9 +292,7 @@ export const RPMAgentAvatar = memo(function RPMAgentAvatar({
         };
       }
     }
-
-    return cloned;
-  }, [scene]);
+  }, [clonedScene]);
 
   // Per-frame animation
   useFrame((state, delta) => {

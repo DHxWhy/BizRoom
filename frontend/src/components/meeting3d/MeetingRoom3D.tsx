@@ -199,6 +199,13 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
   const isUserControllingRef = useRef(false);
   const controlTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
+  // Clear pending orbit timeout on unmount to prevent firing on stale ref
+  useEffect(() => {
+    return () => {
+      if (controlTimeoutRef.current) clearTimeout(controlTimeoutRef.current);
+    };
+  }, []);
+
   // V key toggles first-person view (rare toggle, useState is fine)
   const [isFirstPerson, setIsFirstPerson] = useState(false);
   // A/D keys rotate look direction in first-person: -50, 0, +50 degrees

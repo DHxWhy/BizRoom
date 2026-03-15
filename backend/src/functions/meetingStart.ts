@@ -49,6 +49,13 @@ export async function meetingStart(
     return { status: 400, jsonBody: { error: "Invalid JSON body" } };
   }
 
+  if (!body.userId?.trim()) {
+    return { status: 400, jsonBody: { error: "userId is required" } };
+  }
+  if (!body.userName?.trim()) {
+    return { status: 400, jsonBody: { error: "userName is required" } };
+  }
+
   const roomId = body.roomId ?? `room-${uuidv4()}`;
   const agenda = body.agenda ?? "일반 회의";
 

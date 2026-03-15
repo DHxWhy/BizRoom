@@ -88,7 +88,11 @@ export async function meetingEnd(
     return { status: 400, jsonBody: { error: "Invalid JSON body" } };
   }
 
-  const roomId = body.roomId ?? "room-default";
+  if (!body.roomId?.trim()) {
+    return { status: 400, jsonBody: { error: "roomId is required" } };
+  }
+
+  const roomId = body.roomId;
   const room = getOrCreateRoom(roomId);
   setPhase(roomId, "closing");
 
@@ -195,6 +199,10 @@ export async function meetingEnd(
       }
 
       sophiaAgent.destroyRoom(roomId);
+
+      // Clean up VoiceLive sessions + TurnManager + event listeners
+      const { unwireVoiceLiveForRoom } = await import("../orchestrator/VoiceLiveOrchestrator.js");
+      unwireVoiceLiveForRoom(roomId);
     }
   } catch (err) {
     context.log("Sophia artifact pipeline failed:", err);

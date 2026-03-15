@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useLayoutEffect } from "react";
 
 type PTTStatus = "idle" | "recording" | "processing";
 
@@ -68,8 +68,11 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
 
   // Keep a stable ref to latest options so callbacks always use fresh values
   // without needing to re-create the recognition instance.
+  // Updated via useLayoutEffect (not during render) to satisfy React Compiler.
   const optionsRef = useRef(options);
-  optionsRef.current = options;
+  useLayoutEffect(() => {
+    optionsRef.current = options;
+  });
 
   const isSupported =
     typeof window !== "undefined" &&
@@ -161,7 +164,6 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
   // Works even when focus is in textarea — long press (>400ms) activates PTT,
   // short press types a space character as normal.
   useEffect(() => {
-    let spaceDownTime = 0;
     let spacePttActivated = false;
     let longPressTimer: ReturnType<typeof setTimeout> | null = null;
     let targetElement: EventTarget | null = null;
@@ -176,14 +178,12 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
       if (!inTextInput) {
         // Outside text fields: always activate PTT immediately
         e.preventDefault();
-        spaceDownTime = Date.now();
         spacePttActivated = true;
         startRecording();
         return;
       }
 
       // Inside text fields: start a 400ms timer to detect long press
-      spaceDownTime = Date.now();
       spacePttActivated = false;
       targetElement = e.target;
 
@@ -226,8 +226,6 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
         spacePttActivated = false;
       }
       // Short press inside textarea: normal space typing (do nothing)
-
-      spaceDownTime = 0;
       targetElement = null;
     };
 

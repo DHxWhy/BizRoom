@@ -18,8 +18,10 @@ export async function sessionList(
     return { status: 400, jsonBody: { error: "Room ID is required" } };
   }
 
-  const limit = parseInt(request.query.get("limit") ?? "50", 10);
-  const offset = parseInt(request.query.get("offset") ?? "0", 10);
+  const rawLimit = parseInt(request.query.get("limit") ?? "50", 10);
+  const rawOffset = parseInt(request.query.get("offset") ?? "0", 10);
+  const limit = isNaN(rawLimit) || rawLimit < 1 ? 50 : Math.min(rawLimit, 200);
+  const offset = isNaN(rawOffset) || rawOffset < 0 ? 0 : rawOffset;
 
   try {
     const sessions = await SessionService.listSessionsByRoom(roomId, limit, offset);

@@ -433,7 +433,6 @@ function MeetingRoom() {
       dispatch,
       sendMessage,
       sendMessageStream,
-      connectionStatus,
       getTypingAgentsForMode,
       state.roomId,
       state.userId,
