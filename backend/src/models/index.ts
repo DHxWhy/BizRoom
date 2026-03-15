@@ -28,6 +28,8 @@ export type {
   VisualHint,
   VisualType,
   StructuredAgentOutput,
+  SophiaTaskType,
+  SophiaRequest,
   BigScreenRenderData,
   ArtifactFileType,
   ArtifactsReadyEvent,

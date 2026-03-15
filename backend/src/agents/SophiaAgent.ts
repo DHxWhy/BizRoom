@@ -1,10 +1,12 @@
 // backend/src/agents/SophiaAgent.ts
-// Sophia secretary agent — buffer management, visual hint detection
+// Sophia secretary agent — central intelligence hub for research, search, visualization
+// Manages unified task queue (visual + search + analyze) and buffer management
 // Ref: Spec §4
 
 import type {
   VisualHint,
   VisualType,
+  SophiaTaskType,
   StructuredAgentOutput,
   BigScreenRenderData,
 } from "../models/index.js";
@@ -35,6 +37,14 @@ export interface VisualQueueItem {
   fromDirect: boolean;
 }
 
+/** Unified Sophia task — covers search, analyze, and visualize requests from agents */
+export interface SophiaTaskQueueItem {
+  type: SophiaTaskType;
+  query: string;
+  requestedBy: string; // agent role (e.g., "cfo") or "chairman" or "user"
+  addedAt: number;
+}
+
 interface ActionItemDraft {
   description: string;
   assignee: string;
@@ -48,6 +58,7 @@ export interface SophiaState {
   actionItems: ActionItemDraft[];
   visualHistory: VisualArtifact[];
   visualQueue: VisualQueueItem[];
+  taskQueue: SophiaTaskQueueItem[];
   postMeetingQueue: string[];
 }
 
@@ -65,6 +76,7 @@ export class SophiaAgent {
       actionItems: [],
       visualHistory: [],
       visualQueue: [],
+      taskQueue: [],
       postMeetingQueue: [],
     });
   }
@@ -125,6 +137,26 @@ export class SophiaAgent {
     } else {
       this.processingVisual.delete(roomId);
     }
+  }
+
+  // ── Unified Task Queue (search, analyze, visualize) ──
+
+  enqueueTask(roomId: string, task: SophiaTaskQueueItem): void {
+    const state = this.rooms.get(roomId);
+    if (!state) return;
+    state.taskQueue.push(task);
+  }
+
+  dequeueTask(roomId: string): SophiaTaskQueueItem | undefined {
+    const state = this.rooms.get(roomId);
+    if (!state) return undefined;
+    return state.taskQueue.shift();
+  }
+
+  hasQueuedTasks(roomId: string): boolean {
+    const state = this.rooms.get(roomId);
+    if (!state) return false;
+    return state.taskQueue.length > 0;
   }
 
   addPostMeetingRequest(roomId: string, request: string): void {

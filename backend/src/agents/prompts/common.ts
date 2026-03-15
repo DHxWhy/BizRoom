@@ -14,6 +14,7 @@ const STRUCTURED_OUTPUT_FORMAT = `
 - key_points: 핵심 2-4개 (의장 모니터에 표시)
 - mention: 호명 대상 또는 null
 - visual_hint: 시각자료 힌트 (type + title만) 또는 null
+- sophia_request: 소피아 조사/분석 요청 또는 null
 
 ## 호명 규칙
 다음 값만 사용합니다. 목록에 없는 값은 절대 사용하지 않습니다.
@@ -40,10 +41,22 @@ Sophia AI가 자동으로 데이터를 추출하여 BigScreen에 시각화합니
 - 시스템/구조 → architecture
 type과 title만 제공하면 Sophia가 나머지를 처리합니다.
 
+## 소피아 활용 (조사/검색/분석 위임)
+조사, 검색, 시장분석이 필요하면 sophia_request를 사용합니다.
+**직접 웹 검색하지 마세요** — 소피아에게 위임합니다.
+소피아가 조사 완료 후 결과를 대화 컨텍스트에 자동 주입합니다.
+- 시장 조사: {"type": "search", "query": "2026 SaaS 시장 한국"}
+- 경쟁사 조사: {"type": "search", "query": "Notion 경쟁사 비교 2026"}
+- 심층 분석: {"type": "analyze", "query": "B2B SaaS ROI 비교 분석"}
+- 데이터 시각화: visual_hint 사용 (기존과 동일)
+
+sophia_request는 선택적입니다. 이미 충분한 정보가 있으면 사용하지 않아도 됩니다.
+
 ## 응답 예시 (행동 지향적)
-예시 1 (분석+시각화): {"speech": "마케팅 예산은 디지털 60%, 오프라인 25%, 브랜드 15%로 배분을 제안합니다. Amelia CFO, 이 비율의 ROI를 검토해주세요.", "key_points": ["디지털 60%", "오프라인 25%", "브랜드 15%"], "mention": {"target": "cfo", "intent": "opinion"}, "visual_hint": {"type": "pie-chart", "title": "마케팅 예산 배분안"}}
-예시 2 (비교+결정요청): {"speech": "두 방안을 정리했습니다. A안은 6개월 내 BEP, B안은 12개월이지만 시장점유율 2배입니다.", "key_points": ["A안: 6개월 BEP", "B안: 12개월, 점유율 2배"], "mention": {"target": "chairman", "intent": "confirm", "options": ["A안: 속도 우선", "B안: 규모 우선"]}, "visual_hint": {"type": "comparison", "title": "A안 vs B안 비교"}}
-예시 3 (데이터+자동시각화): {"speech": "이번 분기 매출 12% 성장, 고객 이탈률은 3.2%로 목표 대비 양호합니다.", "key_points": ["매출 12% 성장", "이탈률 3.2%"], "mention": null, "visual_hint": {"type": "bar-chart", "title": "분기별 핵심 지표"}}
+예시 1 (분석+시각화): {"speech": "마케팅 예산은 디지털 60%, 오프라인 25%, 브랜드 15%로 배분을 제안합니다. Amelia CFO, 이 비율의 ROI를 검토해주세요.", "key_points": ["디지털 60%", "오프라인 25%", "브랜드 15%"], "mention": {"target": "cfo", "intent": "opinion"}, "visual_hint": {"type": "pie-chart", "title": "마케팅 예산 배분안"}, "sophia_request": null}
+예시 2 (비교+결정요청): {"speech": "두 방안을 정리했습니다. A안은 6개월 내 BEP, B안은 12개월이지만 시장점유율 2배입니다.", "key_points": ["A안: 6개월 BEP", "B안: 12개월, 점유율 2배"], "mention": {"target": "chairman", "intent": "confirm", "options": ["A안: 속도 우선", "B안: 규모 우선"]}, "visual_hint": {"type": "comparison", "title": "A안 vs B안 비교"}, "sophia_request": null}
+예시 3 (조사 위임): {"speech": "현재 SaaS 시장 동향을 파악하면 더 정확한 전략을 세울 수 있습니다. 소피아에게 시장 조사를 요청하겠습니다.", "key_points": ["SaaS 시장 동향 파악 필요", "소피아 조사 요청"], "mention": null, "visual_hint": null, "sophia_request": {"type": "search", "query": "2026 SaaS market trends Korea"}}
+예시 4 (데이터+자동시각화): {"speech": "이번 분기 매출 12% 성장, 고객 이탈률은 3.2%로 목표 대비 양호합니다.", "key_points": ["매출 12% 성장", "이탈률 3.2%"], "mention": null, "visual_hint": {"type": "bar-chart", "title": "분기별 핵심 지표"}, "sophia_request": null}
 `;
 
 /**

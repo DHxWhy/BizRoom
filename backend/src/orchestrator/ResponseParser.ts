@@ -4,7 +4,7 @@
 // Tier 2: JSON repair (markdown fences, raw braces)
 // Tier 3: Graceful fallback (plain text → speech)
 
-import type { AgentRole, Mention, VisualHint, StructuredAgentOutput } from "../models/index.js";
+import type { AgentRole, Mention, VisualHint, SophiaRequest, StructuredAgentOutput } from "../models/index.js";
 
 export type ParseTier = "schema_valid" | "json_repaired" | "fallback";
 
@@ -48,6 +48,16 @@ function parseVisualHint(raw: unknown): VisualHint | null {
   return { type: v.type as VisualHint["type"], title: v.title };
 }
 
+const VALID_SOPHIA_TASK_TYPES = new Set(["search", "visualize", "analyze"]);
+
+function parseSophiaRequest(raw: unknown): SophiaRequest | null {
+  if (!raw || typeof raw !== "object") return null;
+  const s = raw as Record<string, unknown>;
+  if (typeof s.type !== "string" || typeof s.query !== "string") return null;
+  if (!VALID_SOPHIA_TASK_TYPES.has(s.type)) return null;
+  return { type: s.type as SophiaRequest["type"], query: s.query };
+}
+
 function validateAndExtract(
   parsed: Record<string, unknown>,
   selfRole: AgentRole,
@@ -60,6 +70,7 @@ function validateAndExtract(
       : [],
     mention: parseMention(parsed.mention, selfRole),
     visual_hint: parseVisualHint(parsed.visual_hint),
+    sophia_request: parseSophiaRequest(parsed.sophia_request),
   };
 }
 
@@ -103,6 +114,7 @@ export function parseStructuredOutput(raw: string, selfRole: AgentRole): ParseRe
       key_points: [],
       mention: null,
       visual_hint: null,
+      sophia_request: null,
     },
     tier: "fallback",
     error: `Failed to parse structured output from ${selfRole}`,

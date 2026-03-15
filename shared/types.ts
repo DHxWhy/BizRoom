@@ -309,11 +309,19 @@ export interface VisualHint {
   title: string;
 }
 
+export type SophiaTaskType = "search" | "visualize" | "analyze";
+
+export interface SophiaRequest {
+  type: SophiaTaskType;
+  query: string;
+}
+
 export interface StructuredAgentOutput {
   speech: string;
   key_points: string[];
   mention: Mention | null;
   visual_hint: VisualHint | null;
+  sophia_request?: SophiaRequest | null;
 }
 
 export type VisualType =
@@ -364,11 +372,12 @@ export type MonitorContent =
   | { type: "callout"; message: string; fromAgent: AgentRole }
   | { type: "actionItems"; items: Array<{ description: string; assignee: string }> }
   | { type: "thinking"; text: string }
-  | { type: "speaking"; text: string };
+  | { type: "speaking"; text: string }
+  | { type: "searchResults"; query: string; requestedBy: string; results: Array<{ name: string; snippet: string; url: string }> };
 
 export interface MonitorUpdateEvent {
   target: "chairman" | `member:${string}` | AgentRole;
-  mode: "idle" | "keyPoints" | "confirm" | "callout" | "actionItems" | "thinking" | "speaking";
+  mode: "idle" | "keyPoints" | "confirm" | "callout" | "actionItems" | "thinking" | "speaking" | "searchResults";
   content: MonitorContent;
 }
 

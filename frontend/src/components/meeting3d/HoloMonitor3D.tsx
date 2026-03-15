@@ -73,6 +73,19 @@ function renderMonitorContent(data: MonitorUpdateEvent): JSX.Element {
           ))}
         </group>
       );
+    case "searchResults":
+      return (
+        <group>
+          <Text position={[0, 0.06, 0.004]} fontSize={0.018} color="#58a6ff" anchorX="center" anchorY="middle" maxWidth={0.4}>
+            [Search] {data.content.query}
+          </Text>
+          {data.content.results.slice(0, 3).map((r, i) => (
+            <Text key={i} position={[0, 0.03 - i * 0.025, 0.004]} fontSize={0.015} color="#e6edf3" anchorX="left" anchorY="middle" maxWidth={0.4}>
+              {i + 1}. {r.name}
+            </Text>
+          ))}
+        </group>
+      );
   }
 }
 

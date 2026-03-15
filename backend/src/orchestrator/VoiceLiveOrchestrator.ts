@@ -7,9 +7,12 @@ import { turnManager } from "./TurnManager.js";
 import { voiceLiveManager } from "../services/VoiceLiveSessionManager.js";
 import { broadcastEvent } from "../services/SignalRService.js";
 import { sophiaAgent } from "../agents/SophiaAgent.js";
+import type { SophiaTaskQueueItem } from "../agents/SophiaAgent.js";
 import { parseStructuredOutput } from "./ResponseParser.js";
 import { AGENT_CONFIGS } from "../agents/agentConfigs.js";
 import { SOPHIA_VISUAL_SYSTEM_PROMPT } from "../agents/prompts/sophia.js";
+import { searchBing, formatSearchContext } from "../services/BingSearchService.js";
+import { addSearchResult } from "./ContextBroker.js";
 import {
   getModelForTask,
   getAnthropicClient,
@@ -302,6 +305,19 @@ export function wireVoiceLiveForRoom(
         }
       }
 
+      // 5. Sophia task request — agents delegate research/search/analysis to Sophia
+      if (parsed.data.sophia_request) {
+        const req = parsed.data.sophia_request;
+        console.log(`[Sophia] Task request from ${role}: type=${req.type}, query="${req.query}"`);
+        sophiaAgent.enqueueTask(roomId, {
+          type: req.type,
+          query: req.query,
+          requestedBy: role,
+          addedAt: Date.now(),
+        });
+        processSophiaTaskQueue(roomId);
+      }
+
       // Notify TurnManager with speech text (not raw JSON) so stored messages are clean
       turnManager.onAgentDone(roomId, role, parsed.data.speech, true);
     },
@@ -317,27 +333,53 @@ export function wireVoiceLiveForRoom(
     },
   );
 
-  // TurnManager -> Sophia: direct call from user (e.g., "소피아 시각화 해줘")
+  // TurnManager -> Sophia: direct call from user (e.g., "소피아 시각화 해줘" or "소피아 조사해줘")
   addRoomListener(
     roomId,
     turnManager,
     "sophiaDirect:" + roomId,
     (_rid: string, userInput: string) => {
-      // Sophia voice announcement
-      voiceLiveManager.triggerSophiaVoice(roomId, "네, 시각화 작업을 진행하겠습니다. 잠시만 기다려 주세요.");
+      // Detect if user is requesting search/research
+      const SEARCH_INTENT = /조사해|찾아봐|알아봐|리서치해|검색해|search|look up|find out|research/i;
+      const isSearchRequest = SEARCH_INTENT.test(userInput);
 
-      // Sophia chat message
-      broadcastEvent(roomId, {
-        type: "sophiaMessage",
-        payload: { text: "시각화 작업을 진행하겠습니다. 잠시만 기다려 주세요." },
-      });
+      if (isSearchRequest) {
+        // Sophia search mode
+        voiceLiveManager.triggerSophiaVoice(roomId, "네, 조사를 진행하겠습니다. 잠시만 기다려 주세요.");
+        broadcastEvent(roomId, {
+          type: "sophiaMessage",
+          payload: { text: "조사를 진행하겠습니다. 잠시만 기다려 주세요." },
+        });
 
-      // Detect visual intent from user input and trigger generation.
-      // Pass fromDirect=true so processVisualQueue skips the post-generation
-      // voice announcement (the acknowledgment line above already plays TTS).
-      const hint = detectVisualIntent(userInput) ?? { type: "summary" as const, title: "요청 시각화" };
-      sophiaAgent.enqueueVisual(roomId, hint, true);
-      processVisualQueue(roomId);
+        // Extract query: strip the Sophia mention and search keywords
+        const query = userInput
+          .replace(/\[.*?\]:\s*/g, "")
+          .replace(/소피아|sophia|소피야/gi, "")
+          .replace(/조사해|찾아봐|알아봐|리서치해|검색해|search|look up|find out|research|줘|해/gi, "")
+          .trim() || userInput;
+
+        sophiaAgent.enqueueTask(roomId, {
+          type: "search",
+          query,
+          requestedBy: "user",
+          addedAt: Date.now(),
+        });
+        processSophiaTaskQueue(roomId);
+      } else {
+        // Sophia visual mode (existing behavior)
+        voiceLiveManager.triggerSophiaVoice(roomId, "네, 시각화 작업을 진행하겠습니다. 잠시만 기다려 주세요.");
+        broadcastEvent(roomId, {
+          type: "sophiaMessage",
+          payload: { text: "시각화 작업을 진행하겠습니다. 잠시만 기다려 주세요." },
+        });
+
+        // Detect visual intent from user input and trigger generation.
+        // Pass fromDirect=true so processVisualQueue skips the post-generation
+        // voice announcement (the acknowledgment line above already plays TTS).
+        const hint = detectVisualIntent(userInput) ?? { type: "summary" as const, title: "요청 시각화" };
+        sophiaAgent.enqueueVisual(roomId, hint, true);
+        processVisualQueue(roomId);
+      }
     },
   );
 
@@ -491,4 +533,125 @@ function processVisualQueue(roomId: string): void {
       sophiaAgent.setProcessingVisual(roomId, false);
       processVisualQueue(roomId);
     });
+}
+
+// ── Sophia Unified Task Queue Processor ──
+// Processes search, analyze, and visualize tasks dispatched by agents via sophia_request.
+// Tasks are processed in FIFO order, one at a time to avoid race conditions.
+
+// Track per-room task processing state (separate from visual processing)
+const processingTask = new Set<string>();
+
+/**
+ * Process the unified Sophia task queue for a room.
+ * Handles search, analyze, and visualize task types:
+ *  - search: calls Bing, injects results into ContextBroker, broadcasts to chairman monitor
+ *  - analyze: treated as search (Bing grounding) + summary visual generation
+ *  - visualize: enqueues a visual hint into the existing visual pipeline
+ */
+function processSophiaTaskQueue(roomId: string): void {
+  if (processingTask.has(roomId)) return;
+
+  const task = sophiaAgent.dequeueTask(roomId);
+  if (!task) return;
+
+  processingTask.add(roomId);
+
+  executeSophiaTask(roomId, task)
+    .catch((err) => {
+      console.error(`[Sophia] Task processing failed (type=${task.type}, query="${task.query}"):`, err);
+    })
+    .finally(() => {
+      processingTask.delete(roomId);
+      // Process next task in queue
+      processSophiaTaskQueue(roomId);
+    });
+}
+
+/** Execute a single Sophia task */
+async function executeSophiaTask(roomId: string, task: SophiaTaskQueueItem): Promise<void> {
+  // Guard: room may have been destroyed
+  if (!sophiaAgent.getRoomState(roomId)) return;
+
+  switch (task.type) {
+    case "search":
+      await executeSophiaSearch(roomId, task);
+      break;
+    case "analyze":
+      await executeSophiaAnalyze(roomId, task);
+      break;
+    case "visualize":
+      // Delegate to existing visual pipeline
+      sophiaAgent.enqueueVisual(roomId, { type: "summary", title: task.query });
+      processVisualQueue(roomId);
+      break;
+  }
+}
+
+/** Execute Sophia search task: Bing search → ContextBroker injection → monitor broadcast */
+async function executeSophiaSearch(roomId: string, task: SophiaTaskQueueItem): Promise<void> {
+  const results = await searchBing(task.query, 5);
+
+  if (results.length === 0) {
+    // No results — silent degradation (Bing key not set or no matches)
+    console.log(`[Sophia] Search returned no results for "${task.query}" (Bing key may not be configured)`);
+
+    broadcastEvent(roomId, {
+      type: "sophiaMessage",
+      payload: { text: `"${task.query}" 관련 검색 결과를 찾지 못했습니다.` },
+    });
+    return;
+  }
+
+  // 1. Inject search results into ContextBroker so ALL subsequent agents see them
+  addSearchResult(roomId, task.query, results);
+
+  // 2. Broadcast search results to chairman monitor
+  broadcastEvent(roomId, {
+    type: "monitorUpdate",
+    payload: {
+      target: "chairman",
+      mode: "searchResults",
+      content: {
+        type: "searchResults",
+        query: task.query,
+        requestedBy: task.requestedBy,
+        results: results.map((r) => ({ name: r.name, snippet: r.snippet, url: r.url })),
+      },
+    },
+  });
+
+  // 3. Broadcast sophia message notification
+  const requestedByName = AGENT_CONFIGS[task.requestedBy as keyof typeof AGENT_CONFIGS]?.name ?? task.requestedBy;
+  broadcastEvent(roomId, {
+    type: "sophiaMessage",
+    payload: { text: `${requestedByName}의 요청으로 "${task.query}" 조사를 완료했습니다. (${results.length}건)` },
+  });
+
+  // 4. Voice announcement (only for direct user requests, not agent-initiated)
+  if (task.requestedBy === "user") {
+    voiceLiveManager.triggerSophiaVoice(roomId, `조사 완료했습니다. ${results.length}건의 결과를 찾았습니다.`);
+  }
+}
+
+/** Execute Sophia analyze task: Bing search for grounding + summary visual generation */
+async function executeSophiaAnalyze(roomId: string, task: SophiaTaskQueueItem): Promise<void> {
+  // Step 1: Search for grounding data
+  const results = await searchBing(task.query, 5);
+
+  if (results.length > 0) {
+    // Inject search results into context for the analysis
+    addSearchResult(roomId, task.query, results);
+  }
+
+  // Step 2: Generate a summary visual using the enriched context
+  sophiaAgent.enqueueVisual(roomId, { type: "summary", title: `${task.query} 분석` });
+  processVisualQueue(roomId);
+
+  // Step 3: Broadcast notification
+  const requestedByName = AGENT_CONFIGS[task.requestedBy as keyof typeof AGENT_CONFIGS]?.name ?? task.requestedBy;
+  broadcastEvent(roomId, {
+    type: "sophiaMessage",
+    payload: { text: `${requestedByName}의 요청으로 "${task.query}" 분석을 진행합니다.` },
+  });
 }

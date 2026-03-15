@@ -146,6 +146,31 @@ ${actionsStr}
 ${history}`;
 }
 
+/** Inject Sophia search results into room context so subsequent agents can reference them */
+export function addSearchResult(roomId: string, query: string, results: Array<{ name: string; snippet: string; url: string }>): void {
+  const room = getOrCreateRoom(roomId);
+  const formatted = results
+    .map((r, i) => `${i + 1}. **${r.name}**: ${r.snippet}`)
+    .join("\n");
+
+  const searchMessage: Message = {
+    id: `sophia-search-${Date.now()}`,
+    roomId,
+    senderId: "sophia",
+    senderType: "agent",
+    senderName: "Sophia",
+    senderRole: "sophia",
+    content: `[소피아 조사 결과: "${query}"]\n${formatted}`,
+    timestamp: new Date().toISOString(),
+  };
+  room.messages.push(searchMessage);
+
+  // Cap at MAX_CONTEXT_MESSAGES
+  if (room.messages.length > MAX_CONTEXT_MESSAGES) {
+    room.messages = room.messages.slice(-MAX_CONTEXT_MESSAGES);
+  }
+}
+
 /** Remove all context for a room */
 export function clearRoom(roomId: string): void {
   rooms.delete(roomId);

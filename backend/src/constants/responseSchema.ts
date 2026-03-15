@@ -46,8 +46,25 @@ export const CSUITE_RESPONSE_SCHEMA = {
           },
         ],
       },
+      sophia_request: {
+        anyOf: [
+          { type: "null" as const },
+          {
+            type: "object" as const,
+            properties: {
+              type: {
+                type: "string" as const,
+                enum: ["search", "visualize", "analyze"],
+              },
+              query: { type: "string" as const, description: "Search query or analysis topic for Sophia" },
+            },
+            required: ["type", "query"] as const,
+            additionalProperties: false,
+          },
+        ],
+      },
     },
-    required: ["speech", "key_points", "mention", "visual_hint"] as const,
+    required: ["speech", "key_points", "mention", "visual_hint", "sophia_request"] as const,
     additionalProperties: false,
   },
 } as const;
