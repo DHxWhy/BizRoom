@@ -113,7 +113,7 @@ const ParticipantOverlay = memo(function ParticipantOverlay({
   typingAgents: string[];
 }) {
   return (
-    <div className="absolute left-4 top-4 z-10">
+    <div className="absolute left-4 top-14 z-10">
       <div className="bg-neutral-950/70 backdrop-blur-xl rounded-xl border border-neutral-700/30 p-3 min-w-[180px]">
         {/* Header */}
         <div className="mb-3">
@@ -441,6 +441,7 @@ function MeetingRoom() {
       dispatch,
       sendMessage,
       sendMessageStream,
+      connectionStatus,
       getTypingAgentsForMode,
       state.roomId,
       state.userId,
