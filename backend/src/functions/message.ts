@@ -9,6 +9,9 @@ import {
 } from "../orchestrator/ContextBroker.js";
 import { invokeAgentStream, getAgentMeta } from "../agents/AgentFactory.js";
 import { MAX_AGENTS_PER_TURN } from "../constants/turnConfig.js";
+import { parseStructuredOutput } from "../orchestrator/ResponseParser.js";
+import { sophiaAgent } from "../agents/SophiaAgent.js";
+import { searchBing, formatSearchContext } from "../services/BingSearchService.js";
 import type { AgentRole, Message } from "../models/index.js";
 import { v4 as uuidv4 } from "uuid";
 
@@ -138,8 +141,9 @@ export async function message(
             })));
           }
 
-          // Save completed message to context
+          // Parse structured output and save speech-only to context
           if (fullContent) {
+            const parsed = parseStructuredOutput(fullContent, meta.role);
             const msg: Message = {
               id: messageId,
               roomId,
@@ -147,10 +151,50 @@ export async function message(
               senderType: "agent",
               senderName: meta.name,
               senderRole: meta.role,
-              content: fullContent,
+              content: parsed.data.speech || fullContent,
               timestamp: new Date().toISOString(),
             };
             addMessage(roomId, msg);
+
+            // Process sophia_request (search/analyze) in SSE path
+            if (parsed.data.sophia_request) {
+              const req = parsed.data.sophia_request;
+              if (req.type === "search") {
+                try {
+                  const results = await searchBing(req.query, 3);
+                  if (results.length > 0) {
+                    const searchContext = formatSearchContext(results);
+                    addMessage(roomId, {
+                      id: uuidv4(),
+                      roomId,
+                      senderId: "sophia",
+                      senderType: "agent",
+                      senderName: "Sophia",
+                      senderRole: "sophia" as AgentRole,
+                      content: `[검색 완료] ${req.query}\n${searchContext}`,
+                      timestamp: new Date().toISOString(),
+                    });
+                    // Stream Sophia search result to client
+                    const sophiaId = uuidv4();
+                    controller.enqueue(sseEncode(JSON.stringify({
+                      messageId: sophiaId,
+                      role: "sophia",
+                      name: "Sophia",
+                      delta: `검색 완료: ${req.query}\n${results.map((r, i) => `${i + 1}. ${r.name}: ${r.snippet}`).join("\n")}`,
+                    })));
+                  }
+                } catch (err) {
+                  context.log("Sophia search failed:", err);
+                }
+              }
+            }
+
+            // Process visual_hint in SSE path
+            if (parsed.data.visual_hint) {
+              sophiaAgent.initRoom(roomId);
+              sophiaAgent.enqueueVisual(roomId, parsed.data.visual_hint);
+              // Visual processing happens async — BigScreen update via event
+            }
           }
         }
 
