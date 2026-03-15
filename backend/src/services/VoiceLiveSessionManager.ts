@@ -13,7 +13,7 @@ const VOICE_LIVE_KEY = process.env.AZURE_VOICE_LIVE_KEY || "";
 
 // OpenAI Realtime API (fallback when Azure endpoint is not set)
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
-const OPENAI_REALTIME_MODEL = process.env.OPENAI_MODEL_REALTIME || "gpt-4o-realtime-preview";
+const OPENAI_REALTIME_MODEL = process.env.OPENAI_MODEL_REALTIME || "gpt-realtime-1.5";
 const OPENAI_REALTIME_URL = `wss://api.openai.com/v1/realtime?model=${OPENAI_REALTIME_MODEL}`;
 
 const USE_AZURE = !!VOICE_LIVE_ENDPOINT;
