@@ -65,7 +65,9 @@ export async function message(
   if (!isStream) {
     // Voice Live mode: route to TurnManager state machine
     // TurnManager handles timing, buffering, and triggers agents via events
-    const isChairman = body.senderId === "chairman" || !body.senderId;
+    // Chairman detection: match against the userId registered at meeting start
+    // (body.isChairman from frontend, or fallback to senderId-based check)
+    const isChairman = body.isChairman === true || body.senderId === "chairman" || !body.senderId;
     turnManager.onChatMessage(
       roomId,
       userMessage.senderId,

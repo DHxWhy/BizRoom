@@ -255,12 +255,13 @@ export function useSignalR(
       roomId: string,
       content: string,
       senderName: string,
+      options?: { isChairman?: boolean; mode?: string; dmTarget?: string | null },
     ): Promise<void> => {
       // Always use REST POST — Azure Functions serverless mode does not
       // support hub method invocation. SignalR is receive-only (server push).
       // POST /api/message (without ?stream=true) routes through TurnManager
       // which triggers VoiceLive audio generation pipeline.
-      const response = await fetch(`${API_BASE}/api/message`, {
+      await fetch(`${API_BASE}/api/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -268,24 +269,12 @@ export function useSignalR(
           roomId,
           senderId: "user-1",
           senderName,
+          isChairman: options?.isChairman ?? true,
+          mode: options?.mode,
+          dmTarget: options?.dmTarget,
         }),
       });
-
-      if (response.ok) {
-        const data: unknown = await response.json();
-
-        // Dispatch each message returned from the REST endpoint
-        if (
-          data !== null &&
-          typeof data === "object" &&
-          "messages" in data &&
-          Array.isArray((data as { messages: unknown }).messages)
-        ) {
-          for (const msg of (data as { messages: Message[] }).messages) {
-            optionsRef.current.onMessage?.(msg);
-          }
-        }
-      }
+      // Agent responses arrive via SignalR push events, not HTTP response
     },
     [],
   );

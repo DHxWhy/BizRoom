@@ -372,7 +372,11 @@ function MeetingRoom() {
       try {
         if (connectionStatus === "connected") {
           // VoiceLive mode: route through TurnManager for audio + text
-          await sendMessage(state.roomId, content, state.userName || "Chairman");
+          await sendMessage(state.roomId, content, state.userName || "Chairman", {
+            isChairman: state.isChairman,
+            mode: state.meetingMode,
+            dmTarget: state.dmTarget,
+          });
         } else {
           // Fallback: SSE streaming for text-only mode
           await sendMessageStream(state.roomId, content, state.userName || "Chairman", {
