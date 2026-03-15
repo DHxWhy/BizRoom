@@ -109,28 +109,29 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
       if (event.error !== "aborted") {
         console.error("Speech recognition error:", event.error);
       }
-      setStatus("idle");
-      isRecordingRef.current = false;
+      // Do NOT reset state here. The browser always fires onend after onerror,
+      // so let onend be the single authoritative cleanup path. Resetting here
+      // causes onend to see isRecordingRef=false and skip nulling recognitionRef,
+      // leaving a stale dead instance that breaks the next recording attempt.
     };
 
     recognition.onend = () => {
+      // onend is the single authoritative cleanup point — fires after both
+      // normal stop() calls and after onerror (browser always fires both).
       const wasRecording = isRecordingRef.current;
       isRecordingRef.current = false;
+      // Always clear the ref so the next startRecording() gets a fresh instance
+      // and stopRecording() cannot accidentally stop a stale dead instance.
+      recognitionRef.current = null;
 
       // Deliver transcript whether stopped by user (button release)
       // or auto-stopped by browser timeout (~60s)
       const finalText = transcriptRef.current;
-      if (finalText) {
+      if (wasRecording && finalText) {
         setStatus("processing");
         optionsRef.current.onTranscript?.(finalText);
       }
       setStatus("idle");
-
-      // If browser auto-stopped but user is still holding the button,
-      // the stopRecording() call will be a no-op (recognition already ended)
-      if (wasRecording) {
-        recognitionRef.current = null;
-      }
     };
 
     recognitionRef.current = recognition;
@@ -142,12 +143,16 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
   }, [isSupported]);
 
   const stopRecording = useCallback(() => {
-    // Safe to call even if recognition already auto-stopped (browser timeout)
-    if (recognitionRef.current) {
+    // Safe to call even if recognition already auto-stopped (browser timeout).
+    // Capture and immediately null the ref so a concurrent startRecording()
+    // cannot race and have stopRecording() acting on the wrong instance.
+    const recognition = recognitionRef.current;
+    if (recognition) {
+      recognitionRef.current = null;
       try {
-        recognitionRef.current.stop();
+        recognition.stop();
       } catch {
-        // Already stopped — ignore
+        // Already stopped — ignore. onend will fire and clean up state.
       }
     }
   }, []);
