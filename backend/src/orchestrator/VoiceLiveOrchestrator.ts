@@ -317,6 +317,28 @@ export function wireVoiceLiveForRoom(
     },
   );
 
+  // TurnManager -> Sophia: direct call from user (e.g., "소피아 시각화 해줘")
+  addRoomListener(
+    roomId,
+    turnManager,
+    "sophiaDirect:" + roomId,
+    (_rid: string, userInput: string) => {
+      // Sophia voice announcement
+      voiceLiveManager.triggerSophiaVoice(roomId, "네, 시각화 작업을 진행하겠습니다. 잠시만 기다려 주세요.");
+
+      // Sophia chat message
+      broadcastEvent(roomId, {
+        type: "sophiaMessage",
+        payload: { text: "시각화 작업을 진행하겠습니다. 잠시만 기다려 주세요." },
+      });
+
+      // Detect visual intent from user input and trigger generation
+      const hint = detectVisualIntent(userInput) ?? { type: "summary" as const, title: "요청 시각화" };
+      sophiaAgent.enqueueVisual(roomId, hint);
+      processVisualQueue(roomId);
+    },
+  );
+
   // TurnManager -> VoiceLive: trigger/cancel agents (room-scoped — no filtering needed)
   addRoomListener(
     roomId,

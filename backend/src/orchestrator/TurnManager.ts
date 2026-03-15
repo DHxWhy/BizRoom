@@ -385,7 +385,19 @@ export class TurnManager extends EventEmitter {
       addMessage(roomId, message);
     }
 
-    // 3. Determine agents via TopicClassifier
+    // 3. Check if user is directly calling Sophia
+    const sophiaMention = /소피아|sophia|소피야/i.test(room.combinedInput);
+    if (sophiaMention) {
+      // Emit sophia-direct event — VoiceLiveOrchestrator handles Sophia routing
+      this.emit("sophiaDirect:" + roomId, roomId, room.combinedInput);
+      room.inputBuffer = [];
+      room.interruptFlag = false;
+      room.followUpRound = 0;
+      this.transition(roomId, "idle");
+      return;
+    }
+
+    // 4. Determine agents via TopicClassifier
     const mentions = parseMentions(room.combinedInput);
     const { primaryAgent, secondaryAgents } = classifyTopic(room.combinedInput);
     room.agentQueue = determineAgentOrder(
