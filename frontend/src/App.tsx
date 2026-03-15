@@ -473,8 +473,8 @@ function MeetingRoom() {
           const typed = data as { openingMessage: Message };
           dispatch({ type: "ADD_MESSAGE", payload: typed.openingMessage });
 
-          // COO speaks the opening
-          dispatch({ type: "SET_SPEAKING", payload: "coo" });
+          // Sophia speaks the opening — camera focuses on blob
+          dispatch({ type: "SET_SPEAKING", payload: "sophia" });
           setTimeout(() => {
             dispatch({ type: "SET_SPEAKING", payload: null });
           }, 5000);
