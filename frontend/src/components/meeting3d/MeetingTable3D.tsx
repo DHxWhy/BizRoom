@@ -1,26 +1,48 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
+import { useTexture } from "@react-three/drei";
+import { RepeatWrapping } from "three";
 import type { Mesh } from "three";
 
 /** Central meeting table with chairs and props */
 export function MeetingTable3D() {
+  const [colorMap, normalMap, roughnessMap] = useTexture([
+    "/textures/wood-color.jpg",
+    "/textures/wood-normal.jpg",
+    "/textures/wood-roughness.jpg",
+  ]);
+
+  // Tile the wood texture for natural grain scale
+  [colorMap, normalMap, roughnessMap].forEach((tex) => {
+    tex.wrapS = tex.wrapT = RepeatWrapping;
+    tex.repeat.set(3, 3);
+  });
+
   return (
     <group>
       {/* ═══ TABLE ═══ */}
-      {/* Table top - dark walnut oval (scaled to ellipse for 7 seats) */}
+      {/* Table top - real wood texture oval (scaled to ellipse for 7 seats) */}
       <mesh position={[0, 0.72, 0]} scale={[1.3, 1, 1]} receiveShadow castShadow>
         <cylinderGeometry args={[1.4, 1.4, 0.06, 48]} />
         <meshStandardMaterial
-          color="#3a2718"
-          roughness={0.3}
-          metalness={0.05}
+          map={colorMap}
+          normalMap={normalMap}
+          roughnessMap={roughnessMap}
+          roughness={0.35}
+          metalness={0.02}
         />
       </mesh>
 
       {/* Table edge trim */}
       <mesh position={[0, 0.70, 0]} scale={[1.3, 1, 1]}>
         <cylinderGeometry args={[1.42, 1.42, 0.02, 48]} />
-        <meshStandardMaterial color="#2a1a0e" roughness={0.4} metalness={0.1} />
+        <meshStandardMaterial
+          map={colorMap}
+          normalMap={normalMap}
+          roughnessMap={roughnessMap}
+          roughness={0.4}
+          metalness={0.05}
+        />
       </mesh>
 
       {/* Table center pedestal */}

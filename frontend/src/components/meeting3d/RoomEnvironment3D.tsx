@@ -1,261 +1,264 @@
-import { Text } from "@react-three/drei";
-import { DoubleSide, BackSide } from "three";
+import { Text, useTexture } from "@react-three/drei";
+import { BackSide, RepeatWrapping } from "three";
+import type { Texture } from "three";
 
 /**
- * High-rise startup office — golden hour city view
+ * Modern bright meeting room — natural daylight, warm wood accents
  *
  * Layout (top view, camera at Z=-4.5 looking toward +Z):
- *   Back wall (Z=-6): Solid accent wall with BizRoom branding
- *   Left (X=-7): Floor-to-ceiling glass → city skyline
- *   Right (X=7): Floor-to-ceiling glass → city skyline
- *   Far (Z=7): Floor-to-ceiling glass → city skyline (main view)
- *   Floor: Polished dark concrete
- *   Ceiling: Clean white with modern pendant tracks
+ *   Back wall (Z=-7): Wood accent wall with BizRoom branding + TV
+ *   Left (X=-7): White wall with windows
+ *   Right (X=+7): White wall with windows
+ *   Far (Z=+7): Floor-to-ceiling glass → bright sky
+ *   Floor: Light warm gray carpet
+ *   Ceiling: Clean white with wood accent panel + recessed lights
  */
 
-const ROOM_W = 14; // X extent (-7 to +7)
-const ROOM_D = 14; // Z extent (-7 to +7)
+const ROOM_W = 14;
+const ROOM_D = 14;
 const ROOM_H = 4.8;
 const HALF_W = ROOM_W / 2;
 const HALF_D = ROOM_D / 2;
 
 export function RoomEnvironment3D() {
+  const [colorMap, normalMap, roughnessMap] = useTexture([
+    "/textures/wood-color.jpg",
+    "/textures/wood-normal.jpg",
+    "/textures/wood-roughness.jpg",
+  ]);
+
+  // Wall-scale tiling (larger surfaces need more repeats)
+  [colorMap, normalMap, roughnessMap].forEach((tex) => {
+    tex.wrapS = tex.wrapT = RepeatWrapping;
+    tex.repeat.set(5, 2);
+  });
+
   return (
     <group>
-      {/* ═══ SKY BACKDROP (visible through glass walls) ═══ */}
+      {/* ═══ BRIGHT SKY BACKDROP ═══ */}
       <SkyBackdrop />
 
-      {/* ═══ FLOOR — polished dark concrete ═══ */}
+      {/* ═══ FLOOR — dark warm gray carpet ═══ */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
         <planeGeometry args={[ROOM_W, ROOM_D]} />
         <meshStandardMaterial
-          color="#3a3a42"
-          roughness={0.25}
-          metalness={0.3}
+          color="#3d3835"
+          roughness={0.85}
+          metalness={0.0}
         />
       </mesh>
 
-      {/* ═══ CEILING — clean white ═══ */}
+      {/* ═══ CEILING — white with wood accent center ═══ */}
       <mesh position={[0, ROOM_H, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[ROOM_W, ROOM_D]} />
-        <meshStandardMaterial color="#e8e8ec" roughness={0.9} />
+        <meshStandardMaterial color="#f5f3f0" roughness={0.9} />
+      </mesh>
+      {/* Wood ceiling accent panel (center strip) */}
+      <mesh position={[0, ROOM_H - 0.02, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[5, 8]} />
+        <meshStandardMaterial color="#8b6914" roughness={0.6} metalness={0.05} />
       </mesh>
 
-      {/* ═══ BACK WALL (Z=-7) — solid accent wall ═══ */}
-      <BackWall />
+      {/* ═══ BACK WALL (Z=-7) — wood accent wall ═══ */}
+      <BackWall woodMaps={{ colorMap, normalMap, roughnessMap }} />
 
-      {/* ═══ GLASS WALLS (left, right, far) ═══ */}
-      {/* Left glass wall (X=-7) */}
-      <GlassWall
-        position={[-HALF_W, ROOM_H / 2, 0]}
-        rotation={[0, Math.PI / 2, 0]}
-        width={ROOM_D}
-        height={ROOM_H}
-      />
-      {/* Right glass wall (X=+7) */}
-      <GlassWall
-        position={[HALF_W, ROOM_H / 2, 0]}
-        rotation={[0, -Math.PI / 2, 0]}
-        width={ROOM_D}
-        height={ROOM_H}
-      />
-      {/* Far glass wall (Z=+7) — main city view */}
-      <GlassWall
-        position={[0, ROOM_H / 2, HALF_D]}
-        rotation={[0, Math.PI, 0]}
-        width={ROOM_W}
-        height={ROOM_H}
-      />
+      {/* ═══ SIDE WALLS — wood with windows ═══ */}
+      <SideWall position={[-HALF_W, ROOM_H / 2, 0]} rotation={[0, Math.PI / 2, 0]} width={ROOM_D} height={ROOM_H} woodMaps={{ colorMap, normalMap, roughnessMap }} />
+      <SideWall position={[HALF_W, ROOM_H / 2, 0]} rotation={[0, -Math.PI / 2, 0]} width={ROOM_D} height={ROOM_H} woodMaps={{ colorMap, normalMap, roughnessMap }} />
 
-      {/* ═══ CEILING TRACK LIGHTS ═══ */}
-      <TrackLight position={[-2.5, ROOM_H - 0.05, -1]} length={4} />
-      <TrackLight position={[2.5, ROOM_H - 0.05, -1]} length={4} />
-      <TrackLight position={[0, ROOM_H - 0.05, 2]} length={5} />
+      {/* ═══ FAR WALL (Z=+7) — interior wall with windows ═══ */}
+      <SideWall position={[0, ROOM_H / 2, HALF_D]} rotation={[0, Math.PI, 0]} width={ROOM_W} height={ROOM_H} woodMaps={{ colorMap, normalMap, roughnessMap }} />
 
-      {/* ═══ SUNLIGHT BEAM (golden hour from right) ═══ */}
+      {/* ═══ RECESSED CEILING LIGHTS ═══ */}
+      <RecessedLight position={[-3, ROOM_H - 0.04, -2]} />
+      <RecessedLight position={[3, ROOM_H - 0.04, -2]} />
+      <RecessedLight position={[-3, ROOM_H - 0.04, 2]} />
+      <RecessedLight position={[3, ROOM_H - 0.04, 2]} />
+      <RecessedLight position={[0, ROOM_H - 0.04, 0]} />
+      <RecessedLight position={[0, ROOM_H - 0.04, -4]} />
+      <RecessedLight position={[0, ROOM_H - 0.04, 4]} />
+
+      {/* ═══ MAIN LIGHTING — bright natural daylight ═══ */}
+      {/* Key light — warm daylight from windows right */}
       <directionalLight
-        position={[8, 6, 2]}
-        intensity={2.5}
-        color="#ffe0aa"
+        position={[10, 8, 3]}
+        intensity={3.0}
+        color="#fff8f0"
+        castShadow
       />
-      {/* ═══ FILL LIGHT (from left, cooler tone) ═══ */}
+      {/* Fill light — soft from left windows */}
       <directionalLight
-        position={[-6, 5, 3]}
-        intensity={0.8}
-        color="#cce0ff"
+        position={[-10, 7, 2]}
+        intensity={2.0}
+        color="#f0f4ff"
       />
+      {/* Top fill — overall ambient brightness */}
+      <directionalLight
+        position={[0, 10, 0]}
+        intensity={1.5}
+        color="#ffffff"
+      />
+      {/* Ambient — base brightness so nothing is too dark */}
+      <ambientLight intensity={0.8} color="#f5f0eb" />
 
       {/* ═══ DECOR ═══ */}
       <ModernPlant position={[-5.5, 0, -5]} scale={1.2} />
       <ModernPlant position={[5.5, 0, -5]} scale={1.0} />
-      <ModernPlant position={[-5.5, 0, 4.5]} scale={0.9} />
 
-      {/* Minimal shelf on back wall */}
-      <FloatingShelf position={[4, 2.0, -6.85]} />
-      <FloatingShelf position={[-4, 2.4, -6.85]} />
+      {/* Floating shelves on back wall */}
+      <FloatingShelf position={[4.5, 2.0, -6.85]} />
+      <FloatingShelf position={[-4.5, 2.4, -6.85]} />
     </group>
   );
 }
 
-/**
- * Atmospheric sky — layered gradient dome.
- * Deep indigo at zenith → warm amber at horizon → soft orange glow below.
- * No literal buildings — the atmosphere alone conveys height.
- */
+/** Bright daytime sky */
 function SkyBackdrop() {
   return (
     <group>
-      {/* Upper sky dome — deep twilight */}
+      {/* Upper sky — bright blue */}
       <mesh>
         <sphereGeometry args={[45, 24, 16]} />
-        <meshBasicMaterial color="#0d0b1a" side={BackSide} />
+        <meshBasicMaterial color="#87CEEB" side={BackSide} />
       </mesh>
 
-      {/* Mid-sky layer — warm purple transition */}
-      <mesh>
-        <sphereGeometry args={[44, 24, 8, 0, Math.PI * 2, 0.8, 0.7]} />
-        <meshBasicMaterial color="#2d1b4e" side={BackSide} transparent opacity={0.7} />
-      </mesh>
-
-      {/* Horizon glow — warm amber band */}
+      {/* Lower horizon — warm white haze */}
       <mesh position={[0, -5, 0]}>
-        <sphereGeometry args={[43, 32, 6, 0, Math.PI * 2, 0.6, 0.5]} />
-        <meshBasicMaterial color="#e8944a" side={BackSide} transparent opacity={0.5} />
+        <sphereGeometry args={[44, 24, 8, 0, Math.PI * 2, 0.7, 0.6]} />
+        <meshBasicMaterial color="#f0ece4" side={BackSide} transparent opacity={0.8} />
       </mesh>
 
-      {/* Horizon intense glow — golden line */}
-      <mesh position={[0, -8, 0]}>
-        <sphereGeometry args={[42, 32, 4, 0, Math.PI * 2, 0.4, 0.3]} />
-        <meshBasicMaterial color="#ffb347" side={BackSide} transparent opacity={0.6} />
-      </mesh>
-
-      {/* Below horizon — subtle warm ground */}
+      {/* Ground plane below horizon */}
       <mesh position={[0, -15, 0]}>
-        <sphereGeometry args={[41, 16, 4, 0, Math.PI * 2, 0.1, 0.5]} />
-        <meshBasicMaterial color="#1a1220" side={BackSide} transparent opacity={0.8} />
-      </mesh>
-
-      {/* Distant haze/fog plane at horizon level — adds depth */}
-      <mesh position={[0, 1.5, 20]} rotation={[0, 0, 0]}>
-        <planeGeometry args={[80, 6]} />
-        <meshBasicMaterial color="#d4864a" transparent opacity={0.12} side={DoubleSide} />
-      </mesh>
-      <mesh position={[20, 1.5, 0]} rotation={[0, -Math.PI / 2, 0]}>
-        <planeGeometry args={[80, 6]} />
-        <meshBasicMaterial color="#d4864a" transparent opacity={0.1} side={DoubleSide} />
-      </mesh>
-      <mesh position={[-20, 1.5, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <planeGeometry args={[80, 6]} />
-        <meshBasicMaterial color="#d4864a" transparent opacity={0.1} side={DoubleSide} />
+        <sphereGeometry args={[43, 16, 4, 0, Math.PI * 2, 0.1, 0.5]} />
+        <meshBasicMaterial color="#d4cfc8" side={BackSide} transparent opacity={0.6} />
       </mesh>
     </group>
   );
 }
 
-/** Floor-to-ceiling glass panel with mullions */
-function GlassWall({
+/** Wood wall with tall windows */
+function SideWall({
   position,
   rotation,
   width,
   height,
+  woodMaps,
 }: {
   position: [number, number, number];
   rotation: [number, number, number];
   width: number;
   height: number;
+  woodMaps: { colorMap: Texture; normalMap: Texture; roughnessMap: Texture };
 }) {
-  const mullionCount = Math.floor(width / 1.8);
+  const windowSpacing = 3.5;
+  const windowCount = Math.floor(width / windowSpacing);
 
   return (
     <group position={position} rotation={rotation}>
-      {/* Glass panel */}
+      {/* Solid wood wall */}
       <mesh>
         <planeGeometry args={[width, height]} />
         <meshStandardMaterial
-          color="#88ccff"
-          transparent
-          opacity={0.08}
-          roughness={0.05}
-          metalness={0.9}
+          map={woodMaps.colorMap}
+          normalMap={woodMaps.normalMap}
+          roughnessMap={woodMaps.roughnessMap}
+          roughness={0.55}
+          metalness={0.02}
         />
       </mesh>
 
-      {/* Subtle tint reflection layer */}
-      <mesh position={[0, 0, 0.01]}>
-        <planeGeometry args={[width, height]} />
-        <meshStandardMaterial
-          color="#aaddff"
-          transparent
-          opacity={0.04}
-          roughness={0.0}
-          metalness={1.0}
-        />
-      </mesh>
-
-      {/* Vertical mullions (thin dark frames) */}
-      {Array.from({ length: mullionCount + 1 }).map((_, i) => {
-        const x = -width / 2 + i * (width / mullionCount);
+      {/* Windows — bright rectangles */}
+      {Array.from({ length: windowCount }).map((_, i) => {
+        const x = -width / 2 + windowSpacing * 0.8 + i * windowSpacing;
         return (
-          <mesh key={`v${i}`} position={[x, 0, 0.02]}>
-            <boxGeometry args={[0.03, height, 0.02]} />
-            <meshStandardMaterial color="#1a1a1a" roughness={0.4} metalness={0.6} />
-          </mesh>
+          <group key={i}>
+            {/* Window pane — flat bright sky */}
+            <mesh position={[x, 0.3, 0.02]}>
+              <planeGeometry args={[1.4, 3.2]} />
+              <meshBasicMaterial color="#d0e8f8" />
+            </mesh>
+            {/* Window frame */}
+            <mesh position={[x, 0.3, 0.03]}>
+              <planeGeometry args={[1.5, 3.3]} />
+              <meshBasicMaterial color="#e8e4de" />
+            </mesh>
+            {/* Window cross frame */}
+            <mesh position={[x, 0.3, 0.05]}>
+              <boxGeometry args={[0.04, 3.2, 0.02]} />
+              <meshStandardMaterial color="#d0ccc4" roughness={0.4} />
+            </mesh>
+            <mesh position={[x, 0.3, 0.05]}>
+              <boxGeometry args={[1.4, 0.04, 0.02]} />
+              <meshStandardMaterial color="#d0ccc4" roughness={0.4} />
+            </mesh>
+            {/* Light glow from window */}
+            <pointLight position={[x, 0.5, 0.3]} color="#f8f4ee" intensity={0.5} distance={5} />
+          </group>
         );
       })}
 
-      {/* Horizontal mullion at mid height */}
-      <mesh position={[0, 0, 0.02]}>
-        <boxGeometry args={[width, 0.03, 0.02]} />
-        <meshStandardMaterial color="#1a1a1a" roughness={0.4} metalness={0.6} />
-      </mesh>
-
-      {/* Floor-level baseboard */}
-      <mesh position={[0, -height / 2 + 0.05, 0.03]}>
-        <boxGeometry args={[width, 0.1, 0.04]} />
-        <meshStandardMaterial color="#222" roughness={0.5} metalness={0.3} />
+      {/* Baseboard */}
+      <mesh position={[0, -height / 2 + 0.06, 0.02]}>
+        <boxGeometry args={[width, 0.12, 0.03]} />
+        <meshStandardMaterial color="#e0dcd4" roughness={0.6} />
       </mesh>
     </group>
   );
 }
 
-/** Back accent wall — dark wood panels + BizRoom branding */
-function BackWall() {
+
+/** Back accent wall — wood panels + BizRoom branding */
+function BackWall({ woodMaps }: { woodMaps: { colorMap: Texture; normalMap: Texture; roughnessMap: Texture } }) {
   return (
     <group>
-      {/* Main wall — warm dark charcoal */}
+      {/* Main wall — wood texture */}
       <mesh position={[0, ROOM_H / 2, -HALF_D]}>
         <planeGeometry args={[ROOM_W, ROOM_H]} />
-        <meshStandardMaterial color="#1e1e24" roughness={0.7} />
+        <meshStandardMaterial
+          map={woodMaps.colorMap}
+          normalMap={woodMaps.normalMap}
+          roughnessMap={woodMaps.roughnessMap}
+          roughness={0.55}
+          metalness={0.02}
+        />
       </mesh>
 
-      {/* Wood accent panel (center) */}
+      {/* Darker wood accent panel (center) */}
       <mesh position={[0, ROOM_H / 2, -HALF_D + 0.02]}>
         <planeGeometry args={[6, ROOM_H - 0.2]} />
-        <meshStandardMaterial color="#3a2a1e" roughness={0.6} metalness={0.05} />
+        <meshStandardMaterial
+          map={woodMaps.colorMap}
+          normalMap={woodMaps.normalMap}
+          roughnessMap={woodMaps.roughnessMap}
+          color="#8b6914"
+          roughness={0.45}
+          metalness={0.05}
+        />
       </mesh>
 
-      {/* Vertical wood slat accents */}
-      {Array.from({ length: 12 }).map((_, i) => (
-        <mesh key={i} position={[-2.7 + i * 0.5, ROOM_H / 2, -HALF_D + 0.04]}>
-          <boxGeometry args={[0.08, ROOM_H - 0.4, 0.02]} />
-          <meshStandardMaterial color="#4a3828" roughness={0.5} />
+      {/* Horizontal wood plank lines */}
+      {Array.from({ length: 16 }).map((_, i) => (
+        <mesh key={i} position={[0, 0.3 + i * 0.28, -HALF_D + 0.04]}>
+          <boxGeometry args={[5.8, 0.01, 0.01]} />
+          <meshStandardMaterial color="#6b4e12" roughness={0.5} />
         </mesh>
       ))}
 
-      {/* BizRoom logo — backlit panel */}
-      <mesh position={[0, 3.6, -HALF_D + 0.08]}>
+      {/* BizRoom logo — clean white on wood */}
+      <mesh position={[0, 3.8, -HALF_D + 0.06]}>
         <planeGeometry args={[2.4, 0.5]} />
         <meshStandardMaterial
-          color="#0a0a14"
-          emissive="#6366f1"
-          emissiveIntensity={0.4}
-          roughness={0.2}
+          color="#2a2420"
+          roughness={0.3}
+          transparent
+          opacity={0.7}
         />
       </mesh>
       <Text
-        position={[0, 3.6, -HALF_D + 0.1]}
+        position={[0, 3.8, -HALF_D + 0.08]}
         fontSize={0.22}
-        color="#c7d2fe"
+        color="#ffffff"
         anchorX="center"
         anchorY="middle"
         letterSpacing={0.15}
@@ -264,38 +267,34 @@ function BackWall() {
       </Text>
 
       {/* Subtle LED strip under logo */}
-      <mesh position={[0, 3.3, -HALF_D + 0.06]}>
-        <boxGeometry args={[2.4, 0.015, 0.01]} />
-        <meshBasicMaterial color="#6366f1" transparent opacity={0.6} />
+      <mesh position={[0, 3.5, -HALF_D + 0.06]}>
+        <boxGeometry args={[2.0, 0.01, 0.01]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.5} />
       </mesh>
     </group>
   );
 }
 
-/** Modern ceiling track light */
-function TrackLight({ position, length }: { position: [number, number, number]; length: number }) {
+/** Recessed ceiling downlight */
+function RecessedLight({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      {/* Track rail */}
+      {/* Housing */}
       <mesh>
-        <boxGeometry args={[length, 0.025, 0.04]} />
-        <meshStandardMaterial color="#1a1a1a" roughness={0.3} metalness={0.7} />
+        <cylinderGeometry args={[0.08, 0.1, 0.04, 12]} />
+        <meshStandardMaterial color="#e8e4de" roughness={0.6} />
       </mesh>
-      {/* Light fixtures along track */}
-      {Array.from({ length: Math.floor(length / 1.2) }).map((_, i) => {
-        const x = -length / 2 + 0.6 + i * 1.2;
-        return (
-          <mesh key={i} position={[x, -0.04, 0]}>
-            <cylinderGeometry args={[0.06, 0.04, 0.08, 8]} />
-            <meshStandardMaterial
-              color="#f5f5f0"
-              emissive="#fff5e6"
-              emissiveIntensity={3.5}
-              roughness={0.3}
-            />
-          </mesh>
-        );
-      })}
+      {/* Bulb glow */}
+      <mesh position={[0, -0.02, 0]}>
+        <cylinderGeometry args={[0.06, 0.06, 0.02, 12]} />
+        <meshStandardMaterial
+          color="#fff8f0"
+          emissive="#fff5e6"
+          emissiveIntensity={2.0}
+          roughness={0.3}
+        />
+      </mesh>
+      <pointLight position={[0, -0.1, 0]} color="#fff5e6" intensity={0.6} distance={4} />
     </group>
   );
 }
@@ -304,28 +303,28 @@ function TrackLight({ position, length }: { position: [number, number, number]; 
 function ModernPlant({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
   return (
     <group position={position} scale={scale}>
-      {/* Concrete pot */}
+      {/* Dark pot */}
       <mesh position={[0, 0.2, 0]}>
-        <cylinderGeometry args={[0.12, 0.15, 0.4, 8]} />
-        <meshStandardMaterial color="#9a9a98" roughness={0.8} metalness={0.05} />
+        <cylinderGeometry args={[0.14, 0.16, 0.4, 8]} />
+        <meshStandardMaterial color="#2a2a28" roughness={0.8} metalness={0.05} />
       </mesh>
       {/* Stem */}
       <mesh position={[0, 0.7, 0]}>
         <cylinderGeometry args={[0.015, 0.015, 0.8, 4]} />
         <meshStandardMaterial color="#4a6a3a" roughness={0.9} />
       </mesh>
-      {/* Leaves cluster */}
+      {/* Leaves cluster — rich green */}
       <mesh position={[0, 1.1, 0]}>
-        <sphereGeometry args={[0.22, 8, 6]} />
-        <meshStandardMaterial color="#2a5a2a" roughness={0.85} />
+        <sphereGeometry args={[0.25, 8, 6]} />
+        <meshStandardMaterial color="#2d6b2d" roughness={0.8} />
       </mesh>
-      <mesh position={[0.12, 1.25, 0.05]}>
-        <sphereGeometry args={[0.16, 6, 5]} />
-        <meshStandardMaterial color="#3a7a3a" roughness={0.85} />
+      <mesh position={[0.14, 1.28, 0.05]}>
+        <sphereGeometry args={[0.18, 6, 5]} />
+        <meshStandardMaterial color="#3a8a3a" roughness={0.8} />
       </mesh>
-      <mesh position={[-0.08, 1.2, -0.06]}>
-        <sphereGeometry args={[0.14, 6, 5]} />
-        <meshStandardMaterial color="#2a6a30" roughness={0.85} />
+      <mesh position={[-0.1, 1.22, -0.06]}>
+        <sphereGeometry args={[0.15, 6, 5]} />
+        <meshStandardMaterial color="#2a7a30" roughness={0.8} />
       </mesh>
     </group>
   );
@@ -335,12 +334,10 @@ function ModernPlant({ position, scale = 1 }: { position: [number, number, numbe
 function FloatingShelf({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      {/* Shelf board */}
       <mesh>
         <boxGeometry args={[1.2, 0.03, 0.22]} />
-        <meshStandardMaterial color="#3a2a1e" roughness={0.5} />
+        <meshStandardMaterial color="#8b6914" roughness={0.5} />
       </mesh>
-      {/* Book stack */}
       <mesh position={[-0.3, 0.08, 0]}>
         <boxGeometry args={[0.15, 0.12, 0.12]} />
         <meshStandardMaterial color="#1a3a5a" roughness={0.7} />
@@ -349,7 +346,6 @@ function FloatingShelf({ position }: { position: [number, number, number] }) {
         <boxGeometry args={[0.12, 0.09, 0.12]} />
         <meshStandardMaterial color="#5a2a1a" roughness={0.7} />
       </mesh>
-      {/* Small decorative object */}
       <mesh position={[0.3, 0.06, 0]}>
         <sphereGeometry args={[0.05, 8, 8]} />
         <meshStandardMaterial color="#d4af37" roughness={0.3} metalness={0.7} />
