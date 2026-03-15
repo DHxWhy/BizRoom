@@ -256,43 +256,33 @@ export function useSignalR(
       content: string,
       senderName: string,
     ): Promise<void> => {
-      const connection = connectionRef.current;
+      // Always use REST POST — Azure Functions serverless mode does not
+      // support hub method invocation. SignalR is receive-only (server push).
+      // POST /api/message (without ?stream=true) routes through TurnManager
+      // which triggers VoiceLive audio generation pipeline.
+      const response = await fetch(`${API_BASE}/api/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content,
+          roomId,
+          senderId: "user-1",
+          senderName,
+        }),
+      });
 
-      if (connection?.state === HubConnectionState.Connected) {
-        // Real-time path: invoke the hub method directly
-        await connection.invoke("SendMessage", roomId, content, senderName);
-      } else {
-        // REST fallback for MVP (when SignalR backend is not configured)
-        // Show typing indicator before API call
-        optionsRef.current.onTyping?.("Hudson", true);
+      if (response.ok) {
+        const data: unknown = await response.json();
 
-        const response = await fetch(`${API_BASE}/api/message`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            content,
-            roomId,
-            senderId: "user-1",
-            senderName,
-          }),
-        });
-
-        // Clear typing indicator after response arrives
-        optionsRef.current.onTyping?.("Hudson", false);
-
-        if (response.ok) {
-          const data: unknown = await response.json();
-
-          // Dispatch each message returned from the REST endpoint
-          if (
-            data !== null &&
-            typeof data === "object" &&
-            "messages" in data &&
-            Array.isArray((data as { messages: unknown }).messages)
-          ) {
-            for (const msg of (data as { messages: Message[] }).messages) {
-              optionsRef.current.onMessage?.(msg);
-            }
+        // Dispatch each message returned from the REST endpoint
+        if (
+          data !== null &&
+          typeof data === "object" &&
+          "messages" in data &&
+          Array.isArray((data as { messages: unknown }).messages)
+        ) {
+          for (const msg of (data as { messages: Message[] }).messages) {
+            optionsRef.current.onMessage?.(msg);
           }
         }
       }

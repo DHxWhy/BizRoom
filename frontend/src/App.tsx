@@ -370,11 +370,16 @@ function MeetingRoom() {
       }
 
       try {
-        // Streaming mode: real-time text display (onStreamStart/Delta/End callbacks handle it)
-        await sendMessageStream(state.roomId, content, state.userName || "Chairman", {
-          mode: state.meetingMode,
-          dmTarget: state.dmTarget,
-        });
+        if (connectionStatus === "connected") {
+          // VoiceLive mode: route through TurnManager for audio + text
+          await sendMessage(state.roomId, content, state.userName || "Chairman");
+        } else {
+          // Fallback: SSE streaming for text-only mode
+          await sendMessageStream(state.roomId, content, state.userName || "Chairman", {
+            mode: state.meetingMode,
+            dmTarget: state.dmTarget,
+          });
+        }
       } catch {
         // Streaming failure: fall back to REST
         await sendMessage(state.roomId, content, state.userName || "Chairman");
@@ -388,6 +393,7 @@ function MeetingRoom() {
       dispatch,
       sendMessage,
       sendMessageStream,
+      connectionStatus,
       getTypingAgentsForMode,
       state.roomId,
       state.userId,
