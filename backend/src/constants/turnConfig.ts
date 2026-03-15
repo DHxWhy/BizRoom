@@ -10,8 +10,8 @@ export const MEMBER_FLUSH_MS = 500;
 /** Gap between sequential agent responses — minimal for snappy conversation */
 export const INTER_AGENT_GAP_MS = 500;
 
-/** Maximum agents responding per turn (DialogLab constraint) */
-export const MAX_AGENTS_PER_TURN = 2;
+/** Maximum agents responding per turn — all 6 C-Suite executives participate */
+export const MAX_AGENTS_PER_TURN = 6;
 
 /** Maximum A2A follow-up rounds */
 export const MAX_FOLLOW_UP_ROUNDS = 2;

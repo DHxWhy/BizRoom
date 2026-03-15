@@ -491,6 +491,15 @@ export function determineAgentOrder(
     }
   }
 
+  // P4: Remaining agents — everyone participates in the meeting
+  const allRoles: AgentRole[] = ["coo", "cfo", "cmo", "cto", "cdo", "clo"];
+  for (const role of allRoles) {
+    if (!added.has(role)) {
+      entries.push({ role, priority: 4 });
+      added.add(role);
+    }
+  }
+
   return entries.sort((a, b) => a.priority - b.priority);
 }
 
