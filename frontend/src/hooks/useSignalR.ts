@@ -145,9 +145,12 @@ export function useSignalR(
         updateStatus("connecting");
 
         const connection = new HubConnectionBuilder()
-          .withUrl(NEGOTIATE_URL)
+          .withUrl(NEGOTIATE_URL, {
+            // Required for Azure SignalR Service serverless — custom negotiate
+            // returns { url, accessToken } and @microsoft/signalr handles the rest
+          })
           .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
-          .configureLogging(LogLevel.Information)
+          .configureLogging(LogLevel.Debug)
           .build();
 
         // --- Hub event handlers ---

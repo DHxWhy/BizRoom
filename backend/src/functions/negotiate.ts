@@ -67,6 +67,7 @@ export async function negotiate(
   return {
     status: 200,
     jsonBody: {
+      negotiateVersion: 1,
       url: `${endpoint}/client/?hub=${hubName}`,
       accessToken: token,
     },
