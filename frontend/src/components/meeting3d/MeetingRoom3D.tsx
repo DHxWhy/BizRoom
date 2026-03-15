@@ -88,7 +88,7 @@ const HUMAN_EXTRA_SEATS: [number, number, number][] = [
 ];
 
 /** Sophia blob — floating above the center of the round table */
-const SOPHIA_BLOB_POSITION: [number, number, number] = [0, 1.25, 0];
+const SOPHIA_BLOB_POSITION: [number, number, number] = [0, 2.2, 0];
 
 // Memoize static sub-scenes to prevent unnecessary re-renders
 const MemoizedRoom = memo(RoomEnvironment3D);
