@@ -128,16 +128,17 @@ export function wireVoiceLiveForRoom(
     voiceLiveManager,
     "agentDone:" + roomId,
     (_rid: string, role: AgentRole, fullText: string) => {
-      broadcastEvent(roomId, {
-        type: "agentResponseDone",
-        payload: { role, fullText },
-      });
-
       // Sophia voice announcements bypass the C-Suite pipeline entirely
       if ((role as string) === "sophia") return;
 
-      // Sophia background pipeline — parse, buffer, route, visualize
+      // Parse structured output FIRST — extract speech from JSON
       const parsed = parseStructuredOutput(fullText, role);
+
+      // Broadcast only the speech text (not raw JSON) to frontend chat
+      broadcastEvent(roomId, {
+        type: "agentResponseDone",
+        payload: { role, fullText: parsed.data.speech },
+      });
 
       // 1. Buffer accumulation (always)
       sophiaAgent.addToBuffer(roomId, {

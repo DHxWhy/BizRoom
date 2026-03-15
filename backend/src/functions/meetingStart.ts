@@ -1,6 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { AGENT_CONFIGS } from "../agents/agentConfigs.js";
-import { invokeAgent } from "../agents/AgentFactory.js";
+// invokeAgent no longer needed — Sophia handles opening directly
 import {
   getOrCreateRoom,
   setPhase,
@@ -74,31 +74,25 @@ export async function meetingStart(
     icon: config.icon,
   }));
 
-  // COO Hudson opens the meeting
-  let openingMessage: Message | null = null;
+  // Sophia opens the meeting with a brief announcement
+  const sophiaOpening = `안녕하세요, ${body.userName}님. BizRoom 회의를 시작합니다. 오늘 안건은 "${agenda}"입니다. 말씀해 주세요.`;
+  const openingMessage: Message = {
+    id: uuidv4(),
+    roomId,
+    senderId: "agent-sophia",
+    senderType: "agent",
+    senderName: "Sophia",
+    senderRole: "sophia" as Message["senderRole"],
+    content: sophiaOpening,
+    timestamp: new Date().toISOString(),
+  };
+  addMessage(roomId, openingMessage);
+
+  // Trigger Sophia voice announcement for the opening
   try {
-    const cooResponse = await invokeAgent("coo", `회의를 시작합니다. 오늘의 안건: ${agenda}`, {
-      participants: `${body.userName} (Chairman), Hudson (COO), Amelia (CFO), Yusef (CMO)`,
-      agenda,
-      history: "",
-      brandMemory: validBrandMemory ?? undefined,
-    });
-
-    openingMessage = {
-      id: uuidv4(),
-      roomId,
-      senderId: "agent-coo",
-      senderType: "agent",
-      senderName: cooResponse.name,
-      senderRole: "coo",
-      content: cooResponse.content,
-      timestamp: new Date().toISOString(),
-    };
-
-    // Store opening message in context
-    addMessage(roomId, openingMessage);
+    await voiceLiveManager.triggerSophiaVoice(roomId, sophiaOpening);
   } catch (err) {
-    context.log("COO opening failed:", err);
+    context.log("Sophia opening voice failed:", err);
   }
 
   return {
