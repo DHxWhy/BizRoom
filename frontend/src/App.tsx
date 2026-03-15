@@ -81,7 +81,7 @@ const STATUS_LABEL_MAP: Record<ConnectionStatus, string> = {
   connected: "Connected",
   connecting: "Connecting...",
   reconnecting: "Reconnecting...",
-  disconnected: "Connected",
+  disconnected: "Disconnected",
 };
 
 /** Small indicator showing the current SignalR / REST connection state.

@@ -49,7 +49,8 @@ if (signalRConfig) {
 function generateManagementToken(config: SignalRConfig, hubName: string): string {
   const now = Math.floor(Date.now() / 1000);
   const exp = now + 60; // 60-second expiry is sufficient for a single REST call
-  const audience = `${config.endpoint}/api/v1/hubs/${hubName}`;
+  // Azure SignalR Management REST API audience = base endpoint (not the full API path)
+  const audience = `${config.endpoint}`;
 
   const b64url = (str: string) => Buffer.from(str).toString("base64url");
   const header = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
