@@ -173,6 +173,9 @@ export class VoiceLiveSessionManager extends EventEmitter {
       }
     }
 
+    // Cancel any in-flight Sophia response to avoid race condition
+    ws.send(JSON.stringify({ type: "response.cancel" }));
+
     ws.send(
       JSON.stringify({
         type: "response.create",
