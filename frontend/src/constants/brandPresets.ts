@@ -25,19 +25,11 @@ export const BRAND_PRESETS: Record<string, { label: string; data: BrandMemorySet
       targetCustomer: "1인 창업자, 마이크로 기업 대표, 프리랜서",
       techStack:
         "Azure Functions, OpenAI GPT Realtime 1.5 (음성), Whisper-1 (STT), Anthropic Claude (텍스트), Azure SignalR, React Three Fiber, Microsoft Graph API",
-      revenueModel: "월 구독 SaaS",
+      revenueModel: "월 구독형 SaaS (Freemium → Pro → Team 티어)",
       pricing: [
-        { name: "Free", price: "무료", features: "월 3회 회의, 기본 요약" },
-        {
-          name: "Pro",
-          price: "$39/월",
-          features: "월 30회 회의 + 산출물 생성 + OneDrive 연동",
-        },
-        {
-          name: "Team",
-          price: "$79/월",
-          features: "최대 3명 참여 + 커스텀 에이전트 역할",
-        },
+        { name: "Freemium", price: "무료", features: "기본 체험" },
+        { name: "Pro", price: "$39/월", features: "개인 사용자" },
+        { name: "Team", price: "$79/월", features: "팀 협업" },
       ],
       marketSize: "글로벌 솔로프리너 1.5억 명, AI SaaS 시장 $303억 (2026)",
       marketStats: [
