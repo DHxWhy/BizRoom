@@ -380,6 +380,7 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
                   agentRole="MEMBER"
                   agentName={participant.name}
                   color={pColor}
+                  monitorData={monitorData?.["chairman"]}
                 />
                 {/* Name badge above seat */}
                 <Billboard position={[seat.position[0], 1.75, seat.position[2]]}>
