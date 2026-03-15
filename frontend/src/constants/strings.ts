@@ -70,6 +70,16 @@ export const S = {
     minutes: "회의록",
     excel: "Excel 보고서",
   },
+  drawer: {
+    title: "자료실",
+    visualizations: "시각화",
+    searchResults: "조사 결과",
+    meetingArtifacts: "회의 산출물",
+    preview: "바로보기",
+    download: "다운로드",
+    empty: "아직 생성된 자료가 없습니다",
+    close: "닫기",
+  },
   camera: {
     firstPersonHint: "1인칭 · V 전환",
     overviewHint: "전체 시점 · V 전환",

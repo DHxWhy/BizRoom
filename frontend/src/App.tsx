@@ -15,6 +15,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ChatOverlay } from "./components/meeting3d/ChatOverlay";
 import { LoadingScreen } from "./components/meeting3d/LoadingScreen";
 import { LobbyPage } from "./components/lobby/LobbyPage";
+import { ArtifactDrawer } from "./components/artifact/ArtifactDrawer";
 import { S } from "./constants/strings";
 import { API_BASE } from "./config/api";
 import type {
@@ -189,6 +190,10 @@ function MeetingRoom() {
   const speakingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const { leaveRoom, getShareUrl } = useSessionRoom();
   const [linkCopied, setLinkCopied] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const toggleDrawer = useCallback(() => setIsDrawerOpen((v) => !v), []);
+  const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
   // Voice Live hooks
   const { isMicOn, isMicConnecting, toggleMic } = useVoiceLive({
@@ -624,8 +629,25 @@ function MeetingRoom() {
             <MeetingBanner phase={state.meetingPhase} />
           </div>
           {isActive && (
-            <div className="mr-4 mt-2">
+            <div className="mr-4 mt-2 flex items-center gap-2">
               <ModeSelector currentMode={state.meetingMode} onModeChange={handleModeChange} />
+              {/* Artifact drawer toggle */}
+              <button
+                onClick={toggleDrawer}
+                className="w-8 h-8 rounded-lg
+                           bg-neutral-800/40 backdrop-blur-sm border border-neutral-700/20
+                           flex items-center justify-center
+                           hover:bg-neutral-700/50 hover:border-neutral-600/30
+                           transition-all
+                           opacity-0 animate-[fadeIn_0.3s_ease-out_forwards]"
+                title={S.drawer.title}
+                aria-label={S.drawer.title}
+              >
+                <svg className="w-3.5 h-3.5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+              </button>
             </div>
           )}
         </div>
@@ -741,6 +763,16 @@ function MeetingRoom() {
           </div>
         </div>
       )}
+
+      {/* ═══ ARTIFACT DRAWER ═══ */}
+      <ArtifactDrawer
+        isOpen={isDrawerOpen}
+        onClose={closeDrawer}
+        bigScreenHistory={state.bigScreenHistory}
+        sophiaMessages={state.sophiaMessages}
+        artifacts={state.artifacts}
+        readyArtifacts={state.readyArtifacts}
+      />
 
       {/* ═══ CHAT OVERLAY (right side) ═══ */}
       <ChatOverlay isActive={isActive}>
