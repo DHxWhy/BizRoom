@@ -29,6 +29,10 @@ export interface VisualArtifact {
 export interface VisualQueueItem {
   hint: VisualHint;
   addedAt: number;
+  /** True when triggered by a direct user request to Sophia (sophiaDirect event).
+   * Used to suppress the post-generation voice announcement since an acknowledgment
+   * voice line was already played at request time, preventing double TTS. */
+  fromDirect: boolean;
 }
 
 interface ActionItemDraft {
@@ -99,10 +103,10 @@ export class SophiaAgent {
     return state.buffer.slice(-count).map((e) => `${e.speaker}: ${e.speech}`);
   }
 
-  enqueueVisual(roomId: string, hint: VisualHint): void {
+  enqueueVisual(roomId: string, hint: VisualHint, fromDirect = false): void {
     const state = this.rooms.get(roomId);
     if (!state) return;
-    state.visualQueue.push({ hint, addedAt: Date.now() });
+    state.visualQueue.push({ hint, addedAt: Date.now(), fromDirect });
   }
 
   dequeueVisual(roomId: string): VisualQueueItem | undefined {

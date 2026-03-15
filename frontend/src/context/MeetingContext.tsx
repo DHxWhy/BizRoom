@@ -315,7 +315,23 @@ function meetingReducer(state: MeetingState, action: MeetingAction): MeetingStat
       };
     case "ADD_SOPHIA_MESSAGE": {
       const next = [...state.sophiaMessages, action.payload];
-      return { ...state, sophiaMessages: next.length > 50 ? next.slice(-50) : next };
+      // Also inject the Sophia message into the main chat messages array so it
+      // appears in the ChatRoom UI. sophiaMessages is kept for history/reference.
+      const sophiaChatMessage: Message = {
+        id: crypto.randomUUID(),
+        roomId: state.roomId,
+        senderId: "agent-sophia",
+        senderType: "agent",
+        senderName: "Sophia",
+        senderRole: "sophia",
+        content: action.payload.text,
+        timestamp: new Date().toISOString(),
+      };
+      return {
+        ...state,
+        sophiaMessages: next.length > 50 ? next.slice(-50) : next,
+        messages: [...state.messages, sophiaChatMessage],
+      };
     }
     case "SET_READY_ARTIFACTS":
       return { ...state, readyArtifacts: action.payload };

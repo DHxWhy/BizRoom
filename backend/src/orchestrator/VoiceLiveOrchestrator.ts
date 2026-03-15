@@ -332,9 +332,11 @@ export function wireVoiceLiveForRoom(
         payload: { text: "시각화 작업을 진행하겠습니다. 잠시만 기다려 주세요." },
       });
 
-      // Detect visual intent from user input and trigger generation
+      // Detect visual intent from user input and trigger generation.
+      // Pass fromDirect=true so processVisualQueue skips the post-generation
+      // voice announcement (the acknowledgment line above already plays TTS).
       const hint = detectVisualIntent(userInput) ?? { type: "summary" as const, title: "요청 시각화" };
-      sophiaAgent.enqueueVisual(roomId, hint);
+      sophiaAgent.enqueueVisual(roomId, hint, true);
       processVisualQueue(roomId);
     },
   );
@@ -466,8 +468,14 @@ function processVisualQueue(roomId: string): void {
         type: "sophiaMessage",
         payload: { text: `${item.hint.title}를 빅스크린에 띄웠습니다` },
       });
-      // Sophia voice announcement — brief TTS
-      voiceLiveManager.triggerSophiaVoice(roomId, `${item.hint.title}를 빅스크린에 띄웠습니다`);
+      // Note: sophiaDirect handler already fired an acknowledgment voice line.
+      // Only trigger a completion voice here when NOT initiated by sophiaDirect
+      // (i.e., when triggered by structured visual_hint or keyword detection from
+      // agent response — not a direct user request to Sophia).
+      // The item carries a flag to distinguish these paths.
+      if (!item.fromDirect) {
+        voiceLiveManager.triggerSophiaVoice(roomId, `${item.hint.title}를 빅스크린에 띄웠습니다`);
+      }
       sophiaAgent.addVisualToHistory(roomId, {
         type: item.hint.type,
         title: item.hint.title,

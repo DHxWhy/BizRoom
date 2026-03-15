@@ -88,6 +88,7 @@ interface UseSignalRReturn {
     roomId: string,
     content: string,
     senderName: string,
+    options?: { isChairman?: boolean; mode?: string; dmTarget?: string | null },
   ) => Promise<void>;
   /** SSE 스트리밍으로 메시지를 전송하고 delta를 실시간 수신 */
   sendMessageStream: (

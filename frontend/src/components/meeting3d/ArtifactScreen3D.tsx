@@ -1,4 +1,4 @@
-import { memo, useRef, useMemo, useEffect } from "react";
+import { memo, useRef, useMemo, useEffect, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import type { Mesh, MeshStandardMaterial } from "three";
@@ -96,28 +96,39 @@ function CornerBracket({
  * Idle screen — "BizRoom.ai" logo with breathing animation and ambient scanlines.
  */
 const IdleScreen = memo(function IdleScreen() {
-  const textRef = useRef<Mesh>(null);
+  // Three.js Text from drei uses MeshBasicMaterial which has no emissive property.
+  // Attempting to read mat.emissive on MeshBasicMaterial returns undefined and
+  // crashes Three.js 0.170 refreshMaterialUniforms every frame. Use a separate
+  // mesh overlay for the pulse effect instead of mutating the Text material.
+  const glowRef = useRef<Mesh>(null);
 
   useFrame((state) => {
-    if (!textRef.current) return;
-    const mat = textRef.current.material as MeshStandardMaterial;
-    if (!mat.emissive) return;
+    if (!glowRef.current) return;
+    const mat = glowRef.current.material as MeshStandardMaterial;
     const pulse = 0.12 + Math.sin(state.clock.elapsedTime * 1.2) * 0.06;
     mat.emissiveIntensity = pulse;
   });
 
   return (
     <group>
+      {/* Glow plane behind the text — driven by useFrame (MeshStandardMaterial is safe here) */}
+      <mesh ref={glowRef} position={[0, 0.15, 0.003]}>
+        <planeGeometry args={[1.4, 0.35]} />
+        <meshStandardMaterial
+          color="#8b8fdb"
+          emissive="#8b8fdb"
+          emissiveIntensity={0.12}
+          transparent
+          opacity={0}
+        />
+      </mesh>
       <Text
-        ref={textRef}
         position={[0, 0.15, 0.006]}
         fontSize={0.22}
         color="#8b8fdb"
         anchorX="center"
         anchorY="middle"
         letterSpacing={0.12}
-        material-emissive={new THREE.Color("#8b8fdb")}
-        material-emissiveIntensity={0.12}
       >
         BizRoom.ai
       </Text>
@@ -230,11 +241,12 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
   const prevArtifactRef = useRef<string | null>(null);
   const pulseTimerRef = useRef(0);
 
-  // Offscreen canvas for BigScreen SVG rendering
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const textureRef = useRef<THREE.CanvasTexture | null>(null);
+  // React-state-driven canvas texture — avoids R3F JSX reconciler overwriting
+  // imperative mat.map mutations on re-renders (Bug 4 root cause).
+  const [bigScreenTexture, setBigScreenTexture] = useState<THREE.CanvasTexture | null>(null);
 
-  // Create offscreen canvas once
+  // Offscreen canvas for BigScreen SVG rendering — created once
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 1024;
@@ -242,24 +254,18 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
     canvasRef.current = canvas;
     return () => {
       canvasRef.current = null;
-      textureRef.current?.dispose();
-      textureRef.current = null;
     };
   }, []);
 
-  // Render BigScreen SVG to canvas texture when event changes
+  // Render BigScreen SVG to canvas texture when event changes.
+  // We drive the texture through React state so R3F's JSX reconciler
+  // sees the updated map prop and never reverts it to null on re-render.
   useEffect(() => {
     if (!bigScreenEvent || !canvasRef.current) {
-      // Clear texture from screen mesh
-      if (textureRef.current) {
-        textureRef.current.dispose();
-        textureRef.current = null;
-      }
-      if (screenRef.current) {
-        const mat = screenRef.current.material as THREE.MeshStandardMaterial;
-        mat.map = null;
-        mat.needsUpdate = true;
-      }
+      setBigScreenTexture((prev) => {
+        prev?.dispose();
+        return null;
+      });
       return;
     }
 
@@ -267,23 +273,25 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
     void renderToCanvas(canvas, bigScreenEvent)
       .then(() => {
         if (!canvasRef.current) return;
-        if (textureRef.current) textureRef.current.dispose();
         const tex = new THREE.CanvasTexture(canvasRef.current);
         tex.needsUpdate = true;
-        textureRef.current = tex;
-        // Apply texture to screen mesh
-        if (screenRef.current) {
-          const mat = screenRef.current.material as THREE.MeshStandardMaterial;
-          mat.map = tex;
-          mat.emissive = new THREE.Color("#111122");
-          mat.emissiveIntensity = 0.15;
-          mat.needsUpdate = true;
-        }
+        setBigScreenTexture((prev) => {
+          prev?.dispose();
+          return tex;
+        });
       })
       .catch((err) => {
         console.error("[BigScreen] renderToCanvas failed:", err);
       });
   }, [bigScreenEvent]);
+
+  // Dispose texture on unmount
+  useEffect(() => {
+    return () => {
+      bigScreenTexture?.dispose();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useFrame((state, delta) => {
     const hasArtifact = artifact !== null;
@@ -309,8 +317,8 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
       mat.emissiveIntensity = basePulse + arrivalPulse;
     }
 
-    // Screen brightness — skip when BigScreen texture is active (its own emissive is set in useEffect)
-    if (screenRef.current && !textureRef.current) {
+    // Screen brightness — only animate when no BigScreen texture is active
+    if (screenRef.current && !bigScreenTexture) {
       const mat = screenRef.current.material as MeshStandardMaterial;
       mat.emissiveIntensity = hasArtifact ? 0.1 : 0.04;
     }
@@ -333,15 +341,16 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
         />
       </mesh>
 
-      {/* Screen glass background */}
+      {/* Screen glass background — map prop is JSX-driven so R3F never reverts it */}
       <mesh ref={screenRef}>
         <planeGeometry args={[SCREEN_WIDTH, SCREEN_HEIGHT]} />
         <meshStandardMaterial
           color="#060610"
-          emissive="#0a0a20"
-          emissiveIntensity={0.04}
+          emissive={bigScreenTexture ? "#111122" : "#0a0a20"}
+          emissiveIntensity={bigScreenTexture ? 0.15 : 0.04}
           roughness={0.15}
           metalness={0.2}
+          map={bigScreenTexture ?? undefined}
         />
       </mesh>
 
