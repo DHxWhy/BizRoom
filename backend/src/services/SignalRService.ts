@@ -55,8 +55,9 @@ function generateManagementToken(config: SignalRConfig, hubName: string): string
   const b64url = (str: string) => Buffer.from(str).toString("base64url");
   const header = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const payload = b64url(JSON.stringify({ aud: audience, iat: now, exp }));
-  // AccessKey in the connection string is base64-encoded — decode before HMAC (same as negotiate.ts)
-  const signature = createHmac("sha256", Buffer.from(config.accessKey, "base64"))
+  // AccessKey in the connection string is used as-is (raw string bytes) for HMAC.
+  // Do NOT base64-decode it — Azure SignalR Service signs with the literal key string.
+  const signature = createHmac("sha256", config.accessKey)
     .update(`${header}.${payload}`)
     .digest("base64url");
 

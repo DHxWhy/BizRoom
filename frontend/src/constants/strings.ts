@@ -38,6 +38,7 @@ export const S = {
     stopAuto: "토론 중지",
     pttHint: "Space를 길게 누르면 음성 입력",
     recording: "녹음 중...",
+    processing: "변환 중...",
   },
   mode: {
     live: "Live",

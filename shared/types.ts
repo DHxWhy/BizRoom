@@ -266,13 +266,20 @@ export type ListenerWsEvent =
 export type AgentWsEvent =
   | { type: "response.audio.delta"; delta: string }
   | { type: "response.audio_transcript.delta"; delta: string }
+  /** Text-modality delta (no audio) — emitted when modalities includes "text" */
+  | { type: "response.text.delta"; delta: string }
   | { type: "response.animation_viseme.delta"; viseme_id: number; audio_offset_ms: number }
   | {
       type: "response.done";
       response: {
         output: Array<{
           type: string;
-          content?: Array<{ type: string; text?: string; transcript?: string }>;
+          content?: Array<{
+            type: string;
+            text?: string;
+            /** Audio content item transcript (OpenAI Realtime) */
+            transcript?: string;
+          }>;
         }>;
       };
     };

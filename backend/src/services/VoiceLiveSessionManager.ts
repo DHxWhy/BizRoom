@@ -23,6 +23,8 @@ interface RoomSessions {
   listener: WebSocket | null;
   agents: Map<AllAgentRole, WebSocket>;
   heartbeats: Map<string, ReturnType<typeof setInterval>>;
+  /** Accumulated transcript text per agent (used as fallback when response.done output is empty) */
+  transcriptBuffers: Map<AllAgentRole, string>;
 }
 
 /**
@@ -63,6 +65,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
       listener: null,
       agents: new Map(),
       heartbeats: new Map(),
+      transcriptBuffers: new Map(),
     };
     this.rooms.set(roomId, sessions);
 
@@ -143,17 +146,42 @@ export class VoiceLiveSessionManager extends EventEmitter {
       }
     }
 
-    // Send response.create with conversation: "none" — Spec §1.3
-    ws.send(
-      JSON.stringify({
-        type: "response.create",
-        response: {
-          conversation: "none",
-          modalities: ["audio", "text"],
-          instructions,
-        },
-      }),
-    );
+    // Clear any stale transcript buffer for this role before new response
+    sessions.transcriptBuffers.set(role, "");
+
+    if (USE_AZURE) {
+      // Azure Voice Live: uses top-level instructions field
+      ws.send(
+        JSON.stringify({
+          type: "response.create",
+          response: {
+            conversation: "none",
+            modalities: ["audio", "text"],
+            instructions,
+          },
+        }),
+      );
+    } else {
+      // OpenAI Realtime API: conversation: "none" requires instructions
+      // passed as a system message inside the `input` array.
+      // Passing `instructions` at top level is silently ignored.
+      ws.send(
+        JSON.stringify({
+          type: "response.create",
+          response: {
+            conversation: "none",
+            modalities: ["audio", "text"],
+            input: [
+              {
+                type: "message",
+                role: "system",
+                content: [{ type: "input_text", text: instructions }],
+              },
+            ],
+          },
+        }),
+      );
+    }
   }
 
   /** Trigger Sophia voice announcement — short TTS-only, no turn management */
@@ -176,16 +204,40 @@ export class VoiceLiveSessionManager extends EventEmitter {
     // Cancel any in-flight Sophia response to avoid race condition
     ws.send(JSON.stringify({ type: "response.cancel" }));
 
-    ws.send(
-      JSON.stringify({
-        type: "response.create",
-        response: {
-          conversation: "none",
-          modalities: ["audio", "text"],
-          instructions: `당신은 Sophia, BizRoom.ai의 AI 비서입니다. 아래 안내를 한국어로 짧고 자연스럽게 말하세요 (1문장, 15자 이내):\n${text}`,
-        },
-      }),
-    );
+    const sophiaInstructions = `당신은 Sophia, BizRoom.ai의 AI 비서입니다. 아래 안내를 한국어로 짧고 자연스럽게 말하세요 (1문장, 15자 이내):\n${text}`;
+
+    // Clear Sophia transcript buffer (sophiaKey already declared above)
+    sessions.transcriptBuffers.set(sophiaKey, "");
+
+    if (USE_AZURE) {
+      ws.send(
+        JSON.stringify({
+          type: "response.create",
+          response: {
+            conversation: "none",
+            modalities: ["audio", "text"],
+            instructions: sophiaInstructions,
+          },
+        }),
+      );
+    } else {
+      ws.send(
+        JSON.stringify({
+          type: "response.create",
+          response: {
+            conversation: "none",
+            modalities: ["audio", "text"],
+            input: [
+              {
+                type: "message",
+                role: "system",
+                content: [{ type: "input_text", text: sophiaInstructions }],
+              },
+            ],
+          },
+        }),
+      );
+    }
   }
 
   /** Cancel current agent response */
@@ -429,29 +481,58 @@ export class VoiceLiveSessionManager extends EventEmitter {
     role: AllAgentRole,
     event: AgentWsEvent,
   ): void {
+    const sessions = this.rooms.get(roomId);
+
     switch (event.type) {
       case "response.audio.delta":
         if (event.delta) this.emit("agentAudioDelta:" + roomId, roomId, role, event.delta);
         break;
       case "response.audio_transcript.delta":
-        if (event.delta) this.emit("agentTextDelta:" + roomId, roomId, role, event.delta);
+        if (event.delta) {
+          // Buffer the streaming transcript for use as fallback in response.done
+          if (sessions) {
+            const current = sessions.transcriptBuffers.get(role) ?? "";
+            sessions.transcriptBuffers.set(role, current + event.delta);
+          }
+          this.emit("agentTextDelta:" + roomId, roomId, role, event.delta);
+        }
+        break;
+      case "response.text.delta":
+        // Text-only modality delta (no audio) — also buffer this
+        if (event.delta) {
+          if (sessions) {
+            const current = sessions.transcriptBuffers.get(role) ?? "";
+            sessions.transcriptBuffers.set(role, current + event.delta);
+          }
+          this.emit("agentTextDelta:" + roomId, roomId, role, event.delta);
+        }
         break;
       case "response.animation_viseme.delta":
         // Azure-only — OpenAI won't send this event
         this.emit("agentVisemeDelta:" + roomId, roomId, role, event.viseme_id, event.audio_offset_ms ?? 0);
         break;
       case "response.done": {
+        // Primary: extract text from response.done output items
         let fullText = "";
         if (event.response?.output) {
           for (const item of event.response.output) {
             if (item.type === "message" && item.content) {
               for (const c of item.content) {
-                if (c.type === "text") fullText += c.text || "";
-                if (c.transcript) fullText += c.transcript;
+                if (c.type === "text" && c.text) fullText += c.text;
+                // audio content items carry the transcript in c.transcript
+                if (c.type === "audio" && c.transcript) fullText += c.transcript;
               }
             }
           }
         }
+        // Fallback: use the buffered streaming transcript if output was empty
+        // (OpenAI Realtime sometimes omits transcript from response.done)
+        if (!fullText.trim() && sessions) {
+          fullText = sessions.transcriptBuffers.get(role) ?? "";
+        }
+        // Reset transcript buffer for this role
+        if (sessions) sessions.transcriptBuffers.set(role, "");
+
         this.emit("agentDone:" + roomId, roomId, role, fullText);
         break;
       }
