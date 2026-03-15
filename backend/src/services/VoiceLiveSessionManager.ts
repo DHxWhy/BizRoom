@@ -254,16 +254,21 @@ export class VoiceLiveSessionManager extends EventEmitter {
   /** Create a WebSocket connection with appropriate auth for Azure or OpenAI */
   private createWebSocket(): WebSocket {
     if (USE_AZURE) {
+      console.log("[VoiceLive] Creating Azure WebSocket");
       return new WebSocket(VOICE_LIVE_ENDPOINT, {
         headers: { "api-key": VOICE_LIVE_KEY },
       });
     }
-    return new WebSocket(OPENAI_REALTIME_URL, {
+    console.log("[VoiceLive] Creating OpenAI WebSocket:", OPENAI_REALTIME_URL);
+    const ws = new WebSocket(OPENAI_REALTIME_URL, {
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
         "OpenAI-Beta": "realtime=v1",
       },
     });
+    ws.on("error", (err) => console.error("[VoiceLive] WebSocket error:", err.message));
+    ws.on("close", (code, reason) => console.log("[VoiceLive] WebSocket closed:", code, reason.toString()));
+    return ws;
   }
 
   // ── Private: Session Creation ──
@@ -482,6 +487,11 @@ export class VoiceLiveSessionManager extends EventEmitter {
     event: AgentWsEvent,
   ): void {
     const sessions = this.rooms.get(roomId);
+
+    // Log all events for debugging (remove after stabilization)
+    if (event.type !== "response.audio.delta" && event.type !== "response.audio_transcript.delta" && event.type !== "response.text.delta") {
+      console.log(`[VoiceLive] Agent ${String(role)} event: ${event.type}`);
+    }
 
     switch (event.type) {
       case "response.audio.delta":

@@ -211,7 +211,13 @@ export function useSignalR(
         });
 
         connection.on("agentAudioDelta", (payload: { role: string; audioBase64: string }) => {
+          console.debug("[SignalR] agentAudioDelta received, role:", payload.role, "bytes:", payload.audioBase64?.length);
           optionsRef.current.onAgentAudioDelta?.(payload);
+        });
+
+        // Transcript streaming (absorb to suppress "no client method" warnings)
+        connection.on("agentTranscriptDelta", () => {
+          // Streaming transcript deltas — text displayed via agentResponseDone
         });
 
         // --- Reconnection lifecycle handlers ---
