@@ -262,7 +262,7 @@ export async function message(
                 // Create a visual_hint from the sophia_request query and generate visual
                 const synthHint: VisualHint = { type: "summary", title: req.query };
                 try {
-                  const renderData = await callSophiaVisualInSSE(roomId, synthHint, context);
+                  const renderData = await callSophiaVisualInSSE(roomId, synthHint, context, userMessage.content);
                   const sophiaVisId = uuidv4();
                   controller.enqueue(sseEncode(JSON.stringify({
                     messageId: sophiaVisId, role: "sophia", name: "Sophia",
@@ -286,7 +286,7 @@ export async function message(
             if (hasVisual) {
               const hint = parsed.data.visual_hint!;
               try {
-                const renderData = await callSophiaVisualInSSE(roomId, hint, context);
+                const renderData = await callSophiaVisualInSSE(roomId, hint, context, userMessage.content);
                 // Stream the visual result notification
                 const sophiaVisId = uuidv4();
                 controller.enqueue(sseEncode(JSON.stringify({
@@ -359,7 +359,7 @@ export async function message(
             else if (/일정|타임라인|timeline|로드맵/i.test(userMessage.content)) hint.type = "timeline";
 
             try {
-              const renderData = await callSophiaVisualInSSE(roomId, hint, context);
+              const renderData = await callSophiaVisualInSSE(roomId, hint, context, userMessage.content);
               controller.enqueue(sseEncode(JSON.stringify({
                 messageId: uuidv4(), role: "sophia", name: "Sophia",
                 delta: `시각화를 빅스크린에 표시했습니다.`,
@@ -401,12 +401,18 @@ async function callSophiaVisualInSSE(
   roomId: string,
   hint: VisualHint,
   context: InvocationContext,
+  userMessageContent?: string,
 ): Promise<BigScreenRenderData> {
-  // Combine Sophia buffer (agent speeches) + room context for rich grounding
+  // Combine: user's original message + agent speeches + room context
   const recentSpeeches = sophiaAgent.getRecentSpeeches(roomId, 5).join("\n");
-  const roomContext = getContextForAgent(roomId, "coo" as AgentRole); // use COO's full context as fallback
-  const combinedContext = recentSpeeches || roomContext || "컨텍스트 없음";
-  const userContent = `visual_hint: ${JSON.stringify(hint)}\n\n최근 대화:\n${combinedContext}\n\ntype="${hint.type}"에 맞는 BigScreenRenderData JSON을 생성하세요. items 배열에 반드시 3-7개의 데이터를 포함하세요.`;
+  const roomContext = getContextForAgent(roomId, "coo" as AgentRole);
+  const allContext = [
+    userMessageContent ? `사용자 원본 메시지: ${userMessageContent}` : "",
+    recentSpeeches ? `에이전트 발언:\n${recentSpeeches}` : "",
+    roomContext || "",
+  ].filter(Boolean).join("\n\n") || "컨텍스트 없음";
+
+  const userContent = `visual_hint: ${JSON.stringify(hint)}\n\n${allContext}\n\n위 대화 내용에서 데이터를 추출하여 type="${hint.type}"에 맞는 BigScreenRenderData JSON을 생성하세요.\n\n중요: items 배열에 반드시 3-7개의 구체적 데이터를 포함하세요. 빈 배열([])은 허용되지 않습니다. 사용자가 언급한 숫자/비율을 그대로 사용하세요.`;
 
   // Use fast model for simple visuals, balanced for complex
   const fastTypes = new Set(["summary", "checklist"]);
