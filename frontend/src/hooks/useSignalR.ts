@@ -9,7 +9,7 @@ import {
   LogLevel,
 } from "@microsoft/signalr";
 import type { HubConnection } from "@microsoft/signalr";
-import type { Message, MeetingPhase, Artifact, HumanCalloutEvent, BigScreenUpdateEvent, MonitorUpdateEvent, SophiaMessageEvent, ArtifactsReadyEvent } from "../types";
+import type { Message, MeetingPhase, Artifact, AgentResponseDoneEvent, HumanCalloutEvent, BigScreenUpdateEvent, MonitorUpdateEvent, SophiaMessageEvent, ArtifactsReadyEvent } from "../types";
 import type {
   StartStreamPayload,
   AppendDeltaPayload,
@@ -68,6 +68,8 @@ interface UseSignalROptions {
   onSophiaMessage?: (payload: SophiaMessageEvent) => void;
   /** Called when meeting artifacts are ready for download */
   onArtifactsReady?: (payload: ArtifactsReadyEvent) => void;
+  /** Called when an agent finishes its response (Voice Live mode) */
+  onAgentResponseDone?: (payload: AgentResponseDoneEvent) => void;
 
   // ── Viseme + Audio pipeline callbacks ──
 
@@ -193,6 +195,10 @@ export function useSignalR(
 
         connection.on("artifactsReady", (payload: ArtifactsReadyEvent) => {
           optionsRef.current.onArtifactsReady?.(payload);
+        });
+
+        connection.on("agentResponseDone", (payload: AgentResponseDoneEvent) => {
+          optionsRef.current.onAgentResponseDone?.(payload);
         });
 
         // --- Viseme + Audio pipeline event handlers ---

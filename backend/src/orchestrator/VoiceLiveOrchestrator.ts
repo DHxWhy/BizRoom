@@ -171,8 +171,8 @@ export function wireVoiceLiveForRoom(
         processVisualQueue(roomId);
       }
 
-      // Notify TurnManager (skipFollowUp=true: handleMentionRouting already handled routing)
-      turnManager.onAgentDone(roomId, role, fullText, true);
+      // Notify TurnManager with speech text (not raw JSON) so stored messages are clean
+      turnManager.onAgentDone(roomId, role, parsed.data.speech, true);
     },
   );
 

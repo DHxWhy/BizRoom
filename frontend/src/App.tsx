@@ -24,6 +24,7 @@ import type {
   Participant,
   QuickActionType,
   AgentRole,
+  AgentResponseDoneEvent,
   BigScreenUpdateEvent,
   MonitorUpdateEvent,
   SophiaMessageEvent,
@@ -311,6 +312,37 @@ function MeetingRoom() {
         dispatch({ type: "SET_HUMAN_CALLOUT", payload });
       },
       [dispatch],
+    ),
+    onAgentResponseDone: useCallback(
+      (payload: AgentResponseDoneEvent) => {
+        // Voice Live mode: create a chat message from completed agent speech
+        const agentName = ROLE_TO_NAME[payload.role] ?? payload.role;
+        const message: Message = {
+          id: crypto.randomUUID(),
+          roomId: state.roomId,
+          senderId: `agent-${payload.role}`,
+          senderType: "agent",
+          senderName: agentName,
+          senderRole: payload.role,
+          content: payload.fullText,
+          timestamp: new Date().toISOString(),
+        };
+        dispatch({ type: "ADD_MESSAGE", payload: message });
+
+        // Set speaking state with auto-clear
+        dispatch({ type: "SET_SPEAKING", payload: payload.role });
+        if (speakingTimeoutRef.current) {
+          clearTimeout(speakingTimeoutRef.current);
+        }
+        const duration = Math.min(Math.max(payload.fullText.length * 50, 2000), 8000);
+        speakingTimeoutRef.current = setTimeout(() => {
+          dispatch({ type: "SET_SPEAKING", payload: null });
+        }, duration);
+
+        // Clear typing indicator for this agent
+        dispatch({ type: "SET_TYPING", payload: { agentName, isTyping: false } });
+      },
+      [dispatch, state.roomId],
     ),
 
     // ── Viseme + Audio pipeline ──
