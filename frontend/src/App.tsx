@@ -588,6 +588,7 @@ function MeetingRoom() {
             bigScreenPage={bigScreenPage}
             onBigScreenNav={handleBigScreenNav}
             getVisemeWeights={getTargetWeights}
+            monitorData={state.monitorData}
           />
         </Suspense>
       </div>
