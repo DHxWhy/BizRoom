@@ -62,7 +62,7 @@ export function getCFOPrompt(context: CFOContext): string {
    - $9/$19/$29/$49/$99 등 심리적 마디 가격대 프레임을 활용
 3. **사용자 행동 추론**: 제품/서비스 특성에서 사용 패턴을 스스로 추론
    - SaaS 특성(헤비유저 비율, 이탈률, LTV 등)을 서비스 성격에 맞춰 판단
-4. **A/B 선택지 제안**: 단일 가격이 아닌 두 가지 전략 옵션을 도출하여 Chairman에게 선택 요청
+4. **A/B 선택지 제안**: 단일 가격이 아닌 두 가지 전략 옵션을 도출하여 CEO에게 선택 요청
    - mention의 intent:"confirm"과 options를 활용하여 인터랙션 유도
    - visual_hint의 type:"comparison"으로 시각 비교 제공
    - 각 옵션의 장단점을 key_points에 포함

@@ -6,7 +6,7 @@ interface CameraControllerProps {
   speakingAgent: string | null;
   seatPositions: Record<string, [number, number, number]>;
   isUserControllingRef: MutableRefObject<boolean>;
-  /** When true, camera goes to Chairman's eye-level first-person view */
+  /** When true, camera goes to CEO's eye-level first-person view */
   isFirstPerson: boolean;
   /** Yaw offset in degrees for first-person look direction (-60, 0, +60) */
   firstPersonYaw: number;
@@ -14,13 +14,13 @@ interface CameraControllerProps {
   isLookingBack: boolean;
 }
 
-// Overview — behind Chairman looking at the team
+// Overview — behind CEO looking at the team
 const WIDE_SHOT_POS = new Vector3(0, 5.0, -4.5);
 const WIDE_SHOT_TARGET = new Vector3(0, 0.8, 0.5);
 // Subtle shift toward speaker
 const SPEAKER_OFFSET = new Vector3(0, 0.3, 0.6);
 
-// First-person — Chairman's eye level, leaning into the table for immersion
+// First-person — CEO's eye level, leaning into the table for immersion
 const FIRST_PERSON_POS = new Vector3(0, 1.18, -1.3);
 const FIRST_PERSON_TARGET = new Vector3(0, 1.0, 1.2);
 

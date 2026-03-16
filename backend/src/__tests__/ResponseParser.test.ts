@@ -5,15 +5,15 @@ describe("parseStructuredOutput", () => {
   describe("Tier 1: valid JSON + valid schema", () => {
     it("parses complete structured output", () => {
       const raw = JSON.stringify({
-        speech: "의장님, A안으로 진행할까요?",
+        speech: "대표님, A안으로 진행할까요?",
         key_points: ["A안 추천", "비용 절감"],
-        mention: { target: "chairman", intent: "confirm", options: ["A안", "B안"] },
+        mention: { target: "ceo", intent: "confirm", options: ["A안", "B안"] },
         visual_hint: { type: "comparison", title: "A vs B" },
       });
       const result = parseStructuredOutput(raw, "coo");
       expect(result.tier).toBe("schema_valid");
-      expect(result.data.speech).toBe("의장님, A안으로 진행할까요?");
-      expect(result.data.mention?.target).toBe("chairman");
+      expect(result.data.speech).toBe("대표님, A안으로 진행할까요?");
+      expect(result.data.mention?.target).toBe("ceo");
       expect(result.data.mention?.intent).toBe("confirm");
       expect(result.data.visual_hint?.type).toBe("comparison");
     });
@@ -82,7 +82,7 @@ describe("parseStructuredOutput", () => {
     });
 
     it("accepts valid agent role targets", () => {
-      for (const target of ["coo", "cfo", "cmo", "cto", "cdo", "clo", "chairman"]) {
+      for (const target of ["coo", "cfo", "cmo", "cto", "cdo", "clo", "ceo"]) {
         const raw = JSON.stringify({
           speech: "테스트",
           key_points: [],

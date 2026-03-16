@@ -1,8 +1,8 @@
 // Turn-taking timing constants
 // Ref: Design Spec §2.3, §2.5
 
-/** Chairman flush delay — PTT release = speech done, trigger immediately */
-export const CHAIRMAN_FLUSH_MS = 0;
+/** CEO flush delay — PTT release = speech done, trigger immediately */
+export const CEO_FLUSH_MS = 0;
 
 /** Member flush delay — short wait for PTT users */
 export const MEMBER_FLUSH_MS = 500;
@@ -16,7 +16,7 @@ export const MAX_AGENTS_PER_TURN = 1;
 /** Maximum A2A follow-up rounds — agent mentions trigger next agent's turn */
 export const MAX_FOLLOW_UP_ROUNDS = 2;
 
-/** Immediate flush for Chairman "AI opinion" button */
+/** Immediate flush for CEO "AI opinion" button */
 export const IMMEDIATE_FLUSH_MS = 0;
 
 /** Timeout for human response during awaiting state (Spec §2) */

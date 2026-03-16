@@ -1,21 +1,21 @@
-// Chairman-only control bar for meeting management
+// CEO-only control bar for meeting management
 // Ref: Design Spec §4.1, §4.2
 
 import { useState, useCallback } from "react";
 import { S } from "../../constants/strings";
 import { API_BASE } from "../../config/api";
 
-interface ChairmanControlsProps {
+interface CeoControlsProps {
   roomId: string;
-  isChairman: boolean;
+  isCeo: boolean;
   disabled?: boolean;
 }
 
-export function ChairmanControls({
+export function CeoControls({
   roomId,
-  isChairman,
+  isCeo,
   disabled,
-}: ChairmanControlsProps) {
+}: CeoControlsProps) {
   const [aiPaused, setAiPaused] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
   const [confirmingEnd, setConfirmingEnd] = useState(false);
@@ -31,7 +31,7 @@ export function ChairmanControls({
         });
         return res;
       } catch (err) {
-        console.error(`[ChairmanControls] ${endpoint} failed:`, err);
+        console.error(`[CeoControls] ${endpoint} failed:`, err);
         return null;
       } finally {
         setLoading(null);
@@ -65,10 +65,10 @@ export function ChairmanControls({
     if (res?.ok) {
       try {
         const data: unknown = await res.json();
-        console.log("[ChairmanControls] Meeting ended. Artifacts:", data);
+        console.log("[CeoControls] Meeting ended. Artifacts:", data);
       } catch {
         // Response may not be JSON — that is acceptable
-        console.log("[ChairmanControls] Meeting ended (no artifact payload).");
+        console.log("[CeoControls] Meeting ended (no artifact payload).");
       }
     }
   }, [roomId, callApi, confirmingEnd]);
@@ -78,7 +78,7 @@ export function ChairmanControls({
     setConfirmingEnd(false);
   }, []);
 
-  if (!isChairman) return null;
+  if (!isCeo) return null;
 
   const btnClass = (isActive: boolean = false) =>
     `px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
@@ -99,7 +99,7 @@ export function ChairmanControls({
         disabled={disabled || loading === "request-ai-opinion"}
         className={btnClass()}
       >
-        {S.chairman.requestAiOpinion}
+        {S.ceo.requestAiOpinion}
       </button>
       <button
         type="button"
@@ -107,7 +107,7 @@ export function ChairmanControls({
         disabled={disabled || loading === "next-agenda"}
         className={btnClass()}
       >
-        {S.chairman.nextAgenda}
+        {S.ceo.nextAgenda}
       </button>
       <button
         type="button"
@@ -115,7 +115,7 @@ export function ChairmanControls({
         disabled={disabled}
         className={btnClass(aiPaused)}
       >
-        {aiPaused ? S.chairman.resumeAi : S.chairman.pauseAi}
+        {aiPaused ? S.ceo.resumeAi : S.ceo.pauseAi}
       </button>
 
       {/* Separator before destructive action */}
@@ -127,9 +127,9 @@ export function ChairmanControls({
         onClick={() => void handleEndMeeting()}
         disabled={disabled || loading === "end"}
         className={endBtnClass}
-        title={S.chairman.endMeetingConfirm}
+        title={S.ceo.endMeetingConfirm}
       >
-        {confirmingEnd ? `${S.chairman.endMeeting}?` : S.chairman.endMeeting}
+        {confirmingEnd ? `${S.ceo.endMeeting}?` : S.ceo.endMeeting}
       </button>
       {confirmingEnd && (
         <button

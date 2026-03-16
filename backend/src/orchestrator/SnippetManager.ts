@@ -12,10 +12,10 @@ const VALID_TRANSITIONS: Record<MeetingPhase, MeetingPhase[]> = {
 };
 
 // Who can trigger phase transitions
-type TransitionRole = "chairman" | "coo";
+type TransitionRole = "ceo" | "coo";
 
 const TRANSITION_PERMISSIONS: Record<TransitionRole, boolean> = {
-  chairman: true, // Chairman can trigger any transition
+  ceo: true, // CEO can trigger any transition
   coo: true, // COO can trigger limited transitions
 };
 
@@ -28,7 +28,7 @@ export function canTransitionPhase(
   // Check role permission
   const normalizedRole = role.toLowerCase();
   if (
-    normalizedRole !== "chairman" &&
+    normalizedRole !== "ceo" &&
     normalizedRole !== "coo"
   ) {
     return false;
@@ -55,7 +55,7 @@ export function getPhaseDescription(phase: MeetingPhase): string {
     opening: "개회 — 안건 정리 및 참석자 확인",
     briefing: "브리핑 — 현황 보고 및 데이터 공유",
     discussion: "토론 — 안건별 심층 논의",
-    decision: "의사결정 — Chairman 판단 및 결정",
+    decision: "의사결정 — CEO 판단 및 결정",
     action: "실행계획 — 액션아이템 수립 및 담당자 지정",
     closing: "폐회 — 요약 및 다음 회의 안내",
   };

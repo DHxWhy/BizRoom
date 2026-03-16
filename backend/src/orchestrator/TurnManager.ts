@@ -7,7 +7,7 @@ import type { AgentRole, BufferedMessage, AgentTurn, TurnState, Message, Structu
 import { classifyTopic, parseMentions } from "./TopicClassifier.js";
 import { getContextForAgent, addMessage, getOrCreateRoom } from "./ContextBroker.js";
 import {
-  CHAIRMAN_FLUSH_MS,
+  CEO_FLUSH_MS,
   MEMBER_FLUSH_MS,
   INTER_AGENT_GAP_MS,
   MAX_AGENTS_PER_TURN,
@@ -25,7 +25,7 @@ interface RoomTurnState {
   interruptFlag: boolean;
   aiPaused: boolean;
   combinedInput: string; // cached for triggerNextAgent
-  chairmanUserId: string | null; // MVP: single mic = chairman
+  ceoUserId: string | null; // MVP: single mic = ceo
   followUpRound: number; // track A2A follow-up rounds
   agentResponseCount: number; // total agents responded this turn (hard stop at MAX)
   awaitingTimer: ReturnType<typeof setTimeout> | null;
@@ -61,7 +61,7 @@ export class TurnManager extends EventEmitter {
         interruptFlag: false,
         aiPaused: false,
         combinedInput: "",
-        chairmanUserId: null,
+        ceoUserId: null,
         followUpRound: 0,
         agentResponseCount: 0,
         awaitingTimer: null,
@@ -71,10 +71,10 @@ export class TurnManager extends EventEmitter {
     return this.rooms.get(roomId)!;
   }
 
-  /** Set the chairman userId for a room (call on room creation) */
-  setChairman(roomId: string, userId: string): void {
+  /** Set the CEO userId for a room (call on room creation) */
+  setCeo(roomId: string, userId: string): void {
     const room = this.getRoom(roomId);
-    room.chairmanUserId = userId;
+    room.ceoUserId = userId;
   }
 
   /** Toggle AI pause — Spec §2.5 */
@@ -121,8 +121,8 @@ export class TurnManager extends EventEmitter {
     const room = this.getRoom(roomId);
     if (room.state !== "hearing") return;
 
-    const isChairman = userId === room.chairmanUserId;
-    const delay = isChairman ? CHAIRMAN_FLUSH_MS : MEMBER_FLUSH_MS;
+    const isCeo = userId === room.ceoUserId;
+    const delay = isCeo ? CEO_FLUSH_MS : MEMBER_FLUSH_MS;
     this.startFlushTimer(roomId, room, delay);
   }
 
@@ -131,11 +131,11 @@ export class TurnManager extends EventEmitter {
     const room = this.getRoom(roomId);
     if (room.state !== "hearing") return;
 
-    const isChairman = userId === room.chairmanUserId;
+    const isCeo = userId === room.ceoUserId;
     room.inputBuffer.push({
       userId,
       userName,
-      isChairman,
+      isCeo,
       source: "voice",
       content: text,
       timestamp: Date.now(),
@@ -143,7 +143,7 @@ export class TurnManager extends EventEmitter {
 
     // Start flush timer if not already running
     if (!room.flushTimer) {
-      const delay = isChairman ? CHAIRMAN_FLUSH_MS : MEMBER_FLUSH_MS;
+      const delay = isCeo ? CEO_FLUSH_MS : MEMBER_FLUSH_MS;
       this.startFlushTimer(roomId, room, delay);
     }
   }
@@ -154,7 +154,7 @@ export class TurnManager extends EventEmitter {
     userId: string,
     userName: string,
     text: string,
-    isChairman: boolean,
+    isCeo: boolean,
   ): void {
     const room = this.getRoom(roomId);
 
@@ -168,19 +168,19 @@ export class TurnManager extends EventEmitter {
       room.inputBuffer.push({
         userId,
         userName,
-        isChairman,
+        isCeo,
         source: "chat",
         content: text,
         timestamp: Date.now(),
       });
-      const delay = isChairman ? CHAIRMAN_FLUSH_MS : MEMBER_FLUSH_MS;
+      const delay = isCeo ? CEO_FLUSH_MS : MEMBER_FLUSH_MS;
       this.startFlushTimer(roomId, room, delay);
     } else if (room.state === "speaking") {
       // Chat during speaking — queue for next turn, do NOT interrupt
       room.inputBuffer.push({
         userId,
         userName,
-        isChairman,
+        isCeo,
         source: "chat",
         content: text,
         timestamp: Date.now(),
@@ -188,7 +188,7 @@ export class TurnManager extends EventEmitter {
     }
   }
 
-  /** Chairman requests immediate AI opinion — Spec §2.5 */
+  /** CEO requests immediate AI opinion — Spec §2.5 */
   requestAiOpinion(roomId: string): void {
     const room = this.getRoom(roomId);
     if (room.aiPaused) return;
@@ -276,9 +276,9 @@ export class TurnManager extends EventEmitter {
   }
 
   /** Initialize a room explicitly (for tests and external setup) */
-  initRoom(roomId: string, chairmanUserId: string): void {
+  initRoom(roomId: string, ceoUserId: string): void {
     const room = this.getRoom(roomId);
-    room.chairmanUserId = chairmanUserId;
+    room.ceoUserId = ceoUserId;
   }
 
   /** Enter awaiting state for human callout — Spec §2 */
@@ -298,7 +298,7 @@ export class TurnManager extends EventEmitter {
     room.awaitingTimer = setTimeout(() => {
       if (room.awaitingGeneration !== gen) return;
       if (room.state !== "awaiting") return;
-      this.resumeFromAwaiting(roomId, "[의장님이 응답하지 않아 계속 진행합니다]");
+      this.resumeFromAwaiting(roomId, "[대표님이 응답하지 않아 계속 진행합니다]");
     }, HUMAN_CALLOUT_TIMEOUT_MS);
   }
 
@@ -329,7 +329,7 @@ export class TurnManager extends EventEmitter {
     if (output.mention) {
       const { target, intent, options } = output.mention;
 
-      if (target === "chairman" || target.startsWith("member:")) {
+      if (target === "ceo" || target.startsWith("member:")) {
         this.enterAwaitingState(roomId, { target, intent, options, fromAgent });
         return;
       }
@@ -384,7 +384,7 @@ export class TurnManager extends EventEmitter {
 
     // If buffer is empty (e.g., AI opinion with no new input), use last context
     if (!room.combinedInput.trim()) {
-      room.combinedInput = "[Chairman requested AI opinion on current topic]";
+      room.combinedInput = "[CEO requested AI opinion on current topic]";
     }
 
     // 2. Save to ContextBroker FIRST (Spec §2.3 step 3, fix for race condition)
@@ -395,7 +395,7 @@ export class TurnManager extends EventEmitter {
         senderId: msg.userId,
         senderType: "human",
         senderName: msg.userName,
-        senderRole: msg.isChairman ? "chairman" : "member",
+        senderRole: msg.isCeo ? "ceo" : "member",
         content: msg.content,
         timestamp: new Date(msg.timestamp).toISOString(),
         isVoiceInput: msg.source === "voice",
@@ -655,7 +655,7 @@ function buildAgentPrompt(
 - 가벼운 인사에는 "네, 안녕하세요~" 정도로 짧게. 구구절절 덧붙이지 마세요.
 - 업무 이야기에는 핵심만 명확하게. 필요한 만큼만 말하세요.
 - 결론을 먼저 말하고, 필요하면 근거를 짧게 덧붙이세요.
-- 의장(Chairman)에게 질문하여 대화를 자연스럽게 이어가세요.
+- 대표(CEO)에게 질문하여 대화를 자연스럽게 이어가세요.
 - 다른 임원의 전문성이 필요하면 이름을 불러 의견을 구하세요.
 - 한국어로 말하세요.
 

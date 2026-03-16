@@ -88,7 +88,7 @@ interface UseSignalRReturn {
     roomId: string,
     content: string,
     senderName: string,
-    options?: { isChairman?: boolean; mode?: string; dmTarget?: string | null },
+    options?: { isCeo?: boolean; mode?: string; dmTarget?: string | null },
   ) => Promise<void>;
   /** SSE 스트리밍으로 메시지를 전송하고 delta를 실시간 수신 */
   sendMessageStream: (
@@ -271,7 +271,7 @@ export function useSignalR(
       roomId: string,
       content: string,
       senderName: string,
-      options?: { isChairman?: boolean; mode?: string; dmTarget?: string | null },
+      options?: { isCeo?: boolean; mode?: string; dmTarget?: string | null },
     ): Promise<void> => {
       // Always use REST POST — Azure Functions serverless mode does not
       // support hub method invocation. SignalR is receive-only (server push).
@@ -285,7 +285,7 @@ export function useSignalR(
           roomId,
           senderId: "user-1",
           senderName,
-          isChairman: options?.isChairman ?? true,
+          isCeo: options?.isCeo ?? true,
           mode: options?.mode,
           dmTarget: options?.dmTarget,
         }),

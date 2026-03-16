@@ -1,15 +1,18 @@
 // ──────────────────────────────────────────────────────────────────────
-// BingSearchService — Bing Web Search API v7 integration for agent grounding
+// BingSearchService — Web search for agent grounding
 //
-// Provides real-time web search results that agents can reference
-// during meetings. Degrades gracefully when BING_SEARCH_KEY is not set.
+// Primary:  OpenAI gpt-4o-mini-search-preview (built-in web search, no extra key)
+// Fallback: Bing Web Search API v7 (if BING_SEARCH_KEY is set and valid)
 //
 // Ref: https://learn.microsoft.com/en-us/bing/search-apis/bing-web-search/overview
 // ──────────────────────────────────────────────────────────────────────
 
+import OpenAI from "openai";
+
 const BING_ENDPOINT =
   process.env.BING_SEARCH_ENDPOINT || "https://api.bing.microsoft.com/v7.0/search";
 const BING_KEY = process.env.BING_SEARCH_KEY || "";
+const OPENAI_KEY = process.env.OPENAI_API_KEY || "";
 
 export interface BingSearchResult {
   name: string;
@@ -17,19 +20,58 @@ export interface BingSearchResult {
   snippet: string;
 }
 
+/** Search using OpenAI gpt-4o-mini-search-preview (built-in web search). */
+async function searchOpenAI(query: string, count: number): Promise<BingSearchResult[]> {
+  if (!OPENAI_KEY) return [];
+  try {
+    const client = new OpenAI({ apiKey: OPENAI_KEY });
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini-search-preview",
+      messages: [
+        {
+          role: "user",
+          content: `Search the web for: "${query}"\n\nReturn ONLY a JSON array of exactly ${count} search results. Format:\n[{"name":"title","url":"https://...","snippet":"brief summary"}]\nReturn valid JSON only, no markdown.`,
+        },
+      ],
+      max_tokens: 1000,
+      stream: false,
+    });
+
+    const text = response.choices[0]?.message?.content ?? "";
+    // Extract JSON array from response
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) return [];
+    const parsed = JSON.parse(match[0]) as Array<{ name?: string; url?: string; snippet?: string }>;
+    return parsed
+      .slice(0, count)
+      .filter((r) => r.name && r.snippet)
+      .map((r) => ({
+        name: r.name ?? "",
+        url: r.url ?? "",
+        snippet: r.snippet ?? "",
+      }));
+  } catch {
+    return [];
+  }
+}
+
 /**
- * Search Bing Web Search API and return top results.
- * Returns empty array if BING_SEARCH_KEY is not configured or on any error.
+ * Search for web results. Uses OpenAI gpt-4o-mini-search-preview as primary
+ * (built-in web search, no additional API key needed).
+ * Falls back to Bing if BING_SEARCH_KEY is configured and valid.
  */
 export async function searchBing(
   query: string,
   count = 3,
 ): Promise<BingSearchResult[]> {
-  if (!BING_KEY) {
-    // Graceful degradation — no search key configured
-    return [];
+  // Primary: OpenAI web search (gpt-4o-mini-search-preview has built-in browsing)
+  if (OPENAI_KEY) {
+    const results = await searchOpenAI(query, count);
+    if (results.length > 0) return results;
   }
 
+  // Fallback: Bing Search API
+  if (!BING_KEY) return [];
   try {
     const url = `${BING_ENDPOINT}?q=${encodeURIComponent(query)}&count=${count}&mkt=ko-KR`;
     const res = await fetch(url, {
@@ -50,7 +92,6 @@ export async function searchBing(
       snippet: p.snippet,
     }));
   } catch {
-    // Silent failure — agents work without search
     return [];
   }
 }

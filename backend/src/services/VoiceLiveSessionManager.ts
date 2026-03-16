@@ -57,7 +57,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
   /** Initialize room — opens Listener session immediately, agents lazily */
   async initializeRoom(
     roomId: string,
-    chairmanUserId: string,
+    ceoUserId: string,
   ): Promise<void> {
     if (this.rooms.has(roomId)) return;
 
@@ -74,7 +74,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
       try {
         sessions.listener = await this.createListenerSession(
           roomId,
-          chairmanUserId,
+          ceoUserId,
         );
       } catch (err) {
         console.error(
@@ -277,7 +277,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
 
   private async createListenerSession(
     roomId: string,
-    chairmanUserId: string,
+    ceoUserId: string,
   ): Promise<WebSocket> {
     const ws = this.createWebSocket();
 
@@ -338,7 +338,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
       ws.on("message", (data) => {
         try {
           const event = JSON.parse(data.toString());
-          this.handleListenerEvent(roomId, chairmanUserId, event);
+          this.handleListenerEvent(roomId, ceoUserId, event);
         } catch {
           /* ignore parse errors */
         }
@@ -483,18 +483,18 @@ export class VoiceLiveSessionManager extends EventEmitter {
 
   private handleListenerEvent(
     roomId: string,
-    chairmanUserId: string,
+    ceoUserId: string,
     event: ListenerWsEvent,
   ): void {
     switch (event.type) {
       case "input_audio_buffer.speech_started":
-        this.emit("speechStarted:" + roomId, roomId, chairmanUserId);
+        this.emit("speechStarted:" + roomId, roomId, ceoUserId);
         break;
       case "input_audio_buffer.speech_stopped":
-        this.emit("speechStopped:" + roomId, roomId, chairmanUserId);
+        this.emit("speechStopped:" + roomId, roomId, ceoUserId);
         break;
       case "conversation.item.input_audio_transcription.completed":
-        this.emit("transcript:" + roomId, roomId, chairmanUserId, event.transcript || "");
+        this.emit("transcript:" + roomId, roomId, ceoUserId, event.transcript || "");
         break;
     }
   }

@@ -8,7 +8,7 @@ describe("TurnManager awaiting state", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     tm = new TurnManager();
-    tm.initRoom(roomId, "chairman-user");
+    tm.initRoom(roomId, "ceo-user");
   });
 
   afterEach(() => {
@@ -25,7 +25,7 @@ describe("TurnManager awaiting state", () => {
     });
 
     tm.enterAwaitingState(roomId, {
-      target: "chairman",
+      target: "ceo",
       intent: "confirm",
       options: ["A안", "B안"],
       fromAgent: "cfo",
@@ -44,7 +44,7 @@ describe("TurnManager awaiting state", () => {
     });
 
     tm.enterAwaitingState(roomId, {
-      target: "chairman",
+      target: "ceo",
       intent: "confirm",
       options: ["A안"],
       fromAgent: "coo",
@@ -58,12 +58,12 @@ describe("TurnManager awaiting state", () => {
     room.state = "speaking";
 
     tm.enterAwaitingState(roomId, {
-      target: "chairman",
+      target: "ceo",
       intent: "opinion",
       fromAgent: "cmo",
     });
 
-    tm.onHumanResponse(roomId, "chairman-user", "A안으로 하겠습니다");
+    tm.onHumanResponse(roomId, "ceo-user", "A안으로 하겠습니다");
     expect(room.state).not.toBe("awaiting");
   });
 
@@ -72,7 +72,7 @@ describe("TurnManager awaiting state", () => {
     room.state = "speaking";
 
     tm.enterAwaitingState(roomId, {
-      target: "chairman",
+      target: "ceo",
       intent: "confirm",
       options: ["A안"],
       fromAgent: "cfo",
@@ -87,12 +87,12 @@ describe("TurnManager awaiting state", () => {
     room.state = "speaking";
 
     tm.enterAwaitingState(roomId, {
-      target: "chairman",
+      target: "ceo",
       intent: "opinion",
       fromAgent: "cto",
     });
 
-    tm.onHumanResponse(roomId, "chairman-user", "동의합니다");
+    tm.onHumanResponse(roomId, "ceo-user", "동의합니다");
     vi.advanceTimersByTime(30000);
     expect(room.state).not.toBe("awaiting");
   });
@@ -100,7 +100,7 @@ describe("TurnManager awaiting state", () => {
   it("ignores human response if state is not awaiting", () => {
     const room = (tm as any).rooms.get(roomId);
     expect(room.state).toBe("idle");
-    tm.onHumanResponse(roomId, "chairman-user", "test");
+    tm.onHumanResponse(roomId, "ceo-user", "test");
     expect(room.state).toBe("idle");
   });
 
@@ -117,7 +117,7 @@ describe("TurnManager awaiting state", () => {
       expect(room.agentQueue.some((q: any) => q.role === "cfo")).toBe(true);
     });
 
-    it("enters awaiting state on chairman mention", () => {
+    it("enters awaiting state on ceo mention", () => {
       let calloutEmitted = false;
       tm.on("humanCallout:" + roomId, () => { calloutEmitted = true; });
 
@@ -125,9 +125,9 @@ describe("TurnManager awaiting state", () => {
       room.state = "speaking";
 
       tm.handleMentionRouting(roomId, {
-        speech: "의장님 결정이 필요합니다",
+        speech: "대표님 결정이 필요합니다",
         key_points: [],
-        mention: { target: "chairman", intent: "confirm", options: ["A안"] },
+        mention: { target: "ceo", intent: "confirm", options: ["A안"] },
         visual_hint: null,
       }, "cfo");
 

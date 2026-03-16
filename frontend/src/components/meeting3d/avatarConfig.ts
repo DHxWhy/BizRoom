@@ -45,7 +45,7 @@ const RPM = {
   kelvin:   "/models/rpm-kelvin.glb",   // CTO — inspired by Kevin Scott (male)
   jonas:    "/models/rpm-jonas.glb",    // CDO — inspired by Jon Friedman (male)
   bradley:  "/models/rpm-bradley.glb",  // CLO — inspired by Brad Smith (male)
-  chairman: "/models/rpm-chairman.glb", // Chairman (user avatar)
+  ceo: "/models/rpm-chairman.glb", // CEO (user avatar)
 };
 
 // RPM Hips are at Y~1.02 in standing pose.
@@ -55,8 +55,8 @@ const RPM = {
 const SEATED_Y = -0.42;
 
 export const AVATAR_CONFIGS: Record<string, AvatarModelConfig> = {
-  chairman: {
-    url: RPM.chairman,
+  ceo: {
+    url: RPM.ceo,
     scale: 1.0,
     yOffset: SEATED_Y,
     color: "#8b5cf6",
@@ -115,7 +115,7 @@ export const AVATAR_CONFIGS: Record<string, AvatarModelConfig> = {
 
 /** Default config for unknown roles */
 export const DEFAULT_AVATAR: AvatarModelConfig = {
-  url: RPM.chairman,
+  url: RPM.ceo,
   scale: 1.0,
   yOffset: SEATED_Y,
   color: "#6366f1",

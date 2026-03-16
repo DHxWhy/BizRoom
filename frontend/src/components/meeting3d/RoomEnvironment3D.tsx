@@ -56,7 +56,7 @@ export function RoomEnvironment3D() {
       {/* Wood ceiling accent panel (center strip) */}
       <mesh position={[0, ROOM_H - 0.02, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[5, 8]} />
-        <meshStandardMaterial color="#8b6914" roughness={0.6} metalness={0.05} />
+        <meshStandardMaterial color="#9a7b4a" roughness={0.6} metalness={0.02} />
       </mesh>
 
       {/* ═══ BACK WALL (Z=-7) — wood accent wall ═══ */}
@@ -69,14 +69,6 @@ export function RoomEnvironment3D() {
       {/* ═══ FAR WALL (Z=+7) — interior wall with windows ═══ */}
       <SideWall position={[0, ROOM_H / 2, HALF_D]} rotation={[0, Math.PI, 0]} width={ROOM_W} height={ROOM_H} woodMaps={{ colorMap, normalMap, roughnessMap }} />
 
-      {/* ═══ RECESSED CEILING LIGHTS ═══ */}
-      <RecessedLight position={[-3, ROOM_H - 0.04, -2]} />
-      <RecessedLight position={[3, ROOM_H - 0.04, -2]} />
-      <RecessedLight position={[-3, ROOM_H - 0.04, 2]} />
-      <RecessedLight position={[3, ROOM_H - 0.04, 2]} />
-      <RecessedLight position={[0, ROOM_H - 0.04, 0]} />
-      <RecessedLight position={[0, ROOM_H - 0.04, -4]} />
-      <RecessedLight position={[0, ROOM_H - 0.04, 4]} />
 
       {/* ═══ MAIN LIGHTING — bright natural daylight ═══ */}
       {/* Key light — warm daylight from windows right */}
@@ -224,16 +216,15 @@ function BackWall({ woodMaps }: { woodMaps: { colorMap: Texture; normalMap: Text
         />
       </mesh>
 
-      {/* Darker wood accent panel (center) */}
+      {/* Wood accent panel (center) — pure wood texture, no tint */}
       <mesh position={[0, ROOM_H / 2, -HALF_D + 0.02]}>
         <planeGeometry args={[6, ROOM_H - 0.2]} />
         <meshStandardMaterial
           map={woodMaps.colorMap}
           normalMap={woodMaps.normalMap}
           roughnessMap={woodMaps.roughnessMap}
-          color="#8b6914"
           roughness={0.45}
-          metalness={0.05}
+          metalness={0.02}
         />
       </mesh>
 
@@ -241,7 +232,7 @@ function BackWall({ woodMaps }: { woodMaps: { colorMap: Texture; normalMap: Text
       {Array.from({ length: 16 }).map((_, i) => (
         <mesh key={i} position={[0, 0.3 + i * 0.28, -HALF_D + 0.04]}>
           <boxGeometry args={[5.8, 0.01, 0.01]} />
-          <meshStandardMaterial color="#6b4e12" roughness={0.5} />
+          <meshStandardMaterial color="#5a4a30" roughness={0.5} />
         </mesh>
       ))}
 
@@ -275,29 +266,6 @@ function BackWall({ woodMaps }: { woodMaps: { colorMap: Texture; normalMap: Text
   );
 }
 
-/** Recessed ceiling downlight */
-function RecessedLight({ position }: { position: [number, number, number] }) {
-  return (
-    <group position={position}>
-      {/* Housing */}
-      <mesh>
-        <cylinderGeometry args={[0.08, 0.1, 0.04, 12]} />
-        <meshStandardMaterial color="#e8e4de" roughness={0.6} />
-      </mesh>
-      {/* Bulb glow */}
-      <mesh position={[0, -0.02, 0]}>
-        <cylinderGeometry args={[0.06, 0.06, 0.02, 12]} />
-        <meshStandardMaterial
-          color="#fff8f0"
-          emissive="#fff5e6"
-          emissiveIntensity={2.0}
-          roughness={0.3}
-        />
-      </mesh>
-      <pointLight position={[0, -0.1, 0]} color="#fff5e6" intensity={0.6} distance={4} />
-    </group>
-  );
-}
 
 /** Modern tall plant in concrete pot */
 function ModernPlant({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
@@ -336,7 +304,7 @@ function FloatingShelf({ position }: { position: [number, number, number] }) {
     <group position={position}>
       <mesh>
         <boxGeometry args={[1.2, 0.03, 0.22]} />
-        <meshStandardMaterial color="#8b6914" roughness={0.5} />
+        <meshStandardMaterial color="#9a7b4a" roughness={0.5} />
       </mesh>
       <mesh position={[-0.3, 0.08, 0]}>
         <boxGeometry args={[0.15, 0.12, 0.12]} />

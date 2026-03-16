@@ -14,7 +14,7 @@ import type {
   BrandMemorySet,
 } from "../types";
 
-/** Human participant in the 3D scene (max 2 extra besides Chairman) */
+/** Human participant in the 3D scene (max 2 extra besides CEO) */
 export interface HumanParticipant {
   name: string;
   color?: string;
@@ -27,8 +27,8 @@ interface MeetingState {
   userId: string;
   /** Display name entered in lobby */
   userName: string;
-  /** true = room creator (Chairman), false = joined member */
-  isChairman: boolean;
+  /** true = room creator (CEO), false = joined member */
+  isCeo: boolean;
   /** Whether the user has entered a room (past the lobby) */
   inRoom: boolean;
   messages: Message[];
@@ -49,7 +49,7 @@ interface MeetingState {
   bigScreenHistory: BigScreenUpdateEvent[];
   /** Index into bigScreenHistory: -1 = auto-follow latest */
   bigScreenIndex: number;
-  /** Per-agent/chairman monitor data (latest) */
+  /** Per-agent/ceo monitor data (latest) */
   monitorData: Record<string, MonitorUpdateEvent>;
   /** Monitor history per agent for Q/E pagination */
   monitorHistory: Record<string, MonitorUpdateEvent[]>;
@@ -104,7 +104,7 @@ type MeetingAction =
   | { type: "APPEND_MESSAGE_DELTA"; payload: AppendDeltaPayload }
   | { type: "END_STREAM"; payload: EndStreamPayload }
   | { type: "SET_USER"; payload: { userId: string; userName: string } }
-  | { type: "SET_ROOM"; payload: { roomId: string; isChairman: boolean } }
+  | { type: "SET_ROOM"; payload: { roomId: string; isCeo: boolean } }
   | { type: "ENTER_ROOM" }
   | { type: "LEAVE_ROOM" }
   | { type: "ADD_HUMAN_PARTICIPANT"; payload: HumanParticipant }
@@ -125,7 +125,7 @@ const initialState: MeetingState = {
   roomName: "임원회의",
   userId: "",
   userName: "",
-  isChairman: false,
+  isCeo: false,
   inRoom: false,
   messages: [],
   participants: [],
@@ -259,7 +259,7 @@ function meetingReducer(state: MeetingState, action: MeetingAction): MeetingStat
       return { ...state, userId: action.payload.userId, userName: action.payload.userName };
 
     case "SET_ROOM":
-      return { ...state, roomId: action.payload.roomId, isChairman: action.payload.isChairman };
+      return { ...state, roomId: action.payload.roomId, isCeo: action.payload.isCeo };
 
     case "ENTER_ROOM":
       return { ...state, inRoom: true };

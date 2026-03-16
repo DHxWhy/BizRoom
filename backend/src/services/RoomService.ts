@@ -19,7 +19,7 @@ const DEFAULT_MAX_PARTICIPANTS = 10;
 
 /**
  * Create a new room with a unique 6-char join code.
- * The creator is automatically added as the "chairman" participant.
+ * The creator is automatically added as the "ceo" participant.
  */
 export async function createRoom(
   name: string,
@@ -39,7 +39,7 @@ export async function createRoom(
     maxParticipants,
     isActive: true,
     participants: [
-      { userId: createdBy, role: "chairman", joinedAt: now },
+      { userId: createdBy, role: "ceo", joinedAt: now },
     ],
     totalSessions: 0,
   };
@@ -80,7 +80,7 @@ export async function getRoomByJoinCode(
 export async function joinRoom(
   roomId: string,
   userId: string,
-  role: "chairman" | "member" = "member",
+  role: "ceo" | "member" = "member",
 ): Promise<RoomDocument> {
   const room = await getRoomById(roomId);
   if (!room) {

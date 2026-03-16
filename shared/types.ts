@@ -30,7 +30,7 @@ export interface RoomDocument {
   isActive: boolean;
   participants: Array<{
     userId: string;
-    role: "chairman" | "member";
+    role: "ceo" | "member";
     joinedAt: string;
   }>;
   currentSessionId?: string;
@@ -188,7 +188,7 @@ export type TurnState = "idle" | "hearing" | "routing" | "speaking" | "awaiting"
 export interface BufferedMessage {
   userId: string;
   userName: string;
-  isChairman: boolean;
+  isCeo: boolean;
   source: "voice" | "chat";
   content: string;
   timestamp: number;
@@ -299,7 +299,7 @@ export interface ResponseLog {
 // Meeting Interaction Types — Spec §2-4
 // ──────────────────────────────────────────────
 export interface Mention {
-  target: AgentRole | "chairman" | `member:${string}`;
+  target: AgentRole | "ceo" | `member:${string}`;
   intent: "opinion" | "confirm";
   options?: string[];
 }
@@ -344,7 +344,7 @@ export interface AgentThinkingEvent {
 }
 
 export interface HumanCalloutEvent {
-  target: "chairman" | `member:${string}`;
+  target: "ceo" | `member:${string}`;
   intent: "opinion" | "confirm";
   options?: string[];
   fromAgent: AgentRole;
@@ -376,7 +376,7 @@ export type MonitorContent =
   | { type: "searchResults"; query: string; requestedBy: string; results: Array<{ name: string; snippet: string; url: string }> };
 
 export interface MonitorUpdateEvent {
-  target: "chairman" | `member:${string}` | AgentRole;
+  target: "ceo" | `member:${string}` | AgentRole;
   mode: "idle" | "keyPoints" | "confirm" | "callout" | "actionItems" | "thinking" | "speaking" | "searchResults";
   content: MonitorContent;
 }

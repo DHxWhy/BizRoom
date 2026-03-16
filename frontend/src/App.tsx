@@ -9,7 +9,7 @@ import { QuickActions } from "./components/input/QuickActions";
 import { MeetingBanner } from "./components/meeting/MeetingBanner";
 import { ModeSelector } from "./components/meeting/ModeSelector";
 import { DmStoriesPicker } from "./components/meeting/DmStoriesPicker";
-import { ChairmanControls } from "./components/meeting/ChairmanControls";
+import { CeoControls } from "./components/meeting/ChairmanControls";
 import { AutoModeBanner } from "./components/meeting/AutoModeBanner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ChatOverlay } from "./components/meeting3d/ChatOverlay";
@@ -67,7 +67,7 @@ const DEFAULT_PARTICIPANTS: Participant[] = [
   { id: "agent-cto", name: "Kelvin", type: "agent", role: "cto", status: "online", avatar: "🛠️" },
   { id: "agent-cdo", name: "Jonas", type: "agent", role: "cdo", status: "online", avatar: "🎨" },
   { id: "agent-clo", name: "Bradley", type: "agent", role: "clo", status: "online", avatar: "⚖️" },
-  { id: "user-1", name: "Chairman", type: "human", role: "chairman", status: "online", avatar: "" },
+  { id: "user-1", name: "CEO", type: "human", role: "ceo", status: "online", avatar: "" },
 ];
 
 // Hoisted to module scope — no need to recreate on every render
@@ -400,8 +400,8 @@ function MeetingRoom() {
         roomId: state.roomId,
         senderId: state.userId || "user-1",
         senderType: "human",
-        senderName: state.userName || "Chairman",
-        senderRole: state.isChairman ? "chairman" : "member",
+        senderName: state.userName || "CEO",
+        senderRole: state.isCeo ? "ceo" : "member",
         content,
         timestamp: new Date().toISOString(),
         isVoiceInput,
@@ -416,14 +416,14 @@ function MeetingRoom() {
 
       try {
         // Always use SSE streaming — full Sophia pipeline (search + visual + mention chain)
-        await sendMessageStream(state.roomId, content, state.userName || "Chairman", {
+        await sendMessageStream(state.roomId, content, state.userName || "CEO", {
           mode: state.meetingMode,
           dmTarget: state.dmTarget,
         });
       } catch {
         // Fallback to SignalR if SSE fails
-        await sendMessage(state.roomId, content, state.userName || "Chairman", {
-          isChairman: state.isChairman,
+        await sendMessage(state.roomId, content, state.userName || "CEO", {
+          isCeo: state.isCeo,
           mode: state.meetingMode,
           dmTarget: state.dmTarget,
         });
@@ -442,7 +442,7 @@ function MeetingRoom() {
       state.roomId,
       state.userId,
       state.userName,
-      state.isChairman,
+      state.isCeo,
       state.meetingMode,
       state.dmTarget,
     ],
@@ -467,7 +467,7 @@ function MeetingRoom() {
         body: JSON.stringify({
           roomId: state.roomId,
           userId: state.userId || "user-1",
-          userName: state.userName || "Chairman",
+          userName: state.userName || "CEO",
           agenda: state.lobbyAgenda || "일반 회의",
           brandMemory: state.brandMemory,
         }),
@@ -806,8 +806,8 @@ function MeetingRoom() {
           <QuickActions onAction={handleQuickAction} disabled={isIdle} />
         )}
 
-        {/* Chairman controls */}
-        {isActive && <ChairmanControls roomId={state.roomId} isChairman={state.isChairman} />}
+        {/* CEO controls */}
+        {isActive && <CeoControls roomId={state.roomId} isCeo={state.isCeo} />}
 
         <InputArea
           onSend={(content, isVoiceInput) => void handleSend(content, isVoiceInput)}
@@ -847,7 +847,7 @@ function AppRouter() {
   useEffect(() => {
     const { userName } = initUser();
     if (urlRoomCode && userName) {
-      dispatch({ type: "SET_ROOM", payload: { roomId: urlRoomCode, isChairman: false } });
+      dispatch({ type: "SET_ROOM", payload: { roomId: urlRoomCode, isCeo: false } });
       dispatch({ type: "ENTER_ROOM" });
     }
   }, [initUser, urlRoomCode, dispatch]);

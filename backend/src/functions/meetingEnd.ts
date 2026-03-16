@@ -105,7 +105,7 @@ export async function meetingEnd(
       "coo",
       "회의를 종료합니다. 오늘 논의된 내용을 요약하고 액션아이템을 정리해주세요.",
       {
-        participants: "Chairman, Hudson (COO), Amelia (CFO), Yusef (CMO)",
+        participants: "CEO, Hudson (COO), Amelia (CFO), Yusef (CMO)",
         agenda: room.agenda || "회의 종료",
         history: historyContext,
         brandMemory: getBrandMemory(roomId),

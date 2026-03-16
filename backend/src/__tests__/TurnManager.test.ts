@@ -214,7 +214,7 @@ describe("TurnManager re-flush agentsDone emission", () => {
 
     const tm = new TurnManager();
     const roomId = "test-room-reflush";
-    tm.setChairman(roomId, "user-1");
+    tm.setCeo(roomId, "user-1");
 
     const events: string[] = [];
     tm.on("agentsDone:" + roomId, () => events.push("agentsDone"));
@@ -223,14 +223,14 @@ describe("TurnManager re-flush agentsDone emission", () => {
 
     // Simulate: hearing → transcript → flush → speaking
     tm.onSpeechStart(roomId, "user-1");
-    tm.onTranscript(roomId, "user-1", "Chairman", "예산 논의 해주세요");
+    tm.onTranscript(roomId, "user-1", "CEO", "예산 논의 해주세요");
     tm.onSpeechEnd(roomId, "user-1");
 
     // Fast-forward flush timer to trigger onFlush
     vi.runAllTimers();
 
     // Now simulate chat arriving during speaking (which queues input)
-    tm.onChatMessage(roomId, "user-1", "Chairman", "추가 질문입니다", true);
+    tm.onChatMessage(roomId, "user-1", "CEO", "추가 질문입니다", true);
 
     // Simulate each agent done until queue is empty
     // Get the active agents from triggerAgent events

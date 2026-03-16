@@ -7,6 +7,7 @@ import { MeetingTable3D } from "./MeetingTable3D";
 import { RoomEnvironment3D } from "./RoomEnvironment3D";
 import { CameraController } from "./CameraController";
 import { ArtifactScreen3D } from "./ArtifactScreen3D";
+import { HoloMonitor3D } from "./HoloMonitor3D";
 import type { ArtifactData } from "./ArtifactScreen3D";
 import type { BigScreenUpdateEvent, AgentRole, MonitorUpdateEvent } from "../../types";
 import type { BlendShapeWeights } from "../../utils/visemeMap";
@@ -26,12 +27,12 @@ function faceCenter(pos: [number, number, number]): [number, number, number] {
 }
 
 const SEAT_CONFIG: AgentSeat[] = [
-  // Head of table (far side) — Chairman (user)
+  // Head of table (far side) — CEO (user)
   {
     position: [0, 0, -2.2],
     rotation: faceCenter([0, 0, -2.2]),
-    agent: "chairman",
-    name: "Chairman",
+    agent: "ceo",
+    name: "CEO",
     color: "#8b5cf6",
   },
   // Left side (3 seats)
@@ -80,14 +81,14 @@ const SEAT_CONFIG: AgentSeat[] = [
   },
 ];
 
-/** Human participant seats — far end of table, facing Chairman (max 2 extra) */
+/** Human participant seats — far end of table, facing CEO (max 2 extra) */
 const HUMAN_EXTRA_SEATS: [number, number, number][] = [
   [-0.9, 0, 2.1],
   [0.9, 0, 2.1],
 ];
 
 /** Sophia blob — floating above the center of the round table */
-const SOPHIA_BLOB_POSITION: [number, number, number] = [0, 1.4, 0];
+const SOPHIA_BLOB_POSITION: [number, number, number] = [0, 1.5, 0];
 
 // Memoize static sub-scenes to prevent unnecessary re-renders
 const MemoizedRoom = memo(RoomEnvironment3D);
@@ -154,7 +155,7 @@ interface MeetingRoom3DProps {
   meetingPhase: string;
   /** Artifact to display on the back-wall screen, or null for idle state */
   currentArtifact?: ArtifactData | null;
-  /** Additional human participants (max 2) sitting across from Chairman */
+  /** Additional human participants (max 2) sitting across from CEO */
   humanParticipants?: HumanParticipant[];
   /** Current BigScreen visualization event */
   bigScreenEvent?: BigScreenUpdateEvent | null;
@@ -164,7 +165,7 @@ interface MeetingRoom3DProps {
   onBigScreenNav?: (dir: "prev" | "next") => void;
   /** Retrieve current viseme blend shape weights for a given agent role */
   getVisemeWeights?: (role: AgentRole) => BlendShapeWeights;
-  /** Per-agent holographic monitor data keyed by agent role / "chairman" */
+  /** Per-agent holographic monitor data keyed by agent role / "ceo" */
   monitorData?: Record<string, MonitorUpdateEvent>;
 }
 
@@ -322,9 +323,21 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
           {/* ═══ TABLE + PROPS (memoized) ═══ */}
           <MemoizedTable />
 
-          {/* Holographic monitors removed — agents identified via Billboard badges */}
+          {/* ═══ HOLOGRAPHIC MONITORS (floating above table in front of each agent) ═══ */}
+          {SEAT_CONFIG.filter((s) => s.agent !== "ceo").map((seat) => (
+            <HoloMonitor3D
+              key={`monitor-${seat.agent}`}
+              position={[seat.position[0] * 0.6, 1.05, seat.position[2] * 0.6]}
+              rotationY={seat.rotation[1]}
+              rotationX={-0.25}
+              agentRole={seat.agent.toUpperCase()}
+              agentName={seat.name}
+              color={seat.color}
+              monitorData={monitorData?.[seat.agent]}
+            />
+          ))}
 
-          {/* ═══ HUMAN PARTICIPANT SEATS (max 2, far end facing Chairman) ═══ */}
+          {/* ═══ HUMAN PARTICIPANT SEATS (max 2, far end facing CEO) ═══ */}
           {humanParticipants.slice(0, 2).map((participant, i) => {
             const seat = humanSeatData[i];
             const pColor = participant.color || "#a78bfa";
@@ -385,7 +398,7 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
 
           {/* ═══ AVATARS (Ready Player Me GLB models, seated) ═══ */}
           {SEAT_CONFIG.map((seat) =>
-            isFirstPerson && seat.agent === "chairman" ? null : (
+            isFirstPerson && seat.agent === "ceo" ? null : (
               <RPMAgentAvatar
                 key={seat.agent}
                 agentRole={seat.agent}

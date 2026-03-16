@@ -21,7 +21,7 @@ const SKIN_TONES: Record<string, string> = {
   coo: "#e8b89d",     // Hudson - light
   cfo: "#f0c8a8",     // Amelia - fair
   cmo: "#8d5524",     // Yusef  - brown
-  chairman: "#e0b090", // Chairman
+  ceo: "#e0b090", // CEO
   cto: "#d4a574",     // Kelvin
   cdo: "#f5d0b0",     // Jonas  - light
   clo: "#c8a282",     // Bradley
@@ -31,7 +31,7 @@ const HAIR_COLORS: Record<string, string> = {
   coo: "#4a3728",     // dark brown
   cfo: "#8b6914",     // golden brown
   cmo: "#1a1a1a",     // black
-  chairman: "#3a3a3a",
+  ceo: "#3a3a3a",
   cto: "#2a2a2a",     // near black
   cdo: "#5a3a20",     // brown
   clo: "#6a6a6a",     // gray
@@ -42,7 +42,7 @@ const IRIS_COLORS: Record<string, string> = {
   coo: "#4a7ab5",
   cfo: "#6b8a4a",    // green-hazel
   cmo: "#1f1f1f",
-  chairman: "#3a5a3a",
+  ceo: "#3a5a3a",
   cto: "#3a5a7a",
   cdo: "#5a7a4a",
   clo: "#4a4a6a",
@@ -53,7 +53,7 @@ const SUIT_DARK: Record<string, string> = {
   coo: "#1e3a6a",
   cfo: "#0a6a4a",
   cmo: "#8a3a0a",
-  chairman: "#4a2a8a",
+  ceo: "#4a2a8a",
   cto: "#2a2a5a",
   cdo: "#5a2a2a",
   clo: "#2a4a4a",
@@ -64,7 +64,7 @@ const HAIR_STYLE: Record<string, "short" | "medium" | "long" | "buzz" | "wavy"> 
   coo: "short",
   cfo: "long",      // Amelia
   cmo: "buzz",      // Yusef
-  chairman: "medium",
+  ceo: "medium",
   cto: "short",
   cdo: "wavy",
   clo: "short",
@@ -75,7 +75,7 @@ const TIE_COLORS: Record<string, string> = {
   coo: "#1e3a8a",   // navy
   cfo: "#8a1e3a",   // burgundy (necklace/scarf instead)
   cmo: "#d97706",   // amber
-  chairman: "#4c1d95",
+  ceo: "#4c1d95",
   cto: "#064e3b",   // dark teal
   cdo: "#78350f",   // brown
   clo: "#1e293b",   // charcoal
@@ -83,7 +83,7 @@ const TIE_COLORS: Record<string, string> = {
 
 /** Whether agent wears a tie (false = scarf/pendant for female agents) */
 const WEARS_TIE: Record<string, boolean> = {
-  coo: true, cfo: false, cmo: true, chairman: true,
+  coo: true, cfo: false, cmo: true, ceo: true,
   cto: true, cdo: true, clo: true,
 };
 
@@ -718,7 +718,7 @@ function BuzzHair({ color }: { color: string }) {
   );
 }
 
-/** Medium length (Chairman) */
+/** Medium length (CEO) */
 function MediumHair({ color }: { color: string }) {
   return (
     <group>

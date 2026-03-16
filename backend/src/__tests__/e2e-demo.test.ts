@@ -7,7 +7,7 @@
  *
  * Coverage:
  *  1. Meeting Start  — room init, Sophia opening (not COO)
- *  2. Chat Message   — non-stream routes to TurnManager, isChairman detection
+ *  2. Chat Message   — non-stream routes to TurnManager, isCeo detection
  *  3. TurnManager    — onChatMessage → triggerAgent events, max 2 per turn
  *  4. TopicClassifier — keyword → primary agent routing
  *  5. ResponseParser  — StructuredAgentOutput extraction
@@ -107,7 +107,7 @@ vi.mock("../services/ModelRouter.js", async (importOriginal) => {
                   meetingInfo: {
                     title: "BizRoom 회의록",
                     date: new Date().toISOString(),
-                    participants: ["Chairman", "Hudson", "Amelia"],
+                    participants: ["CEO", "Hudson", "Amelia"],
                   },
                   agendas: [{ title: "신제품 전략", summary: "A안으로 결정" }],
                   actionItems: [{ task: "시장조사", assignee: "Yusef", deadline: "2026-03-20" }],
@@ -266,7 +266,7 @@ describe("Category 2: Chat Message non-stream → TurnManager", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     tm = new TurnManager();
-    tm.setChairman(roomId, "user-chairman");
+    tm.setCeo(roomId, "user-ceo");
   });
 
   afterEach(() => {
@@ -280,28 +280,28 @@ describe("Category 2: Chat Message non-stream → TurnManager", () => {
       stateChanges.push(state);
     });
 
-    tm.onChatMessage(roomId, "user-chairman", "Chairman", "마케팅 전략 논의해주세요", true);
+    tm.onChatMessage(roomId, "user-ceo", "CEO", "마케팅 전략 논의해주세요", true);
 
     // Should transition to 'hearing' immediately
     expect(stateChanges).toContain("hearing");
   });
 
-  it("isChairman=true uses CHAIRMAN_FLUSH_MS (0ms) — immediate flush", () => {
+  it("isCeo=true uses CEO_FLUSH_MS (0ms) — immediate flush", () => {
     const triggered: string[] = [];
     tm.on(`triggerAgent:${roomId}`, (_rid: string, role: string) => {
       triggered.push(role);
     });
 
-    tm.onChatMessage(roomId, "user-chairman", "Chairman", "예산 검토 해주세요", true);
+    tm.onChatMessage(roomId, "user-ceo", "CEO", "예산 검토 해주세요", true);
 
-    // CHAIRMAN_FLUSH_MS = 0 → runs immediately when timers advance 0ms
+    // CEO_FLUSH_MS = 0 → runs immediately when timers advance 0ms
     vi.advanceTimersByTime(0);
 
     // At least one agent should be triggered
     expect(triggered.length).toBeGreaterThan(0);
   });
 
-  it("isChairman=false uses MEMBER_FLUSH_MS (500ms) — delayed flush", () => {
+  it("isCeo=false uses MEMBER_FLUSH_MS (500ms) — delayed flush", () => {
     const triggered: string[] = [];
     tm.on(`triggerAgent:${roomId}`, (_rid: string, role: string) => {
       triggered.push(role);
@@ -318,23 +318,23 @@ describe("Category 2: Chat Message non-stream → TurnManager", () => {
     expect(triggered.length).toBeGreaterThan(0);
   });
 
-  it("isChairman detection: senderId='chairman' → isChairman=true", () => {
-    // Replicate the message.ts isChairman detection logic
-    const body = { isChairman: undefined as boolean | undefined, senderId: "chairman" };
-    const isChairman = body.isChairman === true || body.senderId === "chairman" || !body.senderId;
-    expect(isChairman).toBe(true);
+  it("isCeo detection: senderId='ceo' → isCeo=true", () => {
+    // Replicate the message.ts isCeo detection logic
+    const body = { isCeo: undefined as boolean | undefined, senderId: "ceo" };
+    const isCeo = body.isCeo === true || body.senderId === "ceo" || !body.senderId;
+    expect(isCeo).toBe(true);
   });
 
-  it("isChairman detection: no senderId → isChairman=true (fallback)", () => {
-    const body = { isChairman: undefined as boolean | undefined, senderId: undefined as string | undefined };
-    const isChairman = body.isChairman === true || body.senderId === "chairman" || !body.senderId;
-    expect(isChairman).toBe(true);
+  it("isCeo detection: no senderId → isCeo=true (fallback)", () => {
+    const body = { isCeo: undefined as boolean | undefined, senderId: undefined as string | undefined };
+    const isCeo = body.isCeo === true || body.senderId === "ceo" || !body.senderId;
+    expect(isCeo).toBe(true);
   });
 
-  it("isChairman detection: body.isChairman=true overrides senderId", () => {
-    const body = { isChairman: true, senderId: "user-xyz" };
-    const isChairman = body.isChairman === true || body.senderId === "chairman" || !body.senderId;
-    expect(isChairman).toBe(true);
+  it("isCeo detection: body.isCeo=true overrides senderId", () => {
+    const body = { isCeo: true, senderId: "user-xyz" };
+    const isCeo = body.isCeo === true || body.senderId === "ceo" || !body.senderId;
+    expect(isCeo).toBe(true);
   });
 
   it("ignores message when AI is paused", () => {
@@ -344,7 +344,7 @@ describe("Category 2: Chat Message non-stream → TurnManager", () => {
     });
 
     tm.setAiPaused(roomId, true);
-    tm.onChatMessage(roomId, "user-chairman", "Chairman", "test", true);
+    tm.onChatMessage(roomId, "user-ceo", "CEO", "test", true);
 
     // Should not transition to hearing
     expect(stateChanges).not.toContain("hearing");
@@ -362,7 +362,7 @@ describe("Category 3: TurnManager Flow", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     tm = new TurnManager();
-    tm.setChairman(roomId, "user-1");
+    tm.setCeo(roomId, "user-1");
   });
 
   afterEach(() => {
@@ -376,7 +376,7 @@ describe("Category 3: TurnManager Flow", () => {
       triggeredRoles.push(role);
     });
 
-    tm.onChatMessage(roomId, "user-1", "Chairman", "신제품 마케팅 전략을 논의합시다", true);
+    tm.onChatMessage(roomId, "user-1", "CEO", "신제품 마케팅 전략을 논의합시다", true);
     vi.advanceTimersByTime(0);
 
     expect(triggeredRoles.length).toBeGreaterThan(0);
@@ -394,7 +394,7 @@ describe("Category 3: TurnManager Flow", () => {
       triggeredRoles.push(role);
     });
 
-    tm.onChatMessage(roomId, "user-1", "Chairman", "일반 논의입니다", true);
+    tm.onChatMessage(roomId, "user-1", "CEO", "일반 논의입니다", true);
     vi.advanceTimersByTime(0);
 
     // Only first agent triggered immediately. Mark done, wait for gap timer, second triggers.
@@ -409,7 +409,7 @@ describe("Category 3: TurnManager Flow", () => {
       capturedInstructions = instructions;
     });
 
-    tm.onChatMessage(roomId, "user-1", "Chairman", "회의를 진행해주세요", true);
+    tm.onChatMessage(roomId, "user-1", "CEO", "회의를 진행해주세요", true);
     vi.advanceTimersByTime(0);
 
     expect(capturedInstructions).toBeTruthy();
@@ -423,7 +423,7 @@ describe("Category 3: TurnManager Flow", () => {
       states.push(state);
     });
 
-    tm.onChatMessage(roomId, "user-1", "Chairman", "test", true);
+    tm.onChatMessage(roomId, "user-1", "CEO", "test", true);
     vi.advanceTimersByTime(0);
 
     // idle → hearing (onChatMessage) → routing → speaking (onFlush)
@@ -440,7 +440,7 @@ describe("Category 3: TurnManager Flow", () => {
     });
     tm.on(`agentsDone:${roomId}`, () => events.push("agentsDone"));
 
-    tm.onChatMessage(roomId, "user-1", "Chairman", "의견 주세요", true);
+    tm.onChatMessage(roomId, "user-1", "CEO", "의견 주세요", true);
     vi.advanceTimersByTime(0);
 
     // Simulate first agent done
@@ -542,7 +542,7 @@ describe("Category 4: Topic Classification", () => {
 describe("Category 5: ResponseParser", () => {
   it("Tier 1: parses valid JSON with all fields", () => {
     const raw: StructuredAgentOutput = {
-      speech: "의장님, 마케팅 예산을 검토하겠습니다.",
+      speech: "대표님, 마케팅 예산을 검토하겠습니다.",
       key_points: ["마케팅 예산 분석 필요", "ROI 검토"],
       mention: { target: "cfo", intent: "opinion" },
       visual_hint: { type: "bar-chart", title: "예산 현황" },
@@ -550,7 +550,7 @@ describe("Category 5: ResponseParser", () => {
     const result = parseStructuredOutput(JSON.stringify(raw), "cmo");
 
     expect(result.tier).toBe("schema_valid");
-    expect(result.data.speech).toBe("의장님, 마케팅 예산을 검토하겠습니다.");
+    expect(result.data.speech).toBe("대표님, 마케팅 예산을 검토하겠습니다.");
     expect(result.data.key_points).toHaveLength(2);
     expect(result.data.key_points[0]).toBe("마케팅 예산 분석 필요");
     expect(result.data.mention?.target).toBe("cfo");
@@ -661,7 +661,7 @@ describe("Category 6: A2A Mention Routing", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     tm = new TurnManager();
-    tm.setChairman(roomId, "user-1");
+    tm.setCeo(roomId, "user-1");
   });
 
   afterEach(() => {
@@ -675,7 +675,7 @@ describe("Category 6: A2A Mention Routing", () => {
     // We verify this directly via the internal queue + the A2A path in TurnManager.
     const tm3 = new TurnManager();
     const rId = "e2e-room-a2a-cfo";
-    tm3.setChairman(rId, "user-1");
+    tm3.setCeo(rId, "user-1");
 
     const triggeredRoles: string[] = [];
     tm3.on(`triggerAgent:${rId}`, (_rid: string, role: string) => {
@@ -683,7 +683,7 @@ describe("Category 6: A2A Mention Routing", () => {
     });
 
     // Trigger COO directly via requestAiOpinion (empty input → only COO queued at P1)
-    tm3.onChatMessage(rId, "user-1", "Chairman", "의견 주세요", true);
+    tm3.onChatMessage(rId, "user-1", "CEO", "의견 주세요", true);
     vi.advanceTimersByTime(0);
 
     // handleMentionRouting queues CFO (structured mention, priority 1)
@@ -714,7 +714,7 @@ describe("Category 6: A2A Mention Routing", () => {
     tm3.destroyRoom(rId);
   });
 
-  it("mention.target='chairman' triggers awaiting state (human callout)", () => {
+  it("mention.target='ceo' triggers awaiting state (human callout)", () => {
     const states: string[] = [];
     const callouts: Array<{ target: string }> = [];
     tm.on(`stateChanged:${roomId}`, (_rid: string, state: string) => {
@@ -725,21 +725,21 @@ describe("Category 6: A2A Mention Routing", () => {
     });
 
     // Put TurnManager into speaking state first
-    tm.onChatMessage(roomId, "user-1", "Chairman", "의견을 물어보겠습니다", true);
+    tm.onChatMessage(roomId, "user-1", "CEO", "의견을 물어보겠습니다", true);
     vi.advanceTimersByTime(0);
 
-    // Simulate agent mentions chairman
-    const outputWithChairmanMention: StructuredAgentOutput = {
-      speech: "의장님, A안과 B안 중 어느 것을 선택하시겠습니까?",
+    // Simulate agent mentions ceo
+    const outputWithCeoMention: StructuredAgentOutput = {
+      speech: "대표님, A안과 B안 중 어느 것을 선택하시겠습니까?",
       key_points: [],
-      mention: { target: "chairman", intent: "confirm", options: ["A안", "B안"] },
+      mention: { target: "ceo", intent: "confirm", options: ["A안", "B안"] },
       visual_hint: null,
     };
-    tm.handleMentionRouting(roomId, outputWithChairmanMention, "coo");
+    tm.handleMentionRouting(roomId, outputWithCeoMention, "coo");
 
     expect(states).toContain("awaiting");
     expect(callouts.length).toBeGreaterThan(0);
-    expect(callouts[0].target).toBe("chairman");
+    expect(callouts[0].target).toBe("ceo");
   });
 
   it("mention.target=valid agent role is queued at priority 1", () => {
@@ -748,7 +748,7 @@ describe("Category 6: A2A Mention Routing", () => {
       triggeredRoles.push(role);
     });
 
-    tm.onChatMessage(roomId, "user-1", "Chairman", "법적 검토 필요", true);
+    tm.onChatMessage(roomId, "user-1", "CEO", "법적 검토 필요", true);
     vi.advanceTimersByTime(0);
 
     // Queue CLO via structured mention, then complete COO so CLO is dequeued
@@ -776,7 +776,7 @@ describe("Category 6: A2A Mention Routing", () => {
 
     const tm2 = new TurnManager();
     const rId = "e2e-room-a2a-keyword";
-    tm2.setChairman(rId, "user-kw");
+    tm2.setCeo(rId, "user-kw");
 
     const triggered: string[] = [];
     tm2.on(`triggerAgent:${rId}`, (_rid: string, role: string) => {
@@ -784,7 +784,7 @@ describe("Category 6: A2A Mention Routing", () => {
     });
 
     // Enter speaking state via chat message
-    tm2.onChatMessage(rId, "user-kw", "Chairman", "일반 논의", true);
+    tm2.onChatMessage(rId, "user-kw", "CEO", "일반 논의", true);
     vi.advanceTimersByTime(0);
 
     // handleMentionRouting with null mention → checkFollowUp by keyword.
@@ -1157,7 +1157,7 @@ describe("Category 10: Meeting End", () => {
       "coo",
       "회의를 종료합니다.",
       {
-        participants: "Chairman, Hudson (COO)",
+        participants: "CEO, Hudson (COO)",
         agenda: "신제품 런칭",
         history: "",
       },

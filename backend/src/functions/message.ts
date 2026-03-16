@@ -13,6 +13,7 @@ import { MAX_AGENTS_PER_TURN, MAX_FOLLOW_UP_ROUNDS } from "../constants/turnConf
 import { parseStructuredOutput } from "../orchestrator/ResponseParser.js";
 import { sophiaAgent } from "../agents/SophiaAgent.js";
 import { searchBing, formatSearchContext } from "../services/BingSearchService.js";
+import { broadcastEvent } from "../services/SignalRService.js";
 import {
   getModelForTask,
   getAnthropicClient,
@@ -178,15 +179,21 @@ export async function message(
               brandMemory: getBrandMemory(roomId),
             });
 
+            // Buffer full LLM response — agents output JSON, must parse before showing.
+            // No streaming to frontend during accumulation: avoids premature END_STREAM
+            // when Sophia messages arrive with a new messageId in between.
             for await (const delta of agentStream) {
               fullContent += delta;
-              const sseData = JSON.stringify({
-                messageId,
-                role: meta.role,
-                name: meta.name,
-                delta,
-              });
-              controller.enqueue(sseEncode(sseData));
+            }
+
+            // Parse and emit only the clean speech field as a single delta.
+            // START_STREAM fires on first delta arrival in useSignalR.
+            if (fullContent) {
+              const earlyParsed = parseStructuredOutput(fullContent, meta.role);
+              const speech = earlyParsed.data.speech || fullContent;
+              controller.enqueue(sseEncode(JSON.stringify({
+                messageId, role: meta.role, name: meta.name, delta: speech,
+              })));
             }
           } catch (err: unknown) {
             const errMsg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
@@ -226,6 +233,19 @@ export async function message(
               visualHint: parsed.data.visual_hint || null,
               timestamp: Date.now(),
             });
+
+            // Broadcast key_points to HoloMonitor via SignalR
+            const keyPoints = parsed.data.key_points;
+            if (keyPoints && keyPoints.length > 0) {
+              broadcastEvent(roomId, {
+                type: "monitorUpdate",
+                payload: {
+                  target: meta.role as AgentRole,
+                  mode: "keyPoints",
+                  content: { type: "keyPoints", agentRole: meta.role as AgentRole, points: keyPoints },
+                },
+              });
+            }
 
             // ── Mention chain: agent calls another agent → add to queue ──
             if (parsed.data.mention?.target &&

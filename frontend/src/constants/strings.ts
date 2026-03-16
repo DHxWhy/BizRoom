@@ -157,7 +157,7 @@ export const S = {
     speaking: "발언 중",
     thinking: "생각 중...",
   },
-  chairman: {
+  ceo: {
     requestAiOpinion: "AI 의견 요청",
     nextAgenda: "다음 안건",
     pauseAi: "AI 일시정지",

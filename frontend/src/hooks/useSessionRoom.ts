@@ -69,7 +69,7 @@ export function useSessionRoom() {
     return { userId, userName };
   }, [dispatch]);
 
-  /** Create a new room as Chairman (sets user + room, does NOT enter yet) */
+  /** Create a new room as CEO (sets user + room, does NOT enter yet) */
   const createRoom = useCallback(
     (userName: string) => {
       const userId = getOrCreateUserId();
@@ -77,7 +77,7 @@ export function useSessionRoom() {
 
       saveUserName(userName);
       dispatch({ type: "SET_USER", payload: { userId, userName } });
-      dispatch({ type: "SET_ROOM", payload: { roomId, isChairman: true } });
+      dispatch({ type: "SET_ROOM", payload: { roomId, isCeo: true } });
 
       setRoomIdInUrl(roomId);
 
@@ -97,7 +97,7 @@ export function useSessionRoom() {
       const userId = getOrCreateUserId();
       saveUserName(userName);
       dispatch({ type: "SET_USER", payload: { userId, userName } });
-      dispatch({ type: "SET_ROOM", payload: { roomId: roomId.toUpperCase(), isChairman: false } });
+      dispatch({ type: "SET_ROOM", payload: { roomId: roomId.toUpperCase(), isCeo: false } });
       dispatch({ type: "ENTER_ROOM" });
 
       setRoomIdInUrl(roomId.toUpperCase());

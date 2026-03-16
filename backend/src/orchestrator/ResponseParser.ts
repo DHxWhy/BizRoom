@@ -15,7 +15,7 @@ export interface ParseResult {
 }
 
 const VALID_INTENTS = new Set(["opinion", "confirm"]);
-const VALID_TARGETS = new Set(["coo", "cfo", "cmo", "cto", "cdo", "clo", "chairman"]);
+const VALID_TARGETS = new Set(["coo", "cfo", "cmo", "cto", "cdo", "clo", "ceo"]);
 const VALID_VISUAL_TYPES = new Set([
   "comparison", "pie-chart", "bar-chart", "timeline", "checklist", "summary", "architecture",
 ]);

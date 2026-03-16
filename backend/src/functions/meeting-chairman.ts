@@ -1,5 +1,5 @@
 // backend/src/functions/meeting-chairman.ts
-// Chairman control endpoints
+// CEO control endpoints
 // Ref: Design Spec §4.2
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
@@ -64,7 +64,7 @@ async function toggleAiPause(request: HttpRequest, context: InvocationContext): 
 const MAX_TEXT_LENGTH = 2000;
 const MAX_ID_LENGTH = 200;
 
-/** POST /api/meeting/human-response — chairman/member callout reply */
+/** POST /api/meeting/human-response — ceo/member callout reply */
 async function humanResponse(
   request: HttpRequest,
   context: InvocationContext,
