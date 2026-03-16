@@ -13,6 +13,12 @@ checklist: {"type":"checklist","items":[{"text":"항목","checked":true}]}
 summary: {"type":"summary","items":["포인트1","포인트2"]}
 architecture: {"type":"architecture","nodes":[{"id":"n1","label":"이름","x":0,"y":0}],"edges":[{"from":"n1","to":"n2"}]}
 
+## BigScreen 규격
+- 화면 해상도: 1024 x 576 px (16:9)
+- SVG viewBox="0 0 1024 576" 기준으로 레이아웃
+- 배경색: #0d1117 (어두운 테마)
+- 텍스트 색상: #e6edf3 (본문), #58a6ff (제목/강조)
+
 ## 규칙
 - 모든 텍스트는 한국어
 - value는 정수
@@ -20,7 +26,8 @@ architecture: {"type":"architecture","nodes":[{"id":"n1","label":"이름","x":0,
 - 데이터는 대화 맥락에서 추출, 없으면 합리적으로 추정
 - items 개수: 반드시 3-7개. 빈 배열([]) 절대 금지.
 - items가 비어있으면 대화 맥락에서 추론하여 반드시 채우세요.
-- columns와 rows도 반드시 내용을 포함해야 합니다.`;
+- columns와 rows도 반드시 내용을 포함해야 합니다.
+- JSON만 응답. 마크다운 코드블록(\`\`\`json)으로 감싸지 마세요.`;
 
 export const SOPHIA_MINUTES_SYSTEM_PROMPT = `당신은 BizRoom.ai의 회의록 작성 어시스턴트입니다.
 
