@@ -190,6 +190,7 @@ export function useSignalR(
         });
 
         connection.on("monitorUpdate", (payload: MonitorUpdateEvent) => {
+          console.log("[SignalR] monitorUpdate received:", payload.target, payload.mode);
           optionsRef.current.onMonitorUpdate?.(payload);
         });
 

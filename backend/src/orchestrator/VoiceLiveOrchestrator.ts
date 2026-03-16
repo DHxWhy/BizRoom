@@ -430,6 +430,16 @@ export function wireVoiceLiveForRoom(
       const SEARCH_INTENT = /조사해|찾아봐|알아봐|리서치해|검색해|search|look up|find out|research/i;
       const isSearchRequest = SEARCH_INTENT.test(userInput);
 
+      // Show Sophia Thinking UI on CEO monitor
+      broadcastEvent(roomId, {
+        type: "monitorUpdate",
+        payload: {
+          target: "ceo",
+          mode: "thinking",
+          content: { type: "thinking", text: isSearchRequest ? "Sophia 조사 중..." : "Sophia 시각화 생성 중..." },
+        },
+      });
+
       if (isSearchRequest) {
         // Sophia search mode
         voiceLiveManager.triggerSophiaVoice(roomId, "네, 조사를 진행하겠습니다. 잠시만 기다려 주세요.");
