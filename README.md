@@ -76,7 +76,7 @@ Kelvin (CTO)      Yusef (CMO)            Jonas (CDO)
 
 ## Live Demo + Screenshots
 
-> **Demo URL:** `https://bizroom.ai` *(deployment in progress)*
+> **Demo URL:** [https://gray-pebble-030ae3b10.1.azurestaticapps.net](https://gray-pebble-030ae3b10.1.azurestaticapps.net/)
 
 | Scene                    | Description                                                  |
 | ------------------------ | ------------------------------------------------------------ |
