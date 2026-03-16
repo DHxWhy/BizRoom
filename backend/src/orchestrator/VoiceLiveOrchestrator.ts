@@ -305,13 +305,26 @@ export function wireVoiceLiveForRoom(
         visualTriggered = true;
       }
 
-      // Fallback: keyword-based visual-intent detection (once per turn)
+      // Fallback 1: Agent calls Sophia in their speech (e.g., "Sophia, 차트로 정리해줘")
+      if (!visualTriggered && /소피아|sophia/i.test(parsed.data.speech)) {
+        const userInput = turnManager.getCombinedInput(roomId);
+        const title = userInput.replace(/\[.*?\]:\s*/g, "").trim().slice(0, 60) || "요청 시각화";
+        sophiaAgent.enqueueVisual(roomId, { type: "summary" as const, title });
+        processVisualQueue(roomId);
+        visualTriggered = true;
+        broadcastEvent(roomId, {
+          type: "sophiaMessage",
+          payload: { text: "네, 시각화 준비하겠습니다." },
+        });
+        voiceLiveManager.triggerSophiaVoice(roomId, "네, 시각화 준비하겠습니다.");
+      }
+
+      // Fallback 2: keyword-based visual-intent detection (once per turn)
       if (!visualTriggered && !visualIntentChecked.has(roomId)) {
         visualIntentChecked.add(roomId);
         const userInput = turnManager.getCombinedInput(roomId);
         const detectedHint = detectVisualIntent(userInput, parsed.data.speech);
         if (detectedHint) {
-          console.log(`[Sophia] Visual intent detected from user input: type=${detectedHint.type}, title="${detectedHint.title}"`);
           sophiaAgent.enqueueVisual(roomId, detectedHint);
           processVisualQueue(roomId);
         }
