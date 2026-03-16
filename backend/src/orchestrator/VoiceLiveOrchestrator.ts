@@ -42,7 +42,7 @@ const VISUAL_KEYWORD_MAP: Array<{ type: VisualType; title: string; keywords: Reg
   {
     type: "bar-chart",
     title: "데이터 차트",
-    keywords: /차트|그래프|막대|바차트|수치|통계|chart|graph|bar|stat|데이터.*(?:보여|보이|표시|시각)/i,
+    keywords: /차트|그래프|막대|바차트|수치|통계|시장.*규모|규모.*파악|우선순위.*시각|chart|graph|bar|stat|데이터.*(?:보여|보이|표시|시각)/i,
   },
   {
     type: "timeline",
@@ -75,14 +75,21 @@ const GENERIC_VISUAL_REQUEST = /시각화|빅스크린|화면.*(?:보여|띄워|
  * Also incorporates the agent's speech to refine the title when possible.
  */
 export function detectVisualIntent(userInput: string, agentSpeech?: string): VisualHint | null {
-  const combinedText = userInput + (agentSpeech ? " " + agentSpeech : "");
-
-  // Check specific visual type keywords first
+  // Check USER INPUT first (higher priority — matches user's actual request)
   for (const entry of VISUAL_KEYWORD_MAP) {
-    if (entry.keywords.test(combinedText)) {
-      // Try to extract a more specific title from the user input
+    if (entry.keywords.test(userInput)) {
       const title = extractVisualTitle(userInput, entry.title);
       return { type: entry.type, title };
+    }
+  }
+
+  // Then check agent speech as fallback (lower priority)
+  if (agentSpeech) {
+    for (const entry of VISUAL_KEYWORD_MAP) {
+      if (entry.keywords.test(agentSpeech)) {
+        const title = extractVisualTitle(userInput, entry.title);
+        return { type: entry.type, title };
+      }
     }
   }
 
