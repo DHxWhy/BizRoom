@@ -77,7 +77,7 @@ export function useWhisperPTT(
     !!mimeType;
 
   const sendToWhisper = useCallback(async (blob: Blob): Promise<void> => {
-    const { lang = "ko", prompt = "", onTranscript } = optionsRef.current;
+    const { lang = "en", prompt = "", onTranscript } = optionsRef.current;
 
     setStatus("processing");
 

@@ -84,7 +84,7 @@ export function usePushToTalk(options: UsePushToTalkOptions = {}) {
     const Ctor: SpeechRecognitionCtor =
       window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new Ctor();
-    recognition.lang = optionsRef.current.lang ?? "ko-KR";
+    recognition.lang = optionsRef.current.lang ?? "en-US";
     recognition.continuous = true;
     recognition.interimResults = true;
 
