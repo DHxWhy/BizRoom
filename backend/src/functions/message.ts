@@ -136,9 +136,11 @@ export async function message(
             const searchResults = await searchBing(userMessage.content, 5);
             if (searchResults.length > 0) {
               addSearchResult(roomId, userMessage.content, searchResults);
+              // Show search results to user (CEO monitor equivalent in SSE)
+              const resultSummary = searchResults.map((r, i) => `${i + 1}. ${r.name}: ${r.snippet}`).join("\n");
               controller.enqueue(sseEncode(JSON.stringify({
                 messageId: uuidv4(), role: "sophia", name: "Sophia",
-                delta: `조사 완료. ${searchResults.length}건의 자료를 확보했습니다. 임원진에게 전달합니다.`,
+                delta: `조사 완료 (${searchResults.length}건):\n${resultSummary}\n\n임원진에게 전달합니다.`,
               })));
             } else {
               controller.enqueue(sseEncode(JSON.stringify({
