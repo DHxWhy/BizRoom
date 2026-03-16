@@ -659,7 +659,7 @@ function buildAgentPrompt(
   agenda: string,
 ): string {
   const persona = VOICE_PERSONA[role];
-  return `당신은 ${persona.identity}
+  return `You are ${persona.identity}
 
 You are a real human executive. Do NOT talk like an AI.
 Speak naturally, like a person in an actual meeting.

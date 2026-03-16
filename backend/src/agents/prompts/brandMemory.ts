@@ -28,26 +28,26 @@ export function buildBrandMemoryPrompt(bm: BrandMemorySet): string {
   const sections: string[] = [];
 
   // Company info (required 3 + optional)
-  let s = `## 당신이 속한 회사 정보\n\n`;
-  s += `회사명: ${sanitizeForPrompt(bm.companyName)}\n`;
-  s += `업종: ${sanitizeForPrompt(bm.industry)}\n`;
-  s += line("설립일", bm.foundedDate);
-  s += line("대표", bm.founderName);
-  s += line("규모", bm.teamSize);
-  s += line("미션", bm.mission);
-  s += line("비전", bm.vision);
+  let s = `## Your Company Info\n\n`;
+  s += `Company: ${sanitizeForPrompt(bm.companyName)}\n`;
+  s += `Industry: ${sanitizeForPrompt(bm.industry)}\n`;
+  s += line("Founded", bm.foundedDate);
+  s += line("Founder", bm.founderName);
+  s += line("Size", bm.teamSize);
+  s += line("Mission", bm.mission);
+  s += line("Vision", bm.vision);
   sections.push(s);
 
   // Product/Service
-  let p = `## 제품/서비스\n\n`;
-  p += `제품명: ${sanitizeForPrompt(bm.productName)}\n`;
-  p += line("설명", bm.productDescription);
-  if (bm.coreFeatures?.length) p += `핵심 기능:\n${list(bm.coreFeatures)}`;
-  p += line("타겟 고객", bm.targetCustomer);
-  p += line("기술 스택", bm.techStack);
-  p += line("수익 모델", bm.revenueModel);
+  let p = `## Product/Service\n\n`;
+  p += `Product: ${sanitizeForPrompt(bm.productName)}\n`;
+  p += line("Description", bm.productDescription);
+  if (bm.coreFeatures?.length) p += `Core Features:\n${list(bm.coreFeatures)}`;
+  p += line("Target Customer", bm.targetCustomer);
+  p += line("Tech Stack", bm.techStack);
+  p += line("Revenue Model", bm.revenueModel);
   if (bm.pricing?.length) {
-    p += `가격:\n${bm.pricing.map((t) => `- ${sanitizeForPrompt(t.name)} (${sanitizeForPrompt(t.price)}): ${sanitizeForPrompt(t.features)}`).join("\n")}\n`;
+    p += `Pricing:\n${bm.pricing.map((t) => `- ${sanitizeForPrompt(t.name)} (${sanitizeForPrompt(t.price)}): ${sanitizeForPrompt(t.features)}`).join("\n")}\n`;
   }
   sections.push(p);
 
@@ -59,10 +59,10 @@ export function buildBrandMemoryPrompt(bm: BrandMemorySet): string {
     bm.differentiation?.length
   ) {
     let m = `## 시장\n\n`;
-    m += line("시장 규모", bm.marketSize);
+    m += line("시장 Size", bm.marketSize);
     if (bm.marketStats?.length) m += `주요 통계:\n${list(bm.marketStats)}`;
     if (bm.competitors?.length) {
-      m += `경쟁사:\n${bm.competitors.map((c) => `- ${sanitizeForPrompt(c.name)}: ${sanitizeForPrompt(c.weakness)}`).join("\n")}\n`;
+      m += `Competitors:\n${bm.competitors.map((c) => `- ${sanitizeForPrompt(c.name)}: ${sanitizeForPrompt(c.weakness)}`).join("\n")}\n`;
     }
     if (bm.differentiation?.length) m += `차별화:\n${list(bm.differentiation)}`;
     sections.push(m);
@@ -71,9 +71,9 @@ export function buildBrandMemoryPrompt(bm: BrandMemorySet): string {
   // Finance (optional — currentStage, funding, goals)
   if (bm.currentStage || bm.funding || bm.goals) {
     let f = `## 재무 현황\n\n`;
-    f += line("현재 단계", bm.currentStage);
+    f += line("Current Stage", bm.currentStage);
     f += line("투자 현황", bm.funding);
-    f += line("목표", bm.goals);
+    f += line("Goals", bm.goals);
     sections.push(f);
   }
 
@@ -83,16 +83,16 @@ export function buildBrandMemoryPrompt(bm: BrandMemorySet): string {
     if (bm.challenges?.length) {
       c += bm.challenges.map((ch, i) => `${i + 1}. ${sanitizeForPrompt(ch)}`).join("\n") + "\n";
     }
-    c += line("분기 목표", bm.quarterGoal);
-    c += line("이번 회의 목표", bm.meetingObjective);
+    c += line("분기 Goals", bm.quarterGoal);
+    c += line("이번 회의 Goals", bm.meetingObjective);
     sections.push(c);
   }
 
   // Brand positioning (optional — subCopy has independent gate)
   if (bm.brandCopy || bm.subCopy || bm.positioning) {
     let b = `## 브랜드 포지셔닝\n\n`;
-    if (bm.brandCopy) b += `카피: "${sanitizeForPrompt(bm.brandCopy)}"\n`;
-    if (bm.subCopy) b += `서브 카피: "${sanitizeForPrompt(bm.subCopy)}"\n`;
+    if (bm.brandCopy) b += `Copy: "${sanitizeForPrompt(bm.brandCopy)}"\n`;
+    if (bm.subCopy) b += `서브 Copy: "${sanitizeForPrompt(bm.subCopy)}"\n`;
     b += line("포지셔닝", bm.positioning);
     sections.push(b);
   }
