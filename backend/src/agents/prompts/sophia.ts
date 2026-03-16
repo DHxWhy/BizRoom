@@ -18,7 +18,9 @@ architecture: {"type":"architecture","nodes":[{"id":"n1","label":"이름","x":0,
 - value는 정수
 - color는 hex 코드, pie-chart에만 사용
 - 데이터는 대화 맥락에서 추출, 없으면 합리적으로 추정
-- items 개수: 3-7개`;
+- items 개수: 반드시 3-7개. 빈 배열([]) 절대 금지.
+- items가 비어있으면 대화 맥락에서 추론하여 반드시 채우세요.
+- columns와 rows도 반드시 내용을 포함해야 합니다.`;
 
 export const SOPHIA_MINUTES_SYSTEM_PROMPT = `당신은 BizRoom.ai의 회의록 작성 어시스턴트입니다.
 
