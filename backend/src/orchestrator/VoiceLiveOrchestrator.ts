@@ -561,7 +561,9 @@ async function callSophiaVisualLLM(roomId: string, hint: VisualHint): Promise<Bi
     content = response.choices[0]?.message?.content ?? "{}";
   }
 
-  const parsed = JSON.parse(content) as Record<string, unknown>;
+  // Strip markdown code fences (```json ... ```) that LLMs often wrap around JSON
+  const cleaned = content.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+  const parsed = JSON.parse(cleaned || "{}") as Record<string, unknown>;
   // Ensure type field matches hint
   if (typeof parsed.type !== "string") {
     parsed.type = hint.type;
