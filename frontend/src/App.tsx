@@ -415,13 +415,22 @@ function MeetingRoom() {
       }
 
       try {
-        // Always use SSE streaming — full Sophia pipeline (search + visual + mention chain)
-        await sendMessageStream(state.roomId, content, state.userName || "CEO", {
-          mode: state.meetingMode,
-          dmTarget: state.dmTarget,
-        });
+        if (connectionStatus === "connected") {
+          // SignalR connected → TurnManager → VoiceLive (audio + text)
+          await sendMessage(state.roomId, content, state.userName || "CEO", {
+            isCeo: state.isCeo,
+            mode: state.meetingMode,
+            dmTarget: state.dmTarget,
+          });
+        } else {
+          // SignalR disconnected → SSE fallback (text only)
+          await sendMessageStream(state.roomId, content, state.userName || "CEO", {
+            mode: state.meetingMode,
+            dmTarget: state.dmTarget,
+          });
+        }
       } catch {
-        // Fallback to SignalR if SSE fails
+        // Fallback to the other path
         await sendMessage(state.roomId, content, state.userName || "CEO", {
           isCeo: state.isCeo,
           mode: state.meetingMode,
