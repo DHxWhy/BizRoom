@@ -56,7 +56,7 @@ export function ChatOverlay({ children, isActive }: ChatOverlayProps) {
           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-neutral-800/50">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             <span className="text-xs font-medium text-neutral-300">
-              회의 채팅
+              Meeting Chat
             </span>
           </div>
 
