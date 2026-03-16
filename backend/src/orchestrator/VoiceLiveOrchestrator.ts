@@ -375,6 +375,16 @@ export function wireVoiceLiveForRoom(
       });
       voiceLiveManager.triggerSophiaVoice(roomId, `${tasks.join(" 후 ")}을 진행하겠습니다.`);
 
+      // Show Sophia Thinking UI on CEO monitor
+      broadcastEvent(roomId, {
+        type: "monitorUpdate",
+        payload: {
+          target: "ceo",
+          mode: "thinking",
+          content: { type: "thinking", text: `Sophia: ${tasks.join(" + ")} 중...` },
+        },
+      });
+
       // Search
       if (wantsSearch) {
         try {
@@ -622,6 +632,15 @@ function processVisualQueue(roomId: string): void {
       broadcastEvent(roomId, {
         type: "sophiaMessage",
         payload: { text: `${item.hint.title}를 빅스크린에 띄웠습니다` },
+      });
+      // Update CEO monitor: visual complete
+      broadcastEvent(roomId, {
+        type: "monitorUpdate",
+        payload: {
+          target: "ceo",
+          mode: "keyPoints",
+          content: { type: "keyPoints", agentRole: "sophia" as AgentRole, points: [`${item.hint.title} — 빅스크린 표시 완료`] },
+        },
       });
       // Note: sophiaDirect handler already fired an acknowledgment voice line.
       // Only trigger a completion voice here when NOT initiated by sophiaDirect
