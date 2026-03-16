@@ -206,7 +206,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
     // Cancel any in-flight Sophia response to avoid race condition
     ws.send(JSON.stringify({ type: "response.cancel" }));
 
-    const sophiaInstructions = `당신은 Sophia, BizRoom.ai의 AI 비서입니다. 아래 안내를 한국어로 짧고 자연스럽게 말하세요 (1문장, 15자 이내):\n${text}`;
+    const sophiaInstructions = `You are Sophia, AI secretary of BizRoom.ai. Say the following briefly and naturally (1 sentence):\n${text}`;
 
     // Clear Sophia transcript buffer (sophiaKey already declared above)
     sessions.transcriptBuffers.set(sophiaKey, "");
@@ -293,7 +293,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
                   type: "azure_semantic_vad",
                   silence_duration_ms: 500,
                   remove_filler_words: true,
-                  languages: ["ko", "en"],
+                  languages: ["en"],
                   create_response: false,
                 },
                 input_audio_noise_reduction: {
@@ -304,7 +304,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
                 },
                 input_audio_transcription: {
                   model: "azure-speech",
-                  language: "ko",
+                  language: "en",
                 },
                 modalities: ["text"],
               },

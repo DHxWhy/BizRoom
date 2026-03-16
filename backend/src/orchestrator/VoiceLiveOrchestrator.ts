@@ -308,15 +308,15 @@ export function wireVoiceLiveForRoom(
       // Fallback 1: Agent calls Sophia in their speech (e.g., "Sophia, 차트로 정리해줘")
       if (!visualTriggered && /소피아|sophia/i.test(parsed.data.speech)) {
         const userInput = turnManager.getCombinedInput(roomId);
-        const title = userInput.replace(/\[.*?\]:\s*/g, "").trim().slice(0, 60) || "요청 시각화";
+        const title = userInput.replace(/\[.*?\]:\s*/g, "").trim().slice(0, 60) || "Requested visualization";
         sophiaAgent.enqueueVisual(roomId, { type: "summary" as const, title });
         processVisualQueue(roomId);
         visualTriggered = true;
         broadcastEvent(roomId, {
           type: "sophiaMessage",
-          payload: { text: "네, 시각화 준비하겠습니다." },
+          payload: { text: "Sure, preparing the visualization." },
         });
-        voiceLiveManager.triggerSophiaVoice(roomId, "네, 시각화 준비하겠습니다.");
+        voiceLiveManager.triggerSophiaVoice(roomId, "Sure, preparing the visualization.");
       }
 
       // Fallback 2: keyword-based visual-intent detection (once per turn)
@@ -378,15 +378,15 @@ export function wireVoiceLiveForRoom(
 
       // Announce Sophia activity
       const tasks: string[] = [];
-      if (wantsSearch) tasks.push("웹 자료 조사");
-      if (wantsVisual) tasks.push("시각화 생성");
-      if (tasks.length === 0) tasks.push("자료 정리");
+      if (wantsSearch) tasks.push("web research");
+      if (wantsVisual) tasks.push("visualization");
+      if (tasks.length === 0) tasks.push("data summary");
 
       broadcastEvent(roomId, {
         type: "sophiaMessage",
-        payload: { text: `${tasks.join(" 후 ")}을 진행하겠습니다.` },
+        payload: { text: `${tasks.join(" then ")}in progress.` },
       });
-      voiceLiveManager.triggerSophiaVoice(roomId, `${tasks.join(" 후 ")}을 진행하겠습니다.`);
+      voiceLiveManager.triggerSophiaVoice(roomId, `${tasks.join(" then ")}in progress.`);
 
       // Show Sophia Thinking UI on CEO monitor
       broadcastEvent(roomId, {
@@ -394,7 +394,7 @@ export function wireVoiceLiveForRoom(
         payload: {
           target: "ceo",
           mode: "thinking",
-          content: { type: "thinking", text: `Sophia: ${tasks.join(" + ")} 중...` },
+          content: { type: "thinking", text: `Sophia: ${tasks.join(" + ")} in progress...` },
         },
       });
 
@@ -421,9 +421,9 @@ export function wireVoiceLiveForRoom(
             });
             broadcastEvent(roomId, {
               type: "sophiaMessage",
-              payload: { text: `조사 완료: ${results.length}건의 결과를 찾았습니다.` },
+              payload: { text: `Research complete: ${results.length}results found.` },
             });
-            voiceLiveManager.triggerSophiaVoice(roomId, `조사 완료했습니다. ${results.length}건의 결과를 찾았습니다.`);
+            voiceLiveManager.triggerSophiaVoice(roomId, `Research complete. ${results.length}results found.`);
           }
         } catch (err) {
           console.error("[Sophia] agentsDone search failed:", err);
@@ -459,16 +459,16 @@ export function wireVoiceLiveForRoom(
         payload: {
           target: "ceo",
           mode: "thinking",
-          content: { type: "thinking", text: isSearchRequest ? "Sophia 조사 중..." : "Sophia 시각화 생성 중..." },
+          content: { type: "thinking", text: isSearchRequest ? "Sophia researching..." : "Sophia visualization in progress..." },
         },
       });
 
       if (isSearchRequest) {
         // Sophia search mode
-        voiceLiveManager.triggerSophiaVoice(roomId, "네, 조사를 진행하겠습니다. 잠시만 기다려 주세요.");
+        voiceLiveManager.triggerSophiaVoice(roomId, "Starting research. One moment please.");
         broadcastEvent(roomId, {
           type: "sophiaMessage",
-          payload: { text: "조사를 진행하겠습니다. 잠시만 기다려 주세요." },
+          payload: { text: "Starting research. One moment please." },
         });
 
         // Extract query: strip the Sophia mention and search keywords
@@ -487,16 +487,16 @@ export function wireVoiceLiveForRoom(
         processSophiaTaskQueue(roomId);
       } else {
         // Sophia visual mode (existing behavior)
-        voiceLiveManager.triggerSophiaVoice(roomId, "네, 시각화 작업을 진행하겠습니다. 잠시만 기다려 주세요.");
+        voiceLiveManager.triggerSophiaVoice(roomId, "Preparing visualization. One moment please.");
         broadcastEvent(roomId, {
           type: "sophiaMessage",
-          payload: { text: "시각화 작업을 진행하겠습니다. 잠시만 기다려 주세요." },
+          payload: { text: "Preparing visualization. One moment please." },
         });
 
         // Detect visual intent from user input and trigger generation.
         // Pass fromDirect=true so processVisualQueue skips the post-generation
         // voice announcement (the acknowledgment line above already plays TTS).
-        const hint = detectVisualIntent(userInput) ?? { type: "summary" as const, title: "요청 시각화" };
+        const hint = detectVisualIntent(userInput) ?? { type: "summary" as const, title: "Requested visualization" };
         sophiaAgent.enqueueVisual(roomId, hint, true);
         processVisualQueue(roomId);
       }
@@ -569,7 +569,7 @@ function classifyVisualComplexity(hint: VisualHint, contextLength: number): "vis
 /** Call LLM to generate BigScreenRenderData from a visual hint */
 async function callSophiaVisualLLM(roomId: string, hint: VisualHint): Promise<BigScreenRenderData> {
   const recentContext = sophiaAgent.getRecentSpeeches(roomId, 5).join("\n");
-  const userContent = `사용자 요청: "${hint.title}"\n\n최근 대화:\n${recentContext}\n\n위 맥락에서 가장 적합한 시각화 type을 직접 선택하고(comparison, pie-chart, bar-chart, timeline, checklist, summary, architecture 중 하나) BigScreenRenderData JSON을 생성하세요. items/columns/rows에 반드시 실제 내용을 채우세요.`;
+  const userContent = `User request: "${hint.title}"\n\nRecent conversation:\n${recentContext}\n\nChoose the best visualization type from the context above (comparison, pie-chart, bar-chart, timeline, checklist, summary, architecture) and generate BigScreenRenderData JSON. Items/columns/rows must contain real content.`;
   const taskType = classifyVisualComplexity(hint, recentContext.length);
   const selection = getModelForTask(taskType);
 
@@ -644,7 +644,7 @@ function processVisualQueue(roomId: string): void {
       });
       broadcastEvent(roomId, {
         type: "sophiaMessage",
-        payload: { text: `${item.hint.title}를 빅스크린에 띄웠습니다` },
+        payload: { text: `${item.hint.title}displayed on BigScreen` },
       });
       // Update CEO monitor: visual complete
       broadcastEvent(roomId, {
@@ -652,7 +652,7 @@ function processVisualQueue(roomId: string): void {
         payload: {
           target: "ceo",
           mode: "keyPoints",
-          content: { type: "keyPoints", agentRole: "sophia" as AgentRole, points: [`${item.hint.title} — 빅스크린 표시 완료`] },
+          content: { type: "keyPoints", agentRole: "sophia" as AgentRole, points: [`${item.hint.title} — displayed on BigScreen`] },
         },
       });
       // Note: sophiaDirect handler already fired an acknowledgment voice line.
@@ -661,7 +661,7 @@ function processVisualQueue(roomId: string): void {
       // agent response — not a direct user request to Sophia).
       // The item carries a flag to distinguish these paths.
       if (!item.fromDirect) {
-        voiceLiveManager.triggerSophiaVoice(roomId, `${item.hint.title}를 빅스크린에 띄웠습니다`);
+        voiceLiveManager.triggerSophiaVoice(roomId, `${item.hint.title}displayed on BigScreen`);
       }
       sophiaAgent.addVisualToHistory(roomId, {
         type: item.hint.type,
@@ -770,12 +770,12 @@ async function executeSophiaSearch(roomId: string, task: SophiaTaskQueueItem): P
   const requestedByName = AGENT_CONFIGS[task.requestedBy as keyof typeof AGENT_CONFIGS]?.name ?? task.requestedBy;
   broadcastEvent(roomId, {
     type: "sophiaMessage",
-    payload: { text: `${requestedByName}의 요청으로 "${task.query}" 조사를 완료했습니다. (${results.length}건)` },
+    payload: { text: `${requestedByName}requested research complete. (${results.length}건)` },
   });
 
   // 4. Voice announcement (only for direct user requests, not agent-initiated)
   if (task.requestedBy === "user") {
-    voiceLiveManager.triggerSophiaVoice(roomId, `조사 완료했습니다. ${results.length}건의 결과를 찾았습니다.`);
+    voiceLiveManager.triggerSophiaVoice(roomId, `Research complete. ${results.length}results found.`);
   }
 }
 
