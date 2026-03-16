@@ -342,6 +342,23 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
             />
           ))}
 
+          {/* ═══ CEO PERSONAL MONITOR (Sophia thinking + search results) ═══ */}
+          {(() => {
+            const ceoSeat = SEAT_CONFIG.find((s) => s.agent === "ceo");
+            if (!ceoSeat) return null;
+            return (
+              <HoloMonitor3D
+                position={[ceoSeat.position[0] * 0.6, 1.05, ceoSeat.position[2] * 0.6]}
+                rotationY={ceoSeat.rotation[1]}
+                rotationX={-0.25}
+                agentRole="CEO"
+                agentName="CEO"
+                color={ceoSeat.color}
+                monitorData={monitorData?.["ceo"]}
+              />
+            );
+          })()}
+
           {/* ═══ HUMAN PARTICIPANT SEATS (max 2, far end facing CEO) ═══ */}
           {humanParticipants.slice(0, 2).map((participant, i) => {
             const seat = humanSeatData[i];
