@@ -124,6 +124,10 @@ export async function message(
         // H1: Initialize Sophia room state for buffer tracking in SSE path
         sophiaAgent.initRoom(roomId);
 
+        // Track whether Sophia already acted (pre-search or agent-loop sophia_request/visual_hint).
+        // If true, the sophiaTurnNeeded block at the end is skipped to prevent duplicate messages.
+        let sophiaActed = false;
+
         // ── Step 0: Sophia PRE-SEARCH — before agents speak ──
         // If user wants research, Sophia searches FIRST so agents have real data
         const wantsPreSearch = /웹|서칭|검색|조사|리서치|시장.*규모|search|research/i.test(userMessage.content);
@@ -152,6 +156,7 @@ export async function message(
           } catch (err) {
             context.log("Sophia pre-search failed:", err);
           }
+          sophiaActed = true; // Pre-search ran — skip sophiaTurnNeeded to prevent duplicate messages
         }
 
         // Agent turn queue — starts with 1, grows via mention chain
@@ -261,6 +266,7 @@ export async function message(
 
             // Step 1: Sophia announces what she'll do
             if (hasSophiaReq || hasVisual) {
+              sophiaActed = true; // Agent triggered Sophia — skip sophiaTurnNeeded
               const tasks: string[] = [];
               if (sophiaReqType === "search") tasks.push("웹 자료 조사");
               if (sophiaReqType === "analyze") tasks.push("분석 조사");
@@ -370,7 +376,9 @@ export async function message(
           if (SOPHIA_KEYWORDS.test(allAgentText)) sophiaTurnNeeded = true;
         }
 
-        if (sophiaTurnNeeded) {
+        if (sophiaTurnNeeded && !sophiaActed) {
+          // Only run if Sophia hasn't already acted via pre-search or agent sophia_request.
+          // Prevents duplicate "조사 완료" / "시각화 완료" messages in chat.
           const wantsSearch = /웹|서칭|검색|조사|리서치|search|research/i.test(userMessage.content);
           const wantsVisual = /시각화|차트|그래프|보여|정리|visualize|chart|graph/i.test(userMessage.content);
 
