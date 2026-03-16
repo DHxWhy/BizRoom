@@ -490,9 +490,15 @@ export class TurnManager extends EventEmitter {
 
 // ── Preserved logic from original TurnManager ──
 
-/** Agent response order — DialogLab priority queue (from original TurnManager)
- *  COO only gets P1 when topic is operations/general or explicitly mentioned.
- *  Otherwise, the TopicClassifier primaryAgent speaks first.
+/** Agent response order — DialogLab priority queue
+ *
+ * Priority scheme (matches test spec and Design Spec §2):
+ *  P1 — COO always leads the room (orchestrator role), UNLESS mentions are
+ *        present that do NOT include COO. When COO is explicitly mentioned,
+ *        it still receives P1 via the mentions path.
+ *  P2 — Explicitly @mentioned agents (parsed from user input)
+ *  P3 — Primary topic agent (from TopicClassifier) + secondary agents
+ *  P4 — Remaining agents (available as overflow)
  */
 export function determineAgentOrder(
   _message: string,
@@ -503,17 +509,27 @@ export function determineAgentOrder(
   const entries: AgentTurn[] = [];
   const added = new Set<AgentRole>();
 
-  // P1: Mentioned agents get highest priority
+  // P1: COO always leads — the room orchestrator speaks first.
+  // Exception: when there are explicit mentions that do NOT include COO,
+  // the user is directly addressing specific agents and COO should not
+  // be forced to the front.
+  const hasNonCooMentions = mentions.length > 0 && !mentions.includes("coo");
+  if (!hasNonCooMentions) {
+    entries.push({ role: "coo", priority: 1 });
+    added.add("coo");
+  }
+
+  // P2: Explicitly mentioned agents
   for (const role of mentions) {
     if (!added.has(role)) {
-      entries.push({ role, priority: 1 });
+      entries.push({ role, priority: 2 });
       added.add(role);
     }
   }
 
-  // P2: Primary agent from topic classification speaks first
+  // P3: Primary topic agent from TopicClassifier
   if (!added.has(primaryAgent)) {
-    entries.push({ role: primaryAgent, priority: 2 });
+    entries.push({ role: primaryAgent, priority: 3 });
     added.add(primaryAgent);
   }
 
@@ -556,9 +572,11 @@ function isNegatedMatch(content: string, keywordMatch: RegExpMatchArray): boolea
 function checkFollowUp(response: { role: AgentRole; content: string }): AgentRole | null {
   const content = response.content.toLowerCase();
 
-  // Delegation signal — agent must be explicitly requesting another's input
+  // Delegation signal — agent must be explicitly requesting another's input.
+  // "검토가 필요" (review is needed) is a common Korean delegation phrase —
+  // the subject marker "가" was missing from the original pattern.
   const DELEGATION_SIGNAL =
-    /확인이?\s*필요|의견을?\s*듣|검토해?\s*주|부탁|말씀해?\s*주|판단이?\s*필요|여쭤|ask\s+\w+\s+to|need\s+\w+\s+input|what does \w+ think/i;
+    /확인이?\s*필요|의견을?\s*듣|검토[가해]?\s*(?:필요|주)|부탁|말씀해?\s*주|판단이?\s*필요|여쭤|ask\s+\w+\s+to|need\s+\w+\s+input|what does \w+ think/i;
 
   if (!DELEGATION_SIGNAL.test(content)) return null;
 
