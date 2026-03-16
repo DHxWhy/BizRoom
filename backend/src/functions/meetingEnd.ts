@@ -63,7 +63,9 @@ async function generateMeetingMinutesLLM(state: SophiaState): Promise<MeetingMin
     content = response.choices[0]?.message?.content ?? "{}";
   }
 
-  const parsed = JSON.parse(content) as Record<string, unknown>;
+  // Strip markdown code fences that LLMs often wrap around JSON
+  const cleaned = content.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+  const parsed = JSON.parse(cleaned || "{}") as Record<string, unknown>;
   return {
     meetingInfo:
       parsed.meetingInfo && typeof parsed.meetingInfo === "object"
@@ -120,7 +122,7 @@ export async function meetingEnd(
       senderType: "agent",
       senderName: cooResponse.name,
       senderRole: "coo",
-      content: cooResponse.content,
+      content: (() => { try { const j = JSON.parse(cooResponse.content.replace(/^```(?:json)?\s*\n?/i,"").replace(/\n?```\s*$/i,"").trim()); return j.speech || cooResponse.content; } catch { return cooResponse.content; } })(),
       timestamp: new Date().toISOString(),
     };
   } catch (err) {
