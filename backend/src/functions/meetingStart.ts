@@ -81,8 +81,8 @@ export async function meetingStart(
     icon: config.icon,
   }));
 
-  // Sophia opens the meeting with a brief announcement
-  const sophiaOpening = `안녕하세요, ${body.userName}님. BizRoom 회의를 시작합니다. 오늘 안건은 "${agenda}"입니다. 말씀해 주세요.`;
+  // Sophia opens the meeting with a brief service intro + agenda
+  const sophiaOpening = `Welcome to BizRoom.ai — your AI executive team. I'm Sophia, your AI secretary. Today, ${body.userName}, you have six C-suite executives ready to advise you: Hudson the COO, Amelia the CFO, Yusef the CMO, Kelvin the CTO, Jonas the CDO, and Bradley the CLO. Your agenda is "${agenda}". Just speak or type to begin.`;
   const openingMessage: Message = {
     id: uuidv4(),
     roomId,

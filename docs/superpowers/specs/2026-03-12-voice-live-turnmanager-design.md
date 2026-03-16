@@ -1,45 +1,53 @@
 ---
-version: "1.1.0"
+version: "2.0.0"
 created: "2026-03-12 22:00"
-updated: "2026-03-12 23:30"
+updated: "2026-03-16 14:00"
 ---
 
-# Voice Live Integration + TurnManager Upgrade — Design Spec
+# Voice Live Integration + TurnManager — Design Spec
 
-> **For agentic workers:** Use `superpowers:writing-plans` to create implementation plan from this spec.
+**Goal:** Real-time voice meetings where each AI agent has a unique voice and personality. The TurnManager operates as an event-driven state machine that orchestrates turn-taking between humans and AI agents, supporting voice + chat coexistence, chairman priority controls, and intelligent agent-to-agent mention routing.
 
-**Goal:** Voice Live API 7-Session 아키텍처로 에이전트별 고유 음성 + 3D 립싱크를 구현하고, TurnManager를 DialogLab 기반 지능형 오케스트레이터로 업그레이드하여 Voice + Chat 공존, Chairman 사회 권한, DM Stories 피커를 지원한다.
+**Architecture:** VoiceLiveSessionManager maintains WebSocket sessions (1 Listener + lazy agent sessions) per room. TurnManager receives speech events from the Listener, buffers human input, routes to appropriate agents via TopicClassifier, and triggers agent responses. VoiceLiveOrchestrator wires TurnManager, VoiceLiveSessionManager, and SignalR together with the Sophia visual pipeline.
 
-**Architecture:** Backend Voice Live Session Manager가 7개 WebSocket 세션(1 Listener + 6 Agent)을 관리하고, TurnManager 상태 머신이 인간 발화 시점을 판단하여 에이전트 응답을 제어한다. 기존 ContextBroker/TopicClassifier를 재활용하며, 에이전트 세션은 stateless voice+persona 엔진으로 동작한다.
-
-**Tech Stack:** Azure Voice Live API (WebSocket), Azure HD Voices, Viseme, azure_semantic_vad, React Three Fiber (lip sync)
+**Tech Stack:** OpenAI GPT Realtime API 1.5 (primary voice), Azure Voice Live API (optional primary when configured), Azure HD Voices + Viseme, WebSocket (ws 8.x), React Three Fiber (lip sync)
 
 **References:**
-
-- [ARCHITECTURE.md](../../ARCHITECTURE.md) — Orchestration Layer 설계 (섹션 3.3)
-- [PRD.md](../../PRD.md) — DialogLab 턴테이킹, Push-to-Talk 스펙
-- [TECH_SPEC.md](../../TECH_SPEC.md) — GPT Realtime API 구성
 - [Azure Voice Live API Docs](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live-how-to)
-- [Azure OpenAI Realtime API Reference](https://learn.microsoft.com/en-us/azure/foundry/openai/realtime-audio-reference)
+- [OpenAI Realtime API Reference](https://platform.openai.com/docs/api-reference/realtime)
 
 ---
 
-## 1. 7-Session Architecture
+## 1. Session Architecture
 
-### 1.1 Session Overview
+### 1.1 Dual-Provider Design
 
-| Session | Role           | turn_detection                                  | create_response | Voice                  |
-| ------- | -------------- | ----------------------------------------------- | --------------- | ---------------------- |
-| #0      | Listener (STT) | `azure_semantic_vad` (silence: 500ms)           | `false`         | N/A (input only)       |
-| #1      | Hudson (COO)   | `none`                                          | N/A             | Guy:DragonHDLatest     |
-| #2      | Amelia (CFO)   | `none`                                          | N/A             | Ava:DragonHDLatest     |
-| #3      | Yusef (CMO)    | `none`                                          | N/A             | Andrew:DragonHDLatest  |
-| #4      | Kelvin (CTO)   | `none`                                          | N/A             | Brian:DragonHDLatest   |
-| #5      | Jonas (CDO)    | `none`                                          | N/A             | Emma:DragonHDLatest    |
-| #6      | Bradley (CLO)  | `none`                                          | N/A             | Davis:DragonHDLatest   |
+The system auto-selects between Azure Voice Live and OpenAI Realtime API based on environment configuration:
 
-### 1.2 Listener Session (#0) Configuration
+| Condition                          | Provider Selected     | Notes                                |
+| ---------------------------------- | --------------------- | ------------------------------------ |
+| `AZURE_VOICE_LIVE_ENDPOINT` set    | Azure Voice Live      | Full-featured: HD voices + viseme    |
+| `OPENAI_API_KEY` set (no Azure)    | OpenAI Realtime API   | server_vad + whisper-1 STT           |
+| Neither configured                 | Text-only mode        | Graceful degradation                 |
 
+### 1.2 Session Overview
+
+| Session   | Role            | turn_detection                                    | Voice                     |
+| --------- | --------------- | ------------------------------------------------- | ------------------------- |
+| Listener  | STT (1 per room)| Azure: `azure_semantic_vad` / OpenAI: `server_vad`| N/A (input only)          |
+| Hudson    | COO agent       | `none` (TurnManager-controlled)                   | Guy:DragonHDLatestNeural  |
+| Amelia    | CFO agent       | `none`                                            | Ava:DragonHDLatestNeural  |
+| Yusef     | CMO agent       | `none`                                            | Andrew:DragonHDLatestNeural|
+| Kelvin    | CTO agent       | `none`                                            | Brian:DragonHDLatestNeural|
+| Jonas     | CDO agent       | `none`                                            | Emma:DragonHDLatestNeural |
+| Bradley   | CLO agent       | `none`                                            | Davis:DragonHDLatestNeural|
+| Sophia    | Secretary TTS   | `none`                                            | Alloy (OpenAI)            |
+
+**Key design decision:** Agent sessions are created **lazily** — only when an agent is first triggered to speak. The Listener session is created immediately on room initialization (critical path). Sophia has a dedicated TTS-only session for voice announcements.
+
+### 1.3 Listener Session Configuration
+
+**Azure Voice Live:**
 ```json
 {
   "type": "session.update",
@@ -48,27 +56,46 @@ updated: "2026-03-12 23:30"
       "type": "azure_semantic_vad",
       "silence_duration_ms": 500,
       "remove_filler_words": true,
-      "languages": ["ko", "en"],
+      "languages": ["en"],
       "create_response": false
     },
     "input_audio_noise_reduction": { "type": "azure_deep_noise_suppression" },
     "input_audio_echo_cancellation": { "type": "server_echo_cancellation" },
-    "input_audio_transcription": { "model": "azure-speech", "language": "ko" },
+    "input_audio_transcription": { "model": "azure-speech", "language": "en" },
     "modalities": ["text"]
   }
 }
 ```
 
-**Key events emitted by Listener:**
+**OpenAI Realtime (fallback):**
+```json
+{
+  "type": "session.update",
+  "session": {
+    "turn_detection": {
+      "type": "server_vad",
+      "threshold": 0.5,
+      "prefix_padding_ms": 300,
+      "silence_duration_ms": 500,
+      "create_response": false
+    },
+    "input_audio_transcription": { "model": "whisper-1" },
+    "modalities": ["text"]
+  }
+}
+```
 
-| Server Event                                        | TurnManager Handler            |
-| --------------------------------------------------- | ------------------------------ |
-| `input_audio_buffer.speech_started`                 | `onSpeechStart(userId)`        |
-| `input_audio_buffer.speech_stopped`                 | `onSpeechEnd(userId)`          |
-| `conversation.item.input_audio_transcription.completed` | `onTranscript(userId, text)` |
+**Listener events emitted to TurnManager:**
 
-### 1.3 Agent Session (#1-6) Configuration
+| Server Event                                              | TurnManager Handler            |
+| --------------------------------------------------------- | ------------------------------ |
+| `input_audio_buffer.speech_started`                       | `onSpeechStart(userId)`        |
+| `input_audio_buffer.speech_stopped`                       | `onSpeechEnd(userId)`          |
+| `conversation.item.input_audio_transcription.completed`   | `onTranscript(userId, text)`   |
 
+### 1.4 Agent Session Configuration
+
+**Azure Voice Live:**
 ```json
 {
   "type": "session.update",
@@ -87,29 +114,60 @@ updated: "2026-03-12 23:30"
 }
 ```
 
-**How TurnManager triggers an agent response:**
+**OpenAI Realtime (fallback):**
+```json
+{
+  "type": "session.update",
+  "session": {
+    "instructions": "<Agent persona>",
+    "turn_detection": null,
+    "voice": "alloy",
+    "modalities": ["audio", "text"]
+  }
+}
+```
 
+### 1.5 Triggering Agent Responses
+
+TurnManager triggers agents via `response.create` with `conversation: "none"` (out-of-band, stateless):
+
+**Azure:**
 ```json
 {
   "type": "response.create",
   "response": {
     "conversation": "none",
     "modalities": ["audio", "text"],
-    "instructions": "<persona> + <context from ContextBroker> + <current human messages>"
+    "instructions": "<persona + context + human input>"
   }
 }
 ```
 
-Each `response.create` with `conversation: "none"` produces an out-of-band response that does not append to the session's conversation history. The session still maintains its own state internally. To ensure true statelessness, always send `conversation: "none"` on every `response.create`, and never commit audio to the agent session's input buffer. All application-level state lives in ContextBroker.
+**OpenAI (different payload structure):**
+```json
+{
+  "type": "response.create",
+  "response": {
+    "conversation": "none",
+    "modalities": ["audio", "text"],
+    "input": [{
+      "type": "message",
+      "role": "system",
+      "content": [{ "type": "input_text", "text": "<instructions>" }]
+    }]
+  }
+}
+```
 
-**Events returned from agent session:**
+**Events returned from agent sessions:**
 
-| Server Event                              | Client Handler                        |
-| ----------------------------------------- | ------------------------------------- |
-| `response.audio.delta`                    | Audio playback (speaker)              |
-| `response.audio_transcript.delta`         | Chat bubble text stream               |
-| `response.animation_viseme.delta`         | 3D avatar lip sync (viseme_id)        |
-| `response.done`                           | TurnManager.onAgentDone(agentRole)    |
+| Server Event                            | Handler                                 |
+| --------------------------------------- | --------------------------------------- |
+| `response.audio.delta`                  | SignalR `agentAudioDelta` -> playback   |
+| `response.audio_transcript.delta`       | SignalR `agentTranscriptDelta` -> chat  |
+| `response.text.delta`                   | SignalR `agentTextDelta` -> chat        |
+| `response.animation_viseme.delta`       | SignalR `agentVisemeDelta` -> lip sync  |
+| `response.done`                         | TurnManager.onAgentDone(role, fullText) |
 
 ---
 
@@ -118,591 +176,462 @@ Each `response.create` with `conversation: "none"` produces an out-of-band respo
 ### 2.1 States
 
 ```
-IDLE ──→ HEARING ──→ ROUTING ──→ SPEAKING ──→ IDLE
-  ↑                                  │
-  └──────── (interrupt) ─────────────┘
+IDLE --> HEARING --> ROUTING --> SPEAKING --> IDLE
+  ^                                |
+  |         (voice interrupt)      |
+  +--------------------------------+
+                                   |
+                          SPEAKING --> AWAITING --> SPEAKING/IDLE
 ```
 
-| State      | Description                                             | Duration         |
-| ---------- | ------------------------------------------------------- | ---------------- |
-| `IDLE`     | No human input, no agent responding                     | Indefinite       |
-| `HEARING`  | Collecting human inputs (voice transcripts + chat)      | Until flush      |
-| `ROUTING`  | Determining which agents respond, in what order         | < 100ms          |
-| `SPEAKING` | Agent(s) responding sequentially with 1.5s gaps         | Until all done   |
+| State      | Description                                               | Duration         |
+| ---------- | --------------------------------------------------------- | ---------------- |
+| `idle`     | No human input, no agent responding                       | Indefinite       |
+| `hearing`  | Collecting human inputs (voice transcripts + chat)        | Until flush      |
+| `routing`  | Determining which agents respond, in what order           | < 100ms          |
+| `speaking` | Agent(s) responding sequentially with inter-agent gaps    | Until all done   |
+| `awaiting` | Agents paused, waiting for human response to a callout    | Max 30 seconds   |
 
-### 2.2 State Transitions & Speech Timing Logic
+### 2.2 Core State Interface
 
 ```typescript
-interface TurnManagerState {
-  state: "idle" | "hearing" | "routing" | "speaking";
-  inputBuffer: BufferedMessage[];    // collected human messages
-  flushTimer: NodeJS.Timeout | null; // quiet window timer
-  agentQueue: AgentTurn[];           // ordered agent response queue
-  activeAgent: AgentRole | null;     // currently speaking agent
-  interruptFlag: boolean;            // human interrupted during SPEAKING
-}
-
-interface BufferedMessage {
-  userId: string;
-  userName: string;
-  isChairman: boolean;
-  source: "voice" | "chat";
-  content: string;
-  timestamp: number;
+interface RoomTurnState {
+  state: TurnState;           // "idle" | "hearing" | "routing" | "speaking" | "awaiting"
+  inputBuffer: BufferedMessage[];
+  flushTimer: ReturnType<typeof setTimeout> | null;
+  agentQueue: AgentTurn[];
+  activeAgent: AgentRole | null;
+  interruptFlag: boolean;
+  aiPaused: boolean;
+  combinedInput: string;      // cached merged human input for the current turn
+  ceoUserId: string | null;
+  followUpRound: number;      // tracks A2A mention chain depth
+  agentResponseCount: number; // total agents responded this turn
+  awaitingTimer: ReturnType<typeof setTimeout> | null;
+  awaitingGeneration: number; // generation counter for timeout race condition defense
 }
 ```
 
-### 2.3 Event Handlers (Speech Timing)
+### 2.3 Timing Configuration
 
-#### `onSpeechStart(userId)`
-Human started speaking (voice).
+Defined in `backend/src/constants/turnConfig.ts`:
 
-```
-if state === IDLE:
-  → transition to HEARING
-  → clear flushTimer (don't flush yet, human is still talking)
+| Constant                  | Value   | Description                                   |
+| ------------------------- | ------- | --------------------------------------------- |
+| `CEO_FLUSH_MS`            | 0ms     | CEO flush delay (PTT release = immediate)     |
+| `MEMBER_FLUSH_MS`         | 500ms   | Member flush delay                            |
+| `INTER_AGENT_GAP_MS`     | 500ms   | Gap between sequential agent responses        |
+| `MAX_AGENTS_PER_TURN`    | 1       | Initial agents per turn (others via mentions) |
+| `MAX_FOLLOW_UP_ROUNDS`   | 2       | Max A2A follow-up chain depth                 |
+| `HUMAN_CALLOUT_TIMEOUT_MS`| 30000ms | Timeout for human response in awaiting state  |
 
-if state === HEARING:
-  → clear flushTimer (more input coming)
+### 2.4 Event Handlers
 
-if state === SPEAKING:
-  → set interruptFlag = true
-  → cancel current agent response (response.cancel)
-  → transition to HEARING
-```
-
-#### `onSpeechEnd(userId)`
-Human stopped speaking (voice). Transcription will follow.
+#### `onSpeechStart(roomId, userId)`
+Human started speaking via voice.
 
 ```
-if state === HEARING:
-  → start flushTimer based on speaker role:
-     Chairman: 300ms (almost instant — 사회자 발언은 즉시 반응)
-     Member:   2000ms (wait for additional inputs)
+if IDLE:     -> transition to HEARING, clear flushTimer
+if HEARING:  -> clear flushTimer (more input coming)
+if SPEAKING: -> voice interrupt: cancel active agent, clear queue,
+                clear inputBuffer, transition to HEARING
 ```
 
-#### `onTranscript(userId, text)`
-Transcription completed for a voice utterance.
+#### `onSpeechEnd(roomId, userId)`
+Human stopped speaking.
 
 ```
-if state === HEARING:
-  → add to inputBuffer: { userId, source: "voice", content: text, ... }
-  → if flushTimer not running, start it (same timing as onSpeechEnd)
+if HEARING:
+  -> start flushTimer:
+     CEO:    0ms (immediate — PTT release means done speaking)
+     Member: 500ms (short wait for additional input)
 ```
 
-#### `onChatMessage(userId, text, isChairman)`
+#### `onTranscript(roomId, userId, userName, text)`
+Voice transcription completed.
+
+```
+if HEARING:
+  -> add to inputBuffer: { userId, userName, isCeo, source: "voice", content, timestamp }
+  -> if no flushTimer running, start one (same timing as onSpeechEnd)
+```
+
+#### `onChatMessage(roomId, userId, userName, text, isCeo)`
 Chat message received via SignalR.
 
 ```
-if state === IDLE:
-  → transition to HEARING
-
-if state === HEARING:
-  → add to inputBuffer: { userId, source: "chat", content: text, ... }
-  → reset flushTimer:
-     Chairman: 300ms
-     Member:   2000ms
-
-if state === SPEAKING:
-  → add to inputBuffer (queue for next turn)
-  → do NOT interrupt (chat doesn't interrupt unlike voice)
+if IDLE:     -> transition to HEARING
+if HEARING:  -> add to inputBuffer, reset flushTimer
+if SPEAKING: -> add to inputBuffer (queued for next turn, NO interrupt)
+if aiPaused: -> ignored
 ```
 
 #### `onFlush()` — flush timer expired
 Quiet window elapsed, time to trigger agents.
 
 ```
-transition to ROUTING
-
-// 1. Merge buffered messages into a single context block
-combinedInput = inputBuffer.map(m => `[${m.userName}]: ${m.content}`).join("\n")
-
-// 2. Determine agents via existing TopicClassifier + Priority Queue
-mentions = parseMentions(combinedInput)
-{ primaryAgent, secondaryAgents } = classifyTopic(combinedInput)
-agentQueue = determineAgentOrder(combinedInput, mentions, primaryAgent, secondaryAgents)
-
-// 3. Save to ContextBroker FIRST (before routing, so agents see latest context)
-for each buffered message:
-  addMessage(roomId, message)
-
-// 4. Apply DialogLab constraints
-agentQueue = agentQueue.slice(0, MAX_AGENTS_PER_TURN)  // default: 2
-
-// 5. Clear buffer
-inputBuffer = []
-
-// 6. Trigger first agent
-transition to SPEAKING
-triggerNextAgent()
+1. Transition to ROUTING
+2. Merge buffered messages: "[userName]: content" joined with newlines
+3. Save all buffered messages to ContextBroker
+4. Check for direct Sophia mention (regex: `/sophia/i`) -> emit sophiaDirect event, return to IDLE
+5. Classify topic via TopicClassifier + parseMentions
+6. Build agentQueue via determineAgentOrder() capped at MAX_AGENTS_PER_TURN
+7. Clear inputBuffer, reset counters
+8. Transition to SPEAKING, triggerNextAgent()
 ```
 
 #### `triggerNextAgent()`
 Send response.create to the next agent in queue.
 
 ```
-if agentQueue is empty:
-  → transition to IDLE
-  → return
-
-nextAgent = agentQueue.shift()
-activeAgent = nextAgent.role
-context = ContextBroker.getContextForAgent(roomId, nextAgent.role)
-
-// Send to agent's Voice Live session
-send to Session[nextAgent.role]:
-  {
-    type: "response.create",
-    response: {
-      conversation: "none",
-      modalities: ["audio", "text"],
-      instructions: buildPrompt(nextAgent.role, context, combinedInput)
-    }
-  }
+if agentQueue empty: -> transition to IDLE, emit "agentsDone"
+else:
+  next = agentQueue.shift()
+  activeAgent = next.role
+  context = getContextForAgent(roomId, role)
+  emit "triggerAgent" event with built instructions
 ```
 
-#### `onAgentDone(agentRole)`
+#### `onAgentDone(roomId, role, fullText)`
 Agent finished responding.
 
 ```
-// Save agent response to ContextBroker
-addMessage(roomId, agentResponse)
-
-// A2A follow-up check
-followUpRole = checkFollowUp(agentResponse)
-if followUpRole && agentQueue.length < 2:
-  agentQueue.push({ role: followUpRole, priority: 3 })
-
-// Wait 1.5s then trigger next agent
-if agentQueue is not empty:
-  setTimeout(triggerNextAgent, 1500)
-else:
-  activeAgent = null
-  transition to IDLE
+1. Increment agentResponseCount
+2. Save agent response to ContextBroker
+3. Check HARD STOP: if agentResponseCount >= MAX_AGENTS_PER_TURN
+   and followUpRound === 0 and queue empty -> emit agentsDone, IDLE
+4. A2A follow-up check (keyword-based, only if followUpRound <= MAX_FOLLOW_UP_ROUNDS)
+5. If queue has more agents: setTimeout(triggerNextAgent, INTER_AGENT_GAP_MS)
+6. If queue empty: emit agentsDone, process any queued input or -> IDLE
 ```
 
-### 2.4 Interrupt Handling
+### 2.5 Agent Priority Queue (DialogLab)
 
-```
-SPEAKING 상태에서 Human이 음성으로 끼어듦 (speech_started):
-
-  1. interruptFlag = true
-  2. 현재 에이전트 세션에 response.cancel 전송
-  3. 남은 agentQueue 클리어
-  4. inputBuffer 클리어 (인터럽트 = 새 주제, 이전 버퍼 무관)
-  5. HEARING으로 전환
-  6. 새로운 Human 입력 수집 시작
-
-SPEAKING 상태에서 Human이 채팅을 보냄:
-  → 인터럽트 하지 않음 (채팅은 비침습적)
-  → inputBuffer에 추가하여 다음 턴에서 처리
-
-SPEAKING 상태에서 긴급 리스크 감지 (InterruptHandler):
-  → 현재 에이전트 응답 완료 대기 (또는 즉시 중단)
-  → 긴급 에이전트(CLO/CFO) 세션에 즉시 response.create
-  → 긴급 인터럽트는 2-agent 제한 무시
+```typescript
+function determineAgentOrder(message, mentions, primaryAgent, secondaryAgents): AgentTurn[]
 ```
 
-### 2.5 Chairman Priority Rules
+| Priority | Rule                                                                    |
+| -------- | ----------------------------------------------------------------------- |
+| P1       | COO always leads (orchestrator role), unless user explicitly @mentions other agents |
+| P2       | Explicitly @mentioned agents (parsed from user input)                   |
+| P3       | Primary topic agent (from TopicClassifier) + secondary agents           |
+| P4       | Remaining agents (available as overflow)                                |
 
-| Chairman Action            | TurnManager Behavior                                |
-| -------------------------- | --------------------------------------------------- |
-| 음성 발화 완료             | 300ms flush (즉시 AI 트리거)                        |
-| 채팅 메시지 전송           | 300ms flush (즉시 AI 트리거)                        |
-| "AI 의견" 버튼 클릭        | 즉시 flush (0ms), 모든 에이전트 대상 routing         |
-| "다음 안건" 버튼 클릭      | Phase 전환 + ContextBroker agenda 업데이트            |
-| "AI 일시정지" 토글         | SPEAKING → 즉시 중단, 이후 flush 무시                |
-| "@CFO" 멘션 발화           | 해당 에이전트만 우선 트리거 (P2 priority)             |
+### 2.6 Interrupt Handling
+
+**Voice interrupt during SPEAKING:**
+1. Set interruptFlag = true
+2. Send `response.cancel` to current agent session
+3. Clear agentQueue
+4. Clear inputBuffer (interrupt = new topic)
+5. Transition to HEARING
+6. Collect new human input
+
+**Chat during SPEAKING:**
+- Does NOT interrupt (chat is non-invasive)
+- Message is added to inputBuffer for next turn
+
+### 2.7 Chairman Priority Rules
+
+| Chairman Action               | TurnManager Behavior                                |
+| ----------------------------- | --------------------------------------------------- |
+| Voice speech end (PTT release)| 0ms flush (immediate AI trigger)                    |
+| Chat message sent             | 0ms flush (immediate AI trigger)                    |
+| "AI Opinion" button           | Immediate flush (0ms), all agents eligible          |
+| "Next Agenda" button          | Phase transition + ContextBroker agenda update       |
+| "AI Pause" toggle             | SPEAKING -> immediate cancel, ignore future flushes  |
+| "@CFO" mention in speech      | That agent receives P2 priority in routing           |
+
+### 2.8 Awaiting State (Human Callout)
+
+When an agent's structured output contains `mention.target = "ceo"` or `"member:..."`:
+
+```
+1. TurnManager.enterAwaitingState() -> transition to AWAITING
+2. Emit "humanCallout" event via SignalR to frontend
+3. Start 30-second timeout
+4. Frontend shows callout UI (options on CEO monitor, alert for members)
+
+Human responds:
+  -> onHumanResponse() clears timeout, resumes agentQueue or -> IDLE
+
+Timeout (30s):
+  -> Auto-resume with "[CEO did not respond, proceeding]"
+
+Race condition defense:
+  -> awaitingGeneration counter ensures stale timeouts are ignored
+```
 
 ---
 
 ## 3. Voice + Chat Coexistence
 
-### 3.1 Frontend: Mic Toggle
-
-InputArea에 마이크 on/off 토글 버튼 추가:
+### 3.1 Dual Input Paths
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  🎤  │  안건을 입력하세요...                   │ 전송 │
-│ (on) │                                         │      │
-└──────┴─────────────────────────────────────────┴──────┘
-  ↑
-  마이크 토글: ON이면 Space PTT 활성 + WebSocket 오디오 스트리밍
-              OFF이면 텍스트 전용 (오디오 미연결)
+Voice Path:
+  Mic -> getUserMedia() -> AudioWorklet (PCM16, 24kHz mono)
+  -> WebSocket -> Backend relay -> Listener Session
+  -> VAD -> speech events -> TurnManager
+
+Chat Path:
+  Keyboard -> InputArea -> Enter -> SignalR/REST
+  -> TurnManager.onChatMessage()
+
+Both paths -> inputBuffer -> onFlush() -> Agent Sessions
 ```
 
-- Mic ON: `getUserMedia()` → 오디오 캡처 → WebSocket으로 백엔드에 전송 → Listener 세션 릴레이
-- Mic OFF: 텍스트 입력만 사용 (마이크 없는 환경)
-- 토글 상태는 localStorage에 저장 (다음 접속 시 유지)
+### 3.2 Message Source Tracking
 
-### 3.2 Data Flow
+Messages in ContextBroker preserve their input source via `isVoiceInput?: boolean` on the Message interface, allowing agents to contextually reference how the user communicated.
+
+### 3.3 Audio Format
+
+PCM16, 24kHz, mono — required by both Azure Voice Live and OpenAI Realtime APIs.
+
+---
+
+## 4. Chairman Controls
+
+### 4.1 API Endpoints
+
+Implemented in `backend/src/functions/meeting-chairman.ts`:
+
+| Endpoint                            | Method | Body                    | Action                        |
+| ----------------------------------- | ------ | ----------------------- | ----------------------------- |
+| `/api/meeting/request-ai-opinion`   | POST   | `{ roomId }`            | Immediate flush (all routing) |
+| `/api/meeting/next-agenda`          | POST   | `{ roomId, agenda }`    | Phase transition + agenda set |
+| `/api/meeting/toggle-ai-pause`      | POST   | `{ roomId, paused }`    | Pause/resume AI responses     |
+| `/api/meeting/human-response`       | POST   | `{ roomId, userId, text }` | Reply to human callout      |
+| `/api/meeting/join-member`          | POST   | `{ roomId, userId, userName, role }` | Team member join  |
+
+---
+
+## 5. Viseme -> 3D Lip Sync
+
+### 5.1 Pipeline
 
 ```
-Voice Input Path:
-  Mic → getUserMedia() → AudioWorklet (PCM16 변환)
-  → WebSocket → Backend
-  → Backend relays via input_audio_buffer.append → Listener Session #0
-  → azure_semantic_vad → speech_started/stopped events
-  → input_audio_transcription → text
-  → TurnManager.onTranscript()
-
-Chat Input Path:
-  Keyboard → InputArea → Enter → SignalR/REST
-  → TurnManager.onChatMessage()
-
-Both paths → TurnManager.inputBuffer → onFlush() → Agent Sessions
+Agent Session -> response.animation_viseme.delta { viseme_id, audio_offset_ms }
+  -> WebSocket -> SignalR -> Frontend
+  -> VisemeMapper.getBlendShapes(viseme_id)
+  -> AgentAvatar3D useFrame() -> mesh.morphTargetInfluences update
 ```
 
-> **Note:** Voice Live API는 WebSocket 전용 (`wss://` endpoint). 브라우저에서 직접 WebRTC로 연결할 수 없으므로, 백엔드가 오디오를 릴레이하는 구조를 사용한다. 향후 Azure OpenAI Realtime API의 WebRTC 엔드포인트를 Listener 세션에만 적용하는 하이브리드 구조도 고려 가능.
+### 5.2 Interpolation
 
-### 3.3 Message Type in Context
-
-ContextBroker에 저장 시 source 구분. 기존 `shared/types.ts`의 `isVoiceInput?: boolean`을 재활용:
+Viseme transitions use linear interpolation for smooth mouth movement:
 
 ```typescript
-interface Message {
-  // ... existing fields
-  isVoiceInput?: boolean;  // existing field — true for voice, false/undefined for chat
-}
-```
-
-에이전트가 "김대표님이 말씀하신..." vs "채팅으로 보내신..."을 구분할 수 있도록. 기존 `isVoiceInput` 필드를 그대로 사용하여 하위 호환성 유지.
-
----
-
-## 4. Chairman Controls UI
-
-### 4.1 Control Bar (Chairman Only)
-
-idle overlay 및 meeting 진행 중 Chairman에게만 표시:
-
-```
-┌──────────────────────────────────────────────────┐
-│  [🤖 AI 의견]  [⏭ 다음 안건]  [⏸ AI 일시정지]  │
-└──────────────────────────────────────────────────┘
-```
-
-- `isChairman === true`인 경우에만 렌더링
-- 각 버튼은 REST API → TurnManager 이벤트 발행
-
-### 4.2 API Endpoints
-
-| Endpoint                          | Method | Body                    | TurnManager Action       |
-| --------------------------------- | ------ | ----------------------- | ------------------------ |
-| `/api/meeting/request-ai-opinion` | POST   | `{ roomId }`           | 즉시 flush (전체 routing) |
-| `/api/meeting/next-agenda`        | POST   | `{ roomId, agenda }`   | Phase 전환 + 안건 변경   |
-| `/api/meeting/toggle-ai-pause`    | POST   | `{ roomId, paused }`   | AI 응답 일시정지/재개    |
-
----
-
-## 5. DM Stories Picker
-
-### 5.1 Design
-
-현재 DmAgentPicker (flat chips) → Instagram Stories 스타일 원형 아바타:
-
-```
-┌────────────────────────────────────────────────────┐
-│  대화할 임원을 선택하세요                           │
-│                                                    │
-│   ┌──┐   ┌──┐   ┌──┐   ┌──┐   ┌──┐   ┌──┐       │
-│   │🟣│   │⚫│   │⚫│   │⚫│   │⚫│   │⚫│       │
-│   │😎│   │👩│   │👨│   │🧑│   │👱│   │👨│       │
-│   │🟣│   │⚫│   │⚫│   │⚫│   │⚫│   │⚫│       │
-│   └──┘   └──┘   └──┘   └──┘   └──┘   └──┘       │
-│  Hudson  Amelia  Yusef  Kelvin  Jonas  Bradley    │
-│   COO     CFO    CMO     CTO    CDO     CLO       │
-│                                                    │
-└────────────────────────────────────────────────────┘
-```
-
-### 5.2 Component Structure
-
-```
-DmStoriesPicker (replaces DmAgentPicker)
-├─ AgentStoryAvatar (×6)
-│  ├─ Circular frame (64×64px)
-│  ├─ Agent avatar image (static render from RPM GLB or pre-captured)
-│  ├─ Ring: selected = agent color glow animation, unselected = neutral-700
-│  └─ Label: name + role
-└─ Horizontal scroll container
-```
-
-### 5.3 Avatar Images
-
-Pre-render each RPM avatar face as a static PNG (build-time or first-load):
-
-- Option A: R3F `<Canvas>` offscreen render → `toDataURL()` → cache as base64
-- Option B: Pre-exported PNGs in `/public/avatars/hudson-face.png` etc.
-
-Option B preferred for performance (no runtime 3D rendering for picker).
-
----
-
-## 6. Viseme → 3D Lip Sync
-
-### 6.1 Viseme Pipeline
-
-```
-Voice Live Agent Session
-  → response.animation_viseme.delta { viseme_id, audio_offset_ms }
-  → WebSocket → Client
-  → VisemeMapper.getBlendShapes(viseme_id)
-  → RPMAgentAvatar useFrame() → mesh.morphTargetInfluences update
-```
-
-### 6.2 Viseme ID → BlendShape Mapping
-
-Microsoft viseme IDs (0-21) map to ARKit-compatible blend shapes used by RPM avatars:
-
-| Viseme ID | Phoneme        | Key BlendShapes                             |
-| --------- | -------------- | ------------------------------------------- |
-| 0         | Silence        | all → 0                                     |
-| 1         | æ, ə, ʌ       | jawOpen: 0.3, mouthFunnel: 0.1             |
-| 2         | ɑ              | jawOpen: 0.6, mouthOpen: 0.5               |
-| 3         | ɔ              | jawOpen: 0.4, mouthFunnel: 0.4             |
-| 4         | ɛ, ʊ           | jawOpen: 0.3, mouthSmile: 0.2              |
-| 6         | i              | jawOpen: 0.1, mouthSmile: 0.5              |
-| 7         | u              | jawOpen: 0.2, mouthFunnel: 0.6             |
-| 11        | f, v           | mouthFunnel: 0.3, mouthLowerDown: 0.2      |
-| 15        | p, b, m        | mouthClose: 0.8, jawOpen: 0.05             |
-| 18        | t, d, n        | jawOpen: 0.15, tongueOut: 0.3              |
-| 20        | k, g           | jawOpen: 0.4, mouthOpen: 0.3               |
-| 21        | default close  | all → 0, mouthClose: 0.1                   |
-
-The table above shows representative entries. The remaining 11 IDs (5, 8-10, 12-14, 16-17, 19) follow the same pattern and must be defined during implementation based on the [Microsoft viseme-to-phoneme reference](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/how-to-speech-synthesis-viseme). The full 22-entry mapping will be defined in `frontend/src/utils/visemeMap.ts`.
-
-### 6.3 Interpolation
-
-Viseme transitions should be smooth, not abrupt:
-
-```typescript
-// In RPMAgentAvatar useFrame():
 const LERP_SPEED = 12; // per second
 currentWeights = lerp(currentWeights, targetWeights, delta * LERP_SPEED);
-mesh.morphTargetInfluences[idx] = currentWeights[idx];
 ```
 
-Target weights update on each `viseme.delta` event. The lerp provides smooth mouth movement.
+**Note:** Viseme data is only available with Azure Voice Live. OpenAI Realtime does not emit viseme events; lip sync falls back to audio amplitude-based approximation.
 
 ---
 
-## 7. Voice Live Session Manager
+## 6. VoiceLiveSessionManager
 
-### 7.1 Module: `backend/src/services/VoiceLiveSessionManager.ts`
+### 6.1 Module Location
 
-Manages lifecycle of all 7 WebSocket sessions:
+`backend/src/services/VoiceLiveSessionManager.ts` — singleton instance `voiceLiveManager`.
+
+### 6.2 Public API
 
 ```typescript
-interface VoiceLiveSessionManager {
-  // Lifecycle
-  initializeRoom(roomId: string): Promise<void>;  // create 7 sessions
-  teardownRoom(roomId: string): Promise<void>;     // close all sessions
-
-  // Listener
-  getListenerSession(roomId: string): WebSocket;
-
-  // Agent
-  triggerAgentResponse(roomId: string, role: AgentRole, instructions: string): void;
-  cancelAgentResponse(roomId: string, role: AgentRole): void;
-
-  // Events (emitted to TurnManager)
-  on("speechStarted", handler: (roomId, userId) => void): void;
-  on("speechStopped", handler: (roomId, userId) => void): void;
-  on("transcript", handler: (roomId, userId, text) => void): void;
-  on("agentAudioDelta", handler: (roomId, role, audioChunk) => void): void;
-  on("agentTextDelta", handler: (roomId, role, text) => void): void;
-  on("agentVisemeDelta", handler: (roomId, role, visemeId, offsetMs) => void): void;
-  on("agentDone", handler: (roomId, role, fullText) => void): void;
+class VoiceLiveSessionManager extends EventEmitter {
+  initializeRoom(roomId, ceoUserId): Promise<void>;    // create Listener session
+  teardownRoom(roomId): Promise<void>;                  // close all sessions
+  relayAudio(roomId, audioBase64): void;                // relay mic audio to Listener
+  triggerAgentResponse(roomId, role, instructions): Promise<void>;  // lazy session + response.create
+  triggerSophiaVoice(roomId, text): Promise<void>;      // Sophia TTS announcement
+  cancelAgentResponse(roomId, role): void;              // response.cancel
 }
 ```
 
-### 7.2 Session Lifecycle
+### 6.3 Session Lifecycle
 
 ```
-Room Created (lobby)
-  → VoiceLiveSessionManager.initializeRoom(roomId)
-  → Open 7 WebSocket connections to Voice Live API
-  → Send session.update to each with appropriate config
-  → Sessions idle, awaiting input
+Room Created (lobby):
+  -> initializeRoom() -> open Listener WebSocket
+  -> Agent sessions NOT created yet (lazy)
 
-Meeting Active
-  → Listener receives audio from Chairman via backend WebSocket relay
-  → Agent sessions receive response.create from TurnManager
+First Agent Trigger:
+  -> triggerAgentResponse() -> createAgentSession() -> session.update -> response.create
+  -> Session cached for reuse in subsequent triggers
 
-Room Closed / 30min timeout
-  → VoiceLiveSessionManager.teardownRoom(roomId)
-  → Close all 7 WebSocket connections
+Room Closed / Meeting End:
+  -> teardownRoom() -> close all WebSockets, clear heartbeats
 ```
 
-### 7.3 Audio Relay (WebSocket)
+### 6.4 Transcript Buffering
 
-Voice Live API는 WebSocket(`wss://`) 전용이므로, 브라우저 오디오는 백엔드를 통해 릴레이한다:
+Agent transcript text is accumulated during streaming (`response.audio_transcript.delta` and `response.text.delta`) as a fallback. If `response.done` output items are empty (which happens occasionally with OpenAI Realtime), the buffered transcript is used instead.
 
-```
-Browser getUserMedia() → AudioWorklet (Float32 → PCM16 변환, 24kHz mono)
-  → WebSocket (SignalR binary channel or dedicated WS) → Backend
-  → Backend: input_audio_buffer.append → Listener Session #0 WebSocket
-  → Listener Session: azure_semantic_vad → events → TurnManager
-```
+### 6.5 Error Handling
 
-**Audio format:** PCM16, 24kHz, mono (Voice Live API 요구사항)
+| Failure Scenario              | Recovery Strategy                                         |
+| ----------------------------- | --------------------------------------------------------- |
+| Agent session creation fails  | Emit empty `agentDone` to prevent TurnManager deadlock    |
+| Listener session fails        | Degrade to text-only mode                                 |
+| All sessions fail on init     | Text-only meeting (existing chat path)                    |
+| WebSocket close               | Log warning (TODO: reconnection with exponential backoff) |
 
-**Latency budget:** getUserMedia → PCM변환 (~5ms) → WS전송 (~10-50ms) → Backend relay (~5ms) = ~20-60ms total. VAD 감지에 충분.
+### 6.6 Heartbeat
 
-### 7.4 Error Handling & Reconnection
-
-| Failure Scenario                   | Recovery Strategy                                      |
-| ---------------------------------- | ------------------------------------------------------ |
-| Agent session (#1-6) dropped       | Auto-reconnect with exponential backoff (1s, 2s, 4s).  |
-|                                    | During reconnection, agent is chat-only (text fallback) |
-| Listener session (#0) dropped      | **Critical path.** Immediate reconnect (max 3 retries). |
-|                                    | If failed, fall back to chat-only mode for all users    |
-| All sessions fail on init          | Degrade to text-only meeting (existing chat path)       |
-| Azure rate limit / quota exceeded  | Log warning, degrade to text-only, notify Chairman      |
-
-**Heartbeat:** Each WebSocket session sends ping every 30s. If no pong in 10s, trigger reconnection.
-
-### 7.5 Speaker Identification (MVP)
-
-MVP에서는 **1 mic per room** (Chairman 전용). 따라서 모든 음성 입력은 Chairman으로 간주:
-- Listener 세션의 `speech_started`/`speech_stopped` 이벤트에 userId가 없으므로, Chairman의 userId를 자동 매핑
-- 추가 인간 참여자는 채팅으로만 참여
-
-**v2 (Multi-mic):** 각 인간 참여자별 별도 오디오 스트림 → 세션 기반 speaker identification
+Each WebSocket session sends a ping every 30 seconds to keep the connection alive.
 
 ---
 
-## 8. Frontend Integration
+## 7. VoiceLiveOrchestrator
 
-### 8.1 New Hooks
+### 7.1 Module Location
 
-| Hook                    | Responsibility                                              |
-| ----------------------- | ----------------------------------------------------------- |
-| `useVoiceLive`          | WebSocket audio streaming to Listener, mic toggle state     |
-| `useAgentAudio`         | Receive agent audio streams via SignalR, manage playback     |
-| `useViseme`             | Receive viseme events via SignalR, provide blend shape weights |
+`backend/src/orchestrator/VoiceLiveOrchestrator.ts` — `wireVoiceLiveForRoom()` / `unwireVoiceLiveForRoom()`.
 
-### 8.2 Modified Components
+### 7.2 Event Wiring
 
-| Component               | Changes                                              |
-| ----------------------- | ---------------------------------------------------- |
-| `InputArea`             | Add mic toggle button, integrate useVoiceLive         |
-| `RPMAgentAvatar`        | Add viseme-driven lip sync in useFrame               |
-| `DmAgentPicker`         | Replace with DmStoriesPicker (Instagram Stories UI)   |
-| `App.tsx (MeetingRoom)` | Add Chairman controls bar, wire useAgentAudio         |
-| `ChatOverlay`           | Show voice/chat source indicator on messages          |
+`wireVoiceLiveForRoom(roomId, ceoUserId, ceoName)` sets up bidirectional event listeners:
 
-### 8.3 Audio Playback Strategy
+**VoiceLive -> TurnManager:**
+- `speechStarted` -> `turnManager.onSpeechStart()`
+- `speechStopped` -> `turnManager.onSpeechEnd()`
+- `transcript` -> `turnManager.onTranscript()`
 
-Multiple agents may respond sequentially. Audio must be queued:
+**VoiceLive -> SignalR (streaming):**
+- `agentAudioDelta` -> broadcast `agentAudioDelta`
+- `agentTextDelta` -> broadcast `agentTranscriptDelta`
+- `agentVisemeDelta` -> broadcast `agentVisemeDelta`
 
-```
-Agent audio arrives → AudioPlaybackQueue
-  ├─ Current agent audio: play immediately
-  ├─ Next agent audio: buffer until current finishes + 1.5s gap
-  └─ Interrupted: stop current, clear queue
-```
+**VoiceLive -> Sophia Pipeline (on agentDone):**
+1. Parse structured output via ResponseParser (3-tier strategy)
+2. Broadcast clean speech text (not raw JSON) via `agentResponseDone`
+3. Add to Sophia buffer (speaker, speech, keyPoints, visualHint)
+4. Relay key_points to CEO monitor
+5. Handle mention routing via TurnManager
+6. Enqueue visual generation if visual_hint present
+7. Process sophia_request tasks (search/analyze/visualize)
+8. Notify TurnManager via onAgentDone()
 
-Use Web Audio API (`AudioContext`) for low-latency playback of PCM16 chunks (24kHz, mono).
+**TurnManager -> VoiceLive:**
+- `triggerAgent` -> `voiceLiveManager.triggerAgentResponse()`
+- `cancelAgent` -> `voiceLiveManager.cancelAgentResponse()`
 
-### 8.4 SignalR Events for Voice Streaming
+### 7.3 Visual Intent Detection
 
-New SignalR events for delivering audio/viseme data from backend to frontend:
-
-| SignalR Event          | Direction        | Payload                                        | Purpose                |
-| ---------------------- | ---------------- | ---------------------------------------------- | ---------------------- |
-| `agentAudioDelta`      | Server → Client  | `{ role, audioBase64, format: "pcm16_24k" }`  | Agent voice audio      |
-| `agentTranscriptDelta` | Server → Client  | `{ role, text, isFinal: boolean }`             | Agent speech text      |
-| `agentVisemeDelta`     | Server → Client  | `{ role, visemeId, audioOffsetMs }`            | Lip sync data          |
-| `agentResponseDone`    | Server → Client  | `{ role, fullText }`                           | Agent finished talking |
-| `voiceAudioChunk`      | Client → Server  | `{ roomId, audioBase64 }`                      | Mic audio relay        |
-
----
-
-## 9. Strings (i18n)
-
-New keys for `src/constants/strings.ts`:
+Since VoiceLive Realtime API returns plain text (not structured JSON), ResponseParser always falls to Tier 3 (fallback) where `visual_hint = null`. A keyword-based visual intent detection system compensates:
 
 ```typescript
-chairman: {
-  requestAiOpinion: "AI 의견 요청",
-  nextAgenda: "다음 안건",
-  pauseAi: "AI 일시정지",
-  resumeAi: "AI 재개",
-},
-mic: {
-  on: "마이크 켜짐",
-  off: "마이크 꺼짐",
-  connecting: "마이크 연결 중...",
-},
-dm: {
-  selectAgent: "대화할 임원을 선택하세요",
-},
+function detectVisualIntent(userInput: string, agentSpeech?: string): VisualHint | null
 ```
 
----
+Detection priority:
+1. User input keyword match (highest priority)
+2. Agent speech keyword match (fallback)
+3. Generic visual request keywords -> defaults to "summary" type
 
-## 10. Cost & Limits
+Supported visual types detected by keywords: comparison, pie-chart, bar-chart, timeline, checklist, summary, architecture.
 
-| Resource                         | Limit                | Hackathon Impact          |
-| -------------------------------- | -------------------- | ------------------------- |
-| Voice Live session duration      | 30 min per session   | OK for demo               |
-| Concurrent sessions per room     | 7                    | Within Azure limits       |
-| Audio input (Listener)           | 1 stream             | 1 mic at a time (MVP)     |
-| Azure HD Voice pricing           | Per character         | Demo budget OK            |
-| WebSocket audio bandwidth        | ~48kbps (PCM16 24kHz) | Acceptable for MVP       |
+### 7.4 Idempotency & Cleanup
 
-### MVP Scope Limitation
-
-- **MVP: 1 mic per room** — Chairman의 마이크만 Listener에 연결. 추가 인간은 채팅으로 참여.
-- **v2: Multi-mic** — 각 인간 참여자가 별도 오디오 스트림으로 Listener에 연결 (서버측 믹싱 필요).
+- `wireVoiceLiveForRoom()` is idempotent — calling twice for the same room is a no-op (prevents duplicate event listeners)
+- `unwireVoiceLiveForRoom()` removes all listeners, clears tracking sets, and tears down TurnManager, VoiceLiveManager, and SophiaAgent room state
+- Per-room listener tracking via `roomListeners` Map ensures no memory leaks
 
 ---
 
-## 11. File Structure (New & Modified)
+## 8. Voice Agent Prompt System
+
+Each agent uses a compressed persona prompt for Voice Live `response.create`:
+
+```typescript
+const VOICE_PERSONA: Record<AgentRole, { identity, style, domain }> = {
+  coo: {
+    identity: "COO Hudson — Meeting orchestrator and execution expert.",
+    style: "Direct, structured. Delegates to the right person.",
+    domain: "Meeting flow, task delegation, execution plans.",
+  },
+  // ... other agents
+};
+```
+
+The prompt is built by `buildAgentPrompt()` in TurnManager.ts, combining:
+- Agent persona (identity + style + domain)
+- Natural conversation rules (brief, conclusion-first, no lists)
+- Current agenda
+- Context from ContextBroker (recent messages, decisions)
+- CEO's current input
+
+---
+
+## 9. Frontend Integration
+
+### 9.1 Hooks
+
+| Hook              | Responsibility                                               |
+| ----------------- | ------------------------------------------------------------ |
+| `useVoiceLive`    | WebSocket audio streaming to backend, mic toggle state       |
+| `useAgentAudio`   | Agent audio playback queue with priority system (Web Audio API)|
+| `useViseme`       | Viseme events -> blend shape weights for 3D lip sync         |
+| `useSignalR`      | SignalR connection + SSE streaming for all real-time events   |
+
+### 9.2 Audio Playback Strategy
+
+Multiple agents may respond sequentially. The `useAgentAudio` hook manages:
+- Current agent audio: play immediately via Web Audio API
+- Next agent audio: buffer until current finishes + inter-agent gap
+- Interrupted: stop current playback, clear queue
+- Priority system: Sophia announcements can interrupt non-critical audio
+
+### 9.3 SignalR Events for Voice Streaming
+
+| SignalR Event            | Direction       | Payload                                       |
+| ------------------------ | --------------- | --------------------------------------------- |
+| `agentAudioDelta`        | Server->Client  | `{ role, audioBase64, format: "pcm16_24k" }`  |
+| `agentTranscriptDelta`   | Server->Client  | `{ role, text, isFinal }`                     |
+| `agentVisemeDelta`       | Server->Client  | `{ role, visemeId, audioOffsetMs }`            |
+| `agentResponseDone`      | Server->Client  | `{ role, fullText }`                          |
+| `agentTyping`            | Server->Client  | `{ agentId, agentName, isTyping }`            |
+
+---
+
+## 10. MVP Scope & Limitations
+
+| Aspect                   | MVP (Current)                              | Future (v2)                          |
+| ------------------------ | ------------------------------------------ | ------------------------------------ |
+| Microphone               | 1 mic per room (CEO only)                  | Multi-mic per participant            |
+| Agent sessions           | Lazy creation (on first trigger)           | Pre-warmed session pool              |
+| Reconnection             | Log warning only                           | Exponential backoff auto-reconnect   |
+| Viseme lip sync          | Azure Voice Live only                      | Amplitude fallback for OpenAI        |
+| Speaker identification   | All voice input mapped to CEO              | Per-participant audio streams        |
+
+---
+
+## 11. File Inventory
 
 ```
 backend/src/
   services/
-    VoiceLiveSessionManager.ts    [NEW] 7-session lifecycle manager + reconnection
+    VoiceLiveSessionManager.ts    — WebSocket session lifecycle + dual provider support
   orchestrator/
-    TurnManager.ts                [REWRITE] Event-driven state machine (replaces sync processMessage)
-    InterruptHandler.ts           [NEW] Urgent risk detection
+    TurnManager.ts                — Event-driven state machine (5 states)
+    VoiceLiveOrchestrator.ts      — Event wiring + Sophia pipeline + visual intent detection
   functions/
-    message.ts                    [MODIFY] Route to TurnManager.onChatMessage() instead of processMessage()
-    meeting-voice.ts              [NEW] Audio relay WebSocket endpoint
-    meeting-chairman.ts           [NEW] Chairman control endpoints
+    meeting-chairman.ts           — CEO control endpoints (5 endpoints)
+    meeting-voice.ts              — Audio relay WebSocket endpoint
+  constants/
+    turnConfig.ts                 — Timing constants (CEO_FLUSH_MS, etc.)
+    agentVoices.ts                — Agent -> Azure HD Voice mapping
 
 frontend/src/
   hooks/
-    useVoiceLive.ts               [NEW] WebSocket audio streaming + mic toggle
-    useAgentAudio.ts              [NEW] Agent audio playback queue (Web Audio API)
-    useViseme.ts                  [NEW] Viseme event → blend shapes
+    useVoiceLive.ts               — WebSocket audio streaming + mic toggle
+    useAgentAudio.ts              — Agent audio playback queue (Web Audio API)
+    useViseme.ts                  — Viseme event -> blend shapes
+    useSignalR.ts                 — SignalR + SSE streaming
   components/
-    input/
-      MicToggle.tsx               [NEW] Mic on/off toggle button
-      InputArea.tsx               [MODIFY] Integrate MicToggle
     meeting/
-      DmStoriesPicker.tsx         [NEW] Instagram Stories-style agent picker
-      DmAgentPicker.tsx           [DELETE] Replaced by DmStoriesPicker
-      ChairmanControls.tsx        [NEW] AI opinion/next agenda/pause buttons
-    meeting3d/
-      RPMAgentAvatar.tsx          [MODIFY] Add viseme lip sync
-  utils/
-    visemeMap.ts                  [NEW] Viseme ID → BlendShape weight table (full 22-entry)
-  constants/
-    strings.ts                    [MODIFY] Add chairman/mic/dm keys
-    agentVoices.ts                [NEW] Agent → Azure HD Voice mapping
+      ChairmanControls.tsx        — AI opinion / next agenda / pause buttons
 ```
-
-### Migration: TurnManager Rewrite
-
-The current `TurnManager.ts` is a synchronous `processMessage()` function. The new TurnManager is a fundamentally different event-driven state machine. This is a **complete rewrite**, not a modification:
-
-1. **Old API:** `processMessage(roomId, message) → AgentResponse[]` (synchronous request-response)
-2. **New API:** Event handlers — `onSpeechStart()`, `onSpeechEnd()`, `onTranscript()`, `onChatMessage()`, `onFlush()`, `onAgentDone()`
-3. **Callers to update:** `backend/src/functions/message.ts` must route incoming chat messages to `TurnManager.onChatMessage()` instead of calling `processMessage()`
-4. **Reused as-is:** `TopicClassifier.ts`, `ContextBroker.ts` — called from `onFlush()` and `triggerNextAgent()`
-5. **Text-only fallback:** When mic is off, the entire voice path is skipped. Chat messages still flow through `onChatMessage()` → `onFlush()` → agent text responses (no audio)
