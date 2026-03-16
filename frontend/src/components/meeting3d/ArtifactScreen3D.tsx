@@ -372,15 +372,17 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
       {/* Screen glass background — map prop is JSX-driven so R3F never reverts it */}
       <mesh ref={screenRef}>
         <planeGeometry args={[SCREEN_WIDTH, SCREEN_HEIGHT]} />
-        <meshStandardMaterial
-          color={bigScreenTexture ? "#ffffff" : "#060610"}
-          emissive={bigScreenTexture ? "#ffffff" : "#0a0a20"}
-          emissiveIntensity={bigScreenTexture ? 1.5 : 0.04}
-          roughness={0.3}
-          metalness={0.0}
-          map={bigScreenTexture ?? undefined}
-          toneMapped={false}
-        />
+        {bigScreenTexture ? (
+          <meshBasicMaterial map={bigScreenTexture} toneMapped={false} />
+        ) : (
+          <meshStandardMaterial
+            color="#060610"
+            emissive="#0a0a20"
+            emissiveIntensity={0.04}
+            roughness={0.15}
+            metalness={0.2}
+          />
+        )}
       </mesh>
 
       {/* Top edge highlight */}
