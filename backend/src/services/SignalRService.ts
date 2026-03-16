@@ -94,10 +94,10 @@ async function sendToSignalR(eventName: string, args: unknown[]): Promise<void> 
 
     if (!res.ok) {
       const body = await res.text();
-      console.error(`[SignalR] REST API error ${res.status}: ${body}`);
+      console.error(`[SignalR] REST API error ${res.status} for event "${eventName}": ${body}`);
     }
   } catch (err) {
-    console.error("[SignalR] REST API fetch failed:", err);
+    console.error(`[SignalR] REST API fetch failed for event "${eventName}":`, err);
   }
 }
 

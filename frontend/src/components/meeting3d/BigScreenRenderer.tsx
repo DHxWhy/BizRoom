@@ -114,13 +114,17 @@ function renderChecklistSVG(data: Extract<BigScreenRenderData, { type: "checklis
   const items = Array.isArray(data.items) ? data.items : [];
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SCREEN_WIDTH}" height="${SCREEN_HEIGHT}">`;
   svg += `<rect width="100%" height="100%" fill="#0d1117"/>`;
-  items.forEach((item, i) => {
-    const y = 50 + i * 45;
-    const color = item.checked ? "#3fb950" : "#484f58";
-    const icon = item.checked ? "\u2713" : "\u25CB";
-    svg += `<text x="40" y="${y}" fill="${color}" font-size="18">${icon}</text>`;
-    svg += `<text x="70" y="${y}" fill="${item.checked ? "#e6edf3" : "#8b949e"}" font-size="16">${esc(item.text)}</text>`;
-  });
+  if (items.length === 0) {
+    svg += `<text x="50%" y="50%" text-anchor="middle" fill="#484f58" font-size="16">항목을 준비 중입니다...</text>`;
+  } else {
+    items.forEach((item, i) => {
+      const y = 50 + i * 45;
+      const color = item.checked ? "#3fb950" : "#484f58";
+      const icon = item.checked ? "\u2713" : "\u25CB";
+      svg += `<text x="40" y="${y}" fill="${color}" font-size="18">${icon}</text>`;
+      svg += `<text x="70" y="${y}" fill="${item.checked ? "#e6edf3" : "#8b949e"}" font-size="16">${esc(item.text)}</text>`;
+    });
+  }
   svg += `</svg>`;
   return svg;
 }
@@ -130,10 +134,14 @@ function renderSummarySVG(data: Extract<BigScreenRenderData, { type: "summary" }
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SCREEN_WIDTH}" height="${SCREEN_HEIGHT}">`;
   svg += `<rect width="100%" height="100%" fill="#0d1117"/>`;
   svg += `<text x="40" y="40" fill="#58a6ff" font-size="20" font-weight="bold">Summary</text>`;
-  items.forEach((item, i) => {
-    const y = 80 + i * 40;
-    svg += `<text x="50" y="${y}" fill="#e6edf3" font-size="15">\u2022 ${esc(item)}</text>`;
-  });
+  if (items.length === 0) {
+    svg += `<text x="50%" y="50%" text-anchor="middle" fill="#484f58" font-size="16">내용을 준비 중입니다...</text>`;
+  } else {
+    items.forEach((item, i) => {
+      const y = 80 + i * 40;
+      svg += `<text x="50" y="${y}" fill="#e6edf3" font-size="15">\u2022 ${esc(item)}</text>`;
+    });
+  }
   svg += `</svg>`;
   return svg;
 }
@@ -213,11 +221,14 @@ export function renderToCanvas(
     const blob = new Blob([svgString], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
     const img = new Image();
+    // Set dimensions BEFORE requesting the context — resizing after ctx acquisition
+    // resets the context state, which can cause a blank frame on some browsers.
     img.onload = () => {
+      // Reset canvas dimensions first (clears the canvas with a fresh context state)
+      canvas.width = SCREEN_WIDTH;
+      canvas.height = SCREEN_HEIGHT;
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        canvas.width = SCREEN_WIDTH;
-        canvas.height = SCREEN_HEIGHT;
         ctx.drawImage(img, 0, 0);
       }
       URL.revokeObjectURL(url);

@@ -41,7 +41,7 @@ export interface VisualQueueItem {
 export interface SophiaTaskQueueItem {
   type: SophiaTaskType;
   query: string;
-  requestedBy: string; // agent role (e.g., "cfo") or "chairman" or "user"
+  requestedBy: string; // agent role (e.g., "cfo") or "ceo" or "user"
   addedAt: number;
 }
 

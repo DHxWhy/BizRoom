@@ -87,10 +87,22 @@ export function useAgentAudio(): UseAgentAudioReturn {
       const float32 = base64ToPcm16Float32(audioBase64);
       console.log(`[AgentAudio] decoded to ${float32.length} float32 samples, queue size: ${queueRef.current.length}`);
       queueRef.current.push({ role, data: float32 });
-      // Cap queue to prevent unbounded memory growth (drop oldest chunks)
-      if (queueRef.current.length > 20) {
-        queueRef.current.splice(0, queueRef.current.length - 10);
-        console.warn(`[AgentAudio] Queue exceeded 20 — trimmed to latest 10 chunks`);
+      // Cap queue to prevent unbounded memory growth — only trim chunks from the
+      // SAME agent to avoid silently dropping audio from other agents.
+      // A per-role cap of 10 ensures each agent can buffer ~2-3 seconds of PCM16 audio.
+      const roleChunks = queueRef.current.filter((c) => c.role === role);
+      if (roleChunks.length > 10) {
+        // Find and remove the oldest chunk(s) for this role
+        let removed = 0;
+        const toRemove = roleChunks.length - 10;
+        queueRef.current = queueRef.current.filter((c) => {
+          if (c.role === role && removed < toRemove) {
+            removed++;
+            return false;
+          }
+          return true;
+        });
+        console.warn(`[AgentAudio] Per-role queue for ${role} exceeded 10 — trimmed ${toRemove} oldest chunks`);
       }
       playNext();
     },

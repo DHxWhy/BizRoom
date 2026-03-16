@@ -116,6 +116,11 @@ function extractVisualTitle(input: string, defaultTitle: string): string {
 // Prevents duplicate visuals when multiple agents respond in the same turn.
 const visualIntentChecked = new Set<string>();
 
+// Track which rooms had sophiaDirect fire this turn.
+// Prevents agentsDone from enqueuing a second visual for the same user request
+// when Sophia was directly addressed (sophiaDirect already enqueued one).
+const sophiaDirectFired = new Set<string>();
+
 // Track per-room event listeners for cleanup
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RoomListener = (...args: any[]) => void;
@@ -146,8 +151,8 @@ function addRoomListener(
  */
 export function wireVoiceLiveForRoom(
   roomId: string,
-  chairmanUserId: string,
-  chairmanName: string,
+  ceoUserId: string,
+  ceoName: string,
 ): void {
   // Idempotency guard: if listeners are already registered for this room, skip.
   // Without this guard, calling wireVoiceLiveForRoom twice (e.g., from a double
@@ -158,8 +163,8 @@ export function wireVoiceLiveForRoom(
     return;
   }
 
-  // Set chairman in TurnManager
-  turnManager.setChairman(roomId, chairmanUserId);
+  // Set CEO in TurnManager
+  turnManager.setCeo(roomId, ceoUserId);
 
   // Initialize Sophia buffer for this room
   sophiaAgent.initRoom(roomId);
@@ -183,13 +188,13 @@ export function wireVoiceLiveForRoom(
     },
   );
 
-  // Fix I7: use chairmanName param instead of hardcoded "Chairman"
+  // Fix I7: use ceoName param instead of hardcoded "CEO"
   addRoomListener(
     roomId,
     voiceLiveManager,
     "transcript:" + roomId,
     (_rid: string, userId: string, text: string) => {
-      turnManager.onTranscript(roomId, userId, chairmanName, text);
+      turnManager.onTranscript(roomId, userId, ceoName, text);
     },
   );
 
@@ -264,12 +269,12 @@ export function wireVoiceLiveForRoom(
         timestamp: Date.now(),
       });
 
-      // 2. Key points relay to chairman monitor (no GPT call)
+      // 2. Key points relay to CEO monitor (no GPT call)
       if (parsed.data.key_points.length > 0) {
         broadcastEvent(roomId, {
           type: "monitorUpdate",
           payload: {
-            target: "chairman",
+            target: "ceo",
             mode: "keyPoints",
             content: { type: "keyPoints", agentRole: role, points: parsed.data.key_points },
           },
@@ -324,7 +329,7 @@ export function wireVoiceLiveForRoom(
   );
 
   // When all agents finish responding for this turn:
-  // 1. Reset visual-intent flag
+  // 1. Reset visual-intent flag and sophiaDirect flag
   // 2. Sophia keyword detection — trigger search/visual if user's original message
   //    contains Sophia-related keywords (mirrors SSE path Sophia turn logic)
   addRoomListener(
@@ -333,6 +338,13 @@ export function wireVoiceLiveForRoom(
     "agentsDone:" + roomId,
     async (_rid: string) => {
       visualIntentChecked.delete(roomId);
+
+      // If sophiaDirect already handled this turn, skip the agentsDone visual path
+      // to prevent double TTS (Sophia would announce twice for the same request).
+      if (sophiaDirectFired.has(roomId)) {
+        sophiaDirectFired.delete(roomId);
+        return;
+      }
 
       // Sophia keyword detection (same as SSE path)
       const userInput = turnManager.getCombinedInput(roomId);
@@ -367,7 +379,7 @@ export function wireVoiceLiveForRoom(
             broadcastEvent(roomId, {
               type: "monitorUpdate",
               payload: {
-                target: "chairman",
+                target: "ceo",
                 mode: "searchResults",
                 content: {
                   type: "searchResults",
@@ -403,6 +415,9 @@ export function wireVoiceLiveForRoom(
     turnManager,
     "sophiaDirect:" + roomId,
     (_rid: string, userInput: string) => {
+      // Mark that sophiaDirect handled this turn so agentsDone won't double-trigger.
+      sophiaDirectFired.add(roomId);
+
       // Detect if user is requesting search/research
       const SEARCH_INTENT = /조사해|찾아봐|알아봐|리서치해|검색해|search|look up|find out|research/i;
       const isSearchRequest = SEARCH_INTENT.test(userInput);
@@ -480,6 +495,7 @@ export function unwireVoiceLiveForRoom(roomId: string): void {
     roomListeners.delete(roomId);
   }
   visualIntentChecked.delete(roomId);
+  sophiaDirectFired.delete(roomId);
   turnManager.destroyRoom(roomId);
   voiceLiveManager.teardownRoom(roomId);
   sophiaAgent.destroyRoom(roomId);
@@ -546,9 +562,22 @@ async function callSophiaVisualLLM(roomId: string, hint: VisualHint): Promise<Bi
   }
 
   const parsed = JSON.parse(content) as Record<string, unknown>;
-  // Basic structural validation — ensure type field matches hint
+  // Ensure type field matches hint
   if (typeof parsed.type !== "string") {
     parsed.type = hint.type;
+  }
+  // Sanitize: ensure required array fields are always present
+  const t = parsed.type as string;
+  if (["pie-chart", "bar-chart", "timeline", "checklist", "summary"].includes(t)) {
+    if (!Array.isArray(parsed.items)) parsed.items = [];
+  }
+  if (t === "comparison") {
+    if (!Array.isArray(parsed.columns)) parsed.columns = ["항목", "A", "B"];
+    if (!Array.isArray(parsed.rows)) parsed.rows = [];
+  }
+  if (t === "architecture") {
+    if (!Array.isArray(parsed.nodes)) parsed.nodes = [];
+    if (!Array.isArray(parsed.edges)) parsed.edges = [];
   }
   return parsed as unknown as BigScreenRenderData;
 }
@@ -609,7 +638,7 @@ const processingTask = new Set<string>();
 /**
  * Process the unified Sophia task queue for a room.
  * Handles search, analyze, and visualize task types:
- *  - search: calls Bing, injects results into ContextBroker, broadcasts to chairman monitor
+ *  - search: calls Bing, injects results into ContextBroker, broadcasts to CEO monitor
  *  - analyze: treated as search (Bing grounding) + summary visual generation
  *  - visualize: enqueues a visual hint into the existing visual pipeline
  */
@@ -670,11 +699,11 @@ async function executeSophiaSearch(roomId: string, task: SophiaTaskQueueItem): P
   // 1. Inject search results into ContextBroker so ALL subsequent agents see them
   addSearchResult(roomId, task.query, results);
 
-  // 2. Broadcast search results to chairman monitor
+  // 2. Broadcast search results to CEO monitor
   broadcastEvent(roomId, {
     type: "monitorUpdate",
     payload: {
-      target: "chairman",
+      target: "ceo",
       mode: "searchResults",
       content: {
         type: "searchResults",
