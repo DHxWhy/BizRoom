@@ -39,8 +39,13 @@ export default defineConfig({
 
   projects: [
     {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      name: "local-chrome",
+      use: {
+        ...devices["Desktop Chrome"],
+        channel: "chrome",
+        headless: false,
+        viewport: { width: 1440, height: 900 },
+      },
     },
   ],
 

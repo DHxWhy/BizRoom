@@ -256,21 +256,23 @@ export const SophiaBlob3D = memo(function SophiaBlob3D({
 
       <Billboard position={[0, 0.22, 0]}>
         <Text
-          fontSize={0.036}
-          color="#00A4EF"
+          fontSize={0.055}
+          color="#ffffff"
           anchorX="center"
           anchorY="middle"
-          fillOpacity={0.7}
+          fillOpacity={1.0}
+          outlineWidth={0.004}
+          outlineColor="#00A4EF"
         >
           {S.agents.sophia.name.toUpperCase()}
         </Text>
         <Text
-          fontSize={0.02}
-          color="#a0a0b0"
+          fontSize={0.028}
+          color="#00A4EF"
           anchorX="center"
           anchorY="middle"
-          position={[0, -0.04, 0]}
-          fillOpacity={0.5}
+          position={[0, -0.05, 0]}
+          fillOpacity={0.9}
         >
           {S.agents.sophia.role.toUpperCase()}
         </Text>

@@ -1,0 +1,322 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrowBlue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3B82F6"/>
+    </marker>
+    <marker id="arrowGray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6B7280"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8B5CF6"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10B981"/>
+    </marker>
+    <marker id="arrowDash" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#9CA3AF"/>
+    </marker>
+    <marker id="arrowWhite" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ffffff"/>
+    </marker>
+    <!-- Gradients -->
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1E3A8A"/>
+      <stop offset="100%" style="stop-color:#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="turnManagerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E40AF"/>
+      <stop offset="100%" style="stop-color:#2563EB"/>
+    </linearGradient>
+    <linearGradient id="sophiaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6D28D9"/>
+      <stop offset="100%" style="stop-color:#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F0F3F7"/>
+      <stop offset="100%" style="stop-color:#E5E9F0"/>
+    </linearGradient>
+    <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0F172A"/>
+      <stop offset="100%" style="stop-color:#1E293B"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#00000020"/>
+    </filter>
+    <filter id="shadowStrong" x="-8%" y="-8%" width="116%" height="116%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00000030"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="800" fill="url(#bgGrad)"/>
+
+  <!-- ═══════════════ HEADER ═══════════════ -->
+  <rect x="0" y="0" width="1200" height="64" fill="url(#headerGrad)"/>
+  <text x="600" y="22" text-anchor="middle" fill="#93C5FD" font-size="10" font-weight="600" letter-spacing="2">BIZROOM.AI — HACKATHON SUBMISSION</text>
+  <text x="600" y="46" text-anchor="middle" fill="#FFFFFF" font-size="22" font-weight="700" letter-spacing="0.5">Multi-Agent Orchestration Architecture</text>
+
+  <!-- ═══════════════ USER INPUT (LEFT) ═══════════════ -->
+  <rect x="28" y="100" width="148" height="112" rx="12" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="28" y="100" width="148" height="32" rx="12" fill="#0F172A"/>
+  <rect x="28" y="120" width="148" height="12" fill="#0F172A"/>
+  <text x="102" y="121" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700">USER INPUT</text>
+  <rect x="42" y="145" width="56" height="22" rx="5" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+  <text x="70" y="160" text-anchor="middle" fill="#2563EB" font-size="9.5" font-weight="600">PTT Voice</text>
+  <rect x="106" y="145" width="56" height="22" rx="5" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+  <text x="134" y="160" text-anchor="middle" fill="#2563EB" font-size="9.5" font-weight="600">Text Chat</text>
+  <text x="102" y="192" text-anchor="middle" fill="#64748B" font-size="9" font-style="italic">Whisper-1 STT</text>
+  <text x="102" y="204" text-anchor="middle" fill="#64748B" font-size="9" font-style="italic">GPT Realtime 1.5</text>
+
+  <!-- Arrow: User → TurnManager -->
+  <line x1="176" y1="156" x2="268" y2="207" stroke="#3B82F6" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <rect x="186" y="162" width="72" height="16" rx="4" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1"/>
+  <text x="222" y="173" text-anchor="middle" fill="#1D4ED8" font-size="9" font-weight="600">SignalR msg</text>
+
+  <!-- ═══════════════ TURN MANAGER (CENTER-TOP) ═══════════════ -->
+  <rect x="272" y="100" width="420" height="200" rx="14" fill="url(#turnManagerGrad)" stroke="#1D4ED8" stroke-width="2" filter="url(#shadowStrong)"/>
+  <!-- Inner glow border -->
+  <rect x="278" y="106" width="408" height="188" rx="10" fill="none" stroke="#60A5FA" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+
+  <text x="482" y="128" text-anchor="middle" fill="#BFDBFE" font-size="10" font-weight="600" letter-spacing="1.5">ORCHESTRATION ENGINE</text>
+  <text x="482" y="148" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700">TurnManager</text>
+
+  <!-- State machine row -->
+  <text x="296" y="170" fill="#93C5FD" font-size="9" font-weight="600">STATE:</text>
+  <rect x="340" y="158" width="52" height="18" rx="4" fill="#1E3A8A" stroke="#3B82F6" stroke-width="1"/>
+  <text x="366" y="170" text-anchor="middle" fill="#93C5FD" font-size="8.5">idle</text>
+  <text x="398" y="170" fill="#60A5FA" font-size="9">→</text>
+  <rect x="406" y="158" width="62" height="18" rx="4" fill="#1E3A8A" stroke="#3B82F6" stroke-width="1"/>
+  <text x="437" y="170" text-anchor="middle" fill="#93C5FD" font-size="8.5">buffering</text>
+  <text x="474" y="170" fill="#60A5FA" font-size="9">→</text>
+  <rect x="480" y="158" width="60" height="18" rx="4" fill="#1E3A8A" stroke="#3B82F6" stroke-width="1"/>
+  <text x="510" y="170" text-anchor="middle" fill="#93C5FD" font-size="8.5">flushing</text>
+  <text x="546" y="170" fill="#60A5FA" font-size="9">→</text>
+  <rect x="552" y="158" width="72" height="18" rx="4" fill="#1E3A8A" stroke="#3B82F6" stroke-width="1"/>
+  <text x="588" y="170" text-anchor="middle" fill="#93C5FD" font-size="8.5">agent_active</text>
+  <text x="630" y="170" fill="#60A5FA" font-size="9">→</text>
+  <rect x="636" y="158" width="54" height="18" rx="4" fill="#1E3A8A" stroke="#3B82F6" stroke-width="1"/>
+  <text x="663" y="170" text-anchor="middle" fill="#93C5FD" font-size="8.5">awaiting</text>
+
+  <!-- Priority badges -->
+  <text x="296" y="198" fill="#BFDBFE" font-size="9.5" font-weight="700">PRIORITY QUEUE:</text>
+
+  <rect x="296" y="204" width="94" height="22" rx="5" fill="#DC2626"/>
+  <text x="343" y="219" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="700">P0  Human Interrupt</text>
+
+  <rect x="396" y="204" width="80" height="22" rx="5" fill="#2563EB"/>
+  <text x="436" y="219" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="700">P1  COO First</text>
+
+  <rect x="482" y="204" width="80" height="22" rx="5" fill="#7C3AED"/>
+  <text x="522" y="219" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="700">P2  @Mention</text>
+
+  <rect x="568" y="204" width="72" height="22" rx="5" fill="#0891B2"/>
+  <text x="604" y="219" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="700">P3  Topic AI</text>
+
+  <rect x="646" y="204" width="38" height="22" rx="5" fill="#475569"/>
+  <text x="665" y="219" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="700">P4</text>
+
+  <!-- A2A label -->
+  <text x="296" y="252" fill="#93C5FD" font-size="9">A2A: mention field → next agent trigger  |  MAX_FOLLOW_UP_ROUNDS = 2</text>
+  <text x="296" y="268" fill="#93C5FD" font-size="9">agentsDone event → idle  |  VoiceLiveOrchestrator integration</text>
+
+  <!-- ═══════════════ TOPIC CLASSIFIER + CONTEXT BROKER ═══════════════ -->
+  <!-- TopicClassifier -->
+  <rect x="272" y="318" width="196" height="80" rx="10" fill="#FFFFFF" stroke="#6366F1" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="272" y="318" width="196" height="28" rx="10" fill="#4F46E5"/>
+  <rect x="272" y="334" width="196" height="12" fill="#4F46E5"/>
+  <text x="370" y="336" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700">TopicClassifier</text>
+  <text x="370" y="358" text-anchor="middle" fill="#4F46E5" font-size="9.5" font-weight="600">Intent Analysis</text>
+  <text x="370" y="372" text-anchor="middle" fill="#6B7280" font-size="9">Routes to relevant agent(s)</text>
+  <text x="370" y="386" text-anchor="middle" fill="#6B7280" font-size="9">by topic domain</text>
+
+  <!-- ContextBroker -->
+  <rect x="496" y="318" width="196" height="80" rx="10" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="496" y="318" width="196" height="28" rx="10" fill="#0E7490"/>
+  <rect x="496" y="334" width="196" height="12" fill="#0E7490"/>
+  <text x="594" y="336" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700">ContextBroker</text>
+  <text x="594" y="358" text-anchor="middle" fill="#0E7490" font-size="9.5" font-weight="600">Shared Memory</text>
+  <text x="594" y="372" text-anchor="middle" fill="#6B7280" font-size="9">Inter-agent context &amp; history</text>
+  <text x="594" y="386" text-anchor="middle" fill="#6B7280" font-size="9">SnippetManager phases</text>
+
+  <!-- Arrows: TurnManager → Classifiers -->
+  <line x1="370" y1="300" x2="370" y2="316" stroke="#6366F1" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+  <line x1="482" y1="300" x2="594" y2="316" stroke="#0891B2" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+
+  <!-- ═══════════════ AGENTS ROW ═══════════════ -->
+  <!-- Agent: Hudson COO -->
+  <circle cx="100" cy="510" r="44" fill="#1D4ED8" filter="url(#shadow)"/>
+  <circle cx="100" cy="510" r="40" fill="#2563EB"/>
+  <text x="100" y="504" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700">Hudson</text>
+  <text x="100" y="517" text-anchor="middle" fill="#BFDBFE" font-size="9">COO</text>
+  <text x="100" y="530" text-anchor="middle" fill="#93C5FD" font-size="8">P1</text>
+
+  <!-- Agent: Amelia CFO -->
+  <circle cx="252" cy="510" r="44" fill="#047857" filter="url(#shadow)"/>
+  <circle cx="252" cy="510" r="40" fill="#10B981"/>
+  <text x="252" y="504" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700">Amelia</text>
+  <text x="252" y="517" text-anchor="middle" fill="#D1FAE5" font-size="9">CFO</text>
+  <text x="252" y="530" text-anchor="middle" fill="#A7F3D0" font-size="8">Finance</text>
+
+  <!-- Agent: Yusef CMO -->
+  <circle cx="404" cy="510" r="44" fill="#C2410C" filter="url(#shadow)"/>
+  <circle cx="404" cy="510" r="40" fill="#F97316"/>
+  <text x="404" y="504" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700">Yusef</text>
+  <text x="404" y="517" text-anchor="middle" fill="#FED7AA" font-size="9">CMO</text>
+  <text x="404" y="530" text-anchor="middle" fill="#FDBA74" font-size="8">Marketing</text>
+
+  <!-- Agent: Kelvin CTO -->
+  <circle cx="556" cy="510" r="44" fill="#0E7490" filter="url(#shadow)"/>
+  <circle cx="556" cy="510" r="40" fill="#06B6D4"/>
+  <text x="556" y="504" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700">Kelvin</text>
+  <text x="556" y="517" text-anchor="middle" fill="#CFFAFE" font-size="9">CTO</text>
+  <text x="556" y="530" text-anchor="middle" fill="#A5F3FC" font-size="8">Technology</text>
+
+  <!-- Agent: Jonas CDO -->
+  <circle cx="708" cy="510" r="44" fill="#BE185D" filter="url(#shadow)"/>
+  <circle cx="708" cy="510" r="40" fill="#EC4899"/>
+  <text x="708" y="504" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700">Jonas</text>
+  <text x="708" y="517" text-anchor="middle" fill="#FCE7F3" font-size="9">CDO</text>
+  <text x="708" y="530" text-anchor="middle" fill="#FBCFE8" font-size="8">Design</text>
+
+  <!-- Agent: Bradley CLO -->
+  <circle cx="860" cy="510" r="44" fill="#4D7C0F" filter="url(#shadow)"/>
+  <circle cx="860" cy="510" r="40" fill="#84CC16"/>
+  <text x="860" y="504" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700">Bradley</text>
+  <text x="860" y="517" text-anchor="middle" fill="#ECFCCB" font-size="9">CLO</text>
+  <text x="860" y="530" text-anchor="middle" fill="#D9F99D" font-size="8">Legal</text>
+
+  <!-- Arrows from TopicClassifier to agents -->
+  <line x1="340" y1="398" x2="128" y2="470" stroke="#6366F1" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowGray)"/>
+  <line x1="355" y1="398" x2="260" y2="470" stroke="#6366F1" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowGray)"/>
+  <line x1="370" y1="398" x2="395" y2="468" stroke="#6366F1" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowGray)"/>
+  <line x1="400" y1="398" x2="548" y2="468" stroke="#6366F1" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowGray)"/>
+  <line x1="420" y1="398" x2="696" y2="468" stroke="#6366F1" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowGray)"/>
+  <line x1="440" y1="398" x2="840" y2="468" stroke="#6366F1" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowGray)"/>
+
+  <!-- A2A Mention routing arrows (between agents) -->
+  <!-- Hudson → Amelia -->
+  <path d="M 144 498 Q 198 474 208 498" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowDash)"/>
+  <!-- Amelia → Yusef -->
+  <path d="M 296 498 Q 350 474 360 498" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowDash)"/>
+  <!-- Yusef → Kelvin -->
+  <path d="M 448 498 Q 502 474 512 498" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowDash)"/>
+  <!-- Kelvin → Jonas -->
+  <path d="M 600 498 Q 654 474 664 498" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowDash)"/>
+  <!-- Jonas → Bradley -->
+  <path d="M 752 498 Q 806 474 816 498" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowDash)"/>
+
+  <!-- A2A label -->
+  <rect x="310" y="466" width="110" height="14" rx="4" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1"/>
+  <text x="365" y="476" text-anchor="middle" fill="#6B7280" font-size="8.5">mention routing (A2A)</text>
+
+  <!-- ═══════════════ SOPHIA AGENT (RIGHT) ═══════════════ -->
+  <rect x="958" y="100" width="214" height="320" rx="14" fill="url(#sophiaGrad)" stroke="#7C3AED" stroke-width="2" filter="url(#shadowStrong)"/>
+  <rect x="964" y="106" width="202" height="308" rx="10" fill="none" stroke="#C4B5FD" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+
+  <text x="1065" y="132" text-anchor="middle" fill="#EDE9FE" font-size="10" font-weight="600" letter-spacing="1.5">SUPPORTING AGENT</text>
+  <text x="1065" y="154" text-anchor="middle" fill="#FFFFFF" font-size="18" font-weight="700">Sophia</text>
+
+  <!-- Pipeline steps in Sophia box -->
+  <rect x="976" y="168" width="178" height="22" rx="5" fill="#4C1D95"/>
+  <text x="1065" y="182" text-anchor="middle" fill="#DDD6FE" font-size="9.5" font-weight="600">1. visual_hint received</text>
+
+  <text x="1065" y="205" text-anchor="middle" fill="#C4B5FD" font-size="9">↓ FIFO Queue</text>
+
+  <rect x="976" y="212" width="178" height="22" rx="5" fill="#4C1D95"/>
+  <text x="1065" y="226" text-anchor="middle" fill="#DDD6FE" font-size="9.5" font-weight="600">2. SophiaAgent buffer</text>
+
+  <text x="1065" y="249" text-anchor="middle" fill="#C4B5FD" font-size="9">↓ callSophiaVisualGPT</text>
+
+  <rect x="976" y="256" width="178" height="22" rx="5" fill="#4C1D95"/>
+  <text x="1065" y="266" text-anchor="middle" fill="#DDD6FE" font-size="9" font-weight="600">3. Claude Sonnet/Haiku</text>
+  <text x="1065" y="276" text-anchor="middle" fill="#A78BFA" font-size="8">claude-sonnet-4-6 / haiku-4-5</text>
+
+  <text x="1065" y="299" text-anchor="middle" fill="#C4B5FD" font-size="9">↓ BigScreenRenderData</text>
+
+  <rect x="976" y="306" width="178" height="30" rx="5" fill="#4C1D95"/>
+  <text x="1065" y="320" text-anchor="middle" fill="#DDD6FE" font-size="9.5" font-weight="600">4. bigScreenUpdate →</text>
+  <text x="1065" y="332" text-anchor="middle" fill="#A78BFA" font-size="8.5">BigScreenRenderer (Frontend)</text>
+
+  <!-- Visual types list -->
+  <text x="1065" y="358" text-anchor="middle" fill="#EDE9FE" font-size="8.5" font-weight="600">Visual Types:</text>
+  <text x="1065" y="371" text-anchor="middle" fill="#C4B5FD" font-size="8">bar · pie · timeline · table</text>
+  <text x="1065" y="384" text-anchor="middle" fill="#C4B5FD" font-size="8">summary · comparison · architecture</text>
+  <text x="1065" y="397" text-anchor="middle" fill="#C4B5FD" font-size="8">Internal pipeline — No HTTP API</text>
+  <text x="1065" y="408" text-anchor="middle" fill="#A78BFA" font-size="8">VoiceLiveOrchestrator events only</text>
+
+  <!-- Arrow: Agents → Sophia (visual_hint) -->
+  <line x1="862" y1="470" x2="985" y2="350" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrowPurple)"/>
+  <rect x="884" y="392" width="82" height="22" rx="5" fill="#F5F3FF" stroke="#A78BFA" stroke-width="1"/>
+  <text x="925" y="401" text-anchor="middle" fill="#7C3AED" font-size="8" font-weight="600">visual_hint</text>
+  <text x="925" y="411" text-anchor="middle" fill="#7C3AED" font-size="8">from agents</text>
+
+  <!-- ═══════════════ SIGNALR BROADCAST ═══════════════ -->
+  <rect x="272" y="590" width="658" height="64" rx="10" fill="#0F172A" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="601" y="613" text-anchor="middle" fill="#94A3B8" font-size="10" font-weight="600" letter-spacing="1">AZURE SIGNALR SERVICE  —  REAL-TIME BROADCAST</text>
+  <text x="360" y="638" text-anchor="middle" fill="#10B981" font-size="9" font-weight="600">agentMessage</text>
+  <text x="430" y="638" text-anchor="middle" fill="#64748B" font-size="9">→</text>
+  <text x="510" y="638" text-anchor="middle" fill="#8B5CF6" font-size="9" font-weight="600">bigScreenUpdate</text>
+  <text x="596" y="638" text-anchor="middle" fill="#64748B" font-size="9">→</text>
+  <text x="672" y="638" text-anchor="middle" fill="#F97316" font-size="9" font-weight="600">monitorUpdate</text>
+  <text x="750" y="638" text-anchor="middle" fill="#64748B" font-size="9">→</text>
+  <text x="828" y="638" text-anchor="middle" fill="#FBBF24" font-size="9" font-weight="600">artifactsReady</text>
+
+  <!-- Arrows: Agents → SignalR -->
+  <line x1="252" y1="554" x2="340" y2="590" stroke="#10B981" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <line x1="404" y1="554" x2="500" y2="590" stroke="#10B981" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <line x1="556" y1="554" x2="560" y2="590" stroke="#10B981" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <line x1="708" y1="554" x2="660" y2="590" stroke="#10B981" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+
+  <!-- Arrow: Sophia → SignalR (bigScreenUpdate) -->
+  <line x1="1000" y1="420" x2="860" y2="590" stroke="#8B5CF6" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowPurple)"/>
+
+  <!-- ═══════════════ FRONTEND BOX ═══════════════ -->
+  <rect x="272" y="672" width="658" height="48" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="601" y="691" text-anchor="middle" fill="#1E293B" font-size="11" font-weight="700">React 19 Frontend  +  React Three Fiber 3D Meeting Room</text>
+  <text x="430" y="710" text-anchor="middle" fill="#3B82F6" font-size="9.5" font-weight="600">ChatRoom</text>
+  <text x="510" y="710" text-anchor="middle" fill="#6B7280" font-size="9">|</text>
+  <text x="570" y="710" text-anchor="middle" fill="#8B5CF6" font-size="9.5" font-weight="600">BigScreenRenderer</text>
+  <text x="660" y="710" text-anchor="middle" fill="#6B7280" font-size="9">|</text>
+  <text x="730" y="710" text-anchor="middle" fill="#0891B2" font-size="9.5" font-weight="600">HoloMonitor3D</text>
+  <text x="820" y="710" text-anchor="middle" fill="#6B7280" font-size="9">|</text>
+  <text x="880" y="710" text-anchor="middle" fill="#10B981" font-size="9.5" font-weight="600">ArtifactPreview</text>
+
+  <!-- Arrow: SignalR → Frontend -->
+  <line x1="601" y1="654" x2="601" y2="670" stroke="#3B82F6" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+  <!-- ═══════════════ FOOTER / HERO TECH BANNER ═══════════════ -->
+  <rect x="0" y="756" width="1200" height="44" fill="url(#footerGrad)"/>
+  <text x="100" y="770" text-anchor="middle" fill="#64748B" font-size="8" letter-spacing="0.5">POWERED BY</text>
+
+  <!-- Azure Functions badge -->
+  <rect x="36" y="774" width="128" height="20" rx="5" fill="#0078D4" opacity="0.9"/>
+  <text x="100" y="787" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">Azure Functions v4</text>
+
+  <!-- Azure SignalR badge -->
+  <rect x="172" y="774" width="128" height="20" rx="5" fill="#0078D4" opacity="0.9"/>
+  <text x="236" y="787" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">Azure SignalR Service</text>
+
+  <!-- OpenAI badge -->
+  <rect x="308" y="774" width="128" height="20" rx="5" fill="#10A37F" opacity="0.9"/>
+  <text x="372" y="787" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">OpenAI GPT Realtime</text>
+
+  <!-- Anthropic badge -->
+  <rect x="444" y="774" width="128" height="20" rx="5" fill="#D4722A" opacity="0.9"/>
+  <text x="508" y="787" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">Anthropic Claude</text>
+
+  <!-- React Three Fiber badge -->
+  <rect x="580" y="774" width="128" height="20" rx="5" fill="#0D1117" stroke="#3B82F6" stroke-width="1" opacity="0.9"/>
+  <text x="644" y="787" text-anchor="middle" fill="#60A5FA" font-size="9" font-weight="600">React Three Fiber</text>
+
+  <!-- Microsoft Graph badge -->
+  <rect x="716" y="774" width="128" height="20" rx="5" fill="#0078D4" opacity="0.9"/>
+  <text x="780" y="787" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">Microsoft Graph API</text>
+
+  <!-- Whisper badge -->
+  <rect x="852" y="774" width="80" height="20" rx="5" fill="#10A37F" opacity="0.9"/>
+  <text x="892" y="787" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">Whisper STT</text>
+
+  <text x="1100" y="783" text-anchor="middle" fill="#475569" font-size="9" font-weight="700">BizRoom.ai</text>
+  <text x="1100" y="796" text-anchor="middle" fill="#334155" font-size="8">Hackathon 2025</text>
+</svg>

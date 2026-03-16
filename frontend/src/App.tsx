@@ -115,7 +115,7 @@ const ParticipantOverlay = memo(function ParticipantOverlay({
 }) {
   return (
     <div className="absolute left-4 top-14 z-10">
-      <div className="bg-neutral-950/70 backdrop-blur-xl rounded-xl border border-neutral-700/30 p-3 min-w-[180px]">
+      <div className="bg-neutral-950/70 backdrop-blur-xl rounded-xl border border-neutral-700/30 p-3 w-[200px]">
         {/* Header */}
         <div className="mb-3">
           <h3 className="text-xs font-semibold text-neutral-300 uppercase tracking-wider">
@@ -124,7 +124,7 @@ const ParticipantOverlay = memo(function ParticipantOverlay({
         </div>
 
         {/* Participant list */}
-        <div className="space-y-2">
+        <div className="space-y-1">
           {participants.map((p) => {
             const role = NAME_TO_ROLE[p.name] ?? p.role;
             const isSpeaking = speakingAgent === role;
@@ -133,7 +133,7 @@ const ParticipantOverlay = memo(function ParticipantOverlay({
             return (
               <div
                 key={p.id}
-                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all ${
+                className={`flex items-center gap-2.5 px-2 py-1.5 rounded-lg transition-all ${
                   isSpeaking
                     ? "bg-indigo-500/20 border border-indigo-500/30"
                     : isThinking
@@ -150,10 +150,10 @@ const ParticipantOverlay = memo(function ParticipantOverlay({
                   {p.type === "human" ? p.name.charAt(0) : p.avatar}
                 </div>
 
-                {/* Name + status */}
-                <div className="min-w-0">
+                {/* Name + status — flex-1 ensures dot always sits at the same x position */}
+                <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium text-neutral-200 truncate">{p.name}</div>
-                  <div className="text-[10px] text-neutral-500 uppercase">
+                  <div className="text-[10px] text-neutral-500 uppercase truncate">
                     {p.role}
                     {isSpeaking && (
                       <span className="ml-1 text-indigo-400">{S.overlay.speaking}</span>
@@ -164,9 +164,9 @@ const ParticipantOverlay = memo(function ParticipantOverlay({
                   </div>
                 </div>
 
-                {/* Status dot */}
+                {/* Status dot — fixed right column, always aligned */}
                 <div
-                  className={`w-1.5 h-1.5 rounded-full ml-auto flex-shrink-0 ${
+                  className={`w-2 h-2 rounded-full flex-shrink-0 ${
                     isSpeaking
                       ? "bg-indigo-400 animate-pulse"
                       : isThinking
@@ -593,6 +593,7 @@ function MeetingRoom() {
             getVisemeWeights={getTargetWeights}
             monitorData={state.monitorData}
             onFirstPersonChange={setIsFirstPerson}
+            userName={state.userName || "CEO"}
           />
         </Suspense>
       </div>

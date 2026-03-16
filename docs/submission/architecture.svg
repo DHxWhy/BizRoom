@@ -1,0 +1,704 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1420" width="1500" height="1420">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- DEFS                                                    -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <defs>
+    <linearGradient id="hdr" x1="0" y1="0" x2="1500" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#0D2B6B"/>
+      <stop offset="100%" stop-color="#1A6BBF"/>
+    </linearGradient>
+    <linearGradient id="heroBg" x1="0" y1="0" x2="1500" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#0D2B6B"/>
+      <stop offset="100%" stop-color="#1A6BBF"/>
+    </linearGradient>
+
+    <!-- Arrowhead: gray (default) -->
+    <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0,1 L7,4 L0,7 Z" fill="#546E7A"/>
+    </marker>
+    <!-- Arrowhead: gray (reverse) -->
+    <marker id="arrR" viewBox="0 0 8 8" refX="1" refY="4" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0,1 L7,4 L0,7 Z" fill="#546E7A"/>
+    </marker>
+    <!-- Arrowhead: white (hero banner) -->
+    <marker id="arrW" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0,1 L7,4 L0,7 Z" fill="white"/>
+    </marker>
+    <!-- Arrowhead: orange (agent to bottom) -->
+    <marker id="arrO" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0,1 L7,4 L0,7 Z" fill="#E65100"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1500" height="1420" fill="#F4F6F9"/>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- HEADER                                                  -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="0" y="0" width="1500" height="70" fill="url(#hdr)"/>
+
+  <!-- Microsoft 4-color logo -->
+  <rect x="14" y="15" width="17" height="17" fill="#F35325"/>
+  <rect x="33" y="15" width="17" height="17" fill="#81BC06"/>
+  <rect x="14" y="34" width="17" height="17" fill="#05A6F0"/>
+  <rect x="33" y="34" width="17" height="17" fill="#FFBA08"/>
+
+  <!-- Header text -->
+  <text x="62" y="27" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" fill="#90CAF9">MICROSOFT AI DEV DAYS HACKATHON 2026</text>
+  <text x="62" y="55" font-family="'Segoe UI',system-ui,sans-serif" font-size="23" font-weight="700" fill="white" letter-spacing="0.3">BizRoom.ai — System Architecture</text>
+  <text x="1486" y="32" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#90CAF9" text-anchor="end">AI C-Suite Virtual Meeting Platform</text>
+  <text x="1486" y="47" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#90CAF9" text-anchor="end">Multi-Agent Orchestration · Real-time Voice · Instant Artifacts</text>
+  <text x="1486" y="62" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#90CAF9" text-anchor="end">Azure Static Web Apps · Azure Functions v4 · Azure SignalR Service</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SECTION 1: CLIENT LAYER  (y=78 h=184)                  -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="12" y="78" width="1476" height="184" fill="#E3F2FD" stroke="#1565C0" stroke-width="1.5" rx="8"/>
+  <!-- Header band -->
+  <rect x="12" y="78" width="1476" height="24" fill="#1565C0" rx="8"/>
+  <rect x="12" y="90"  width="1476" height="12" fill="#1565C0"/>
+  <text x="24"   y="95" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" font-weight="700" fill="white">CLIENT LAYER</text>
+  <text x="1484" y="95" font-family="'Segoe UI',system-ui,sans-serif" font-size="9.5" fill="#BBDEFB" text-anchor="end">Azure Static Web Apps — Global CDN · React 19 · TypeScript 5 strict · Vite 7 · Tailwind CSS 4</text>
+
+  <!-- ── Box 1: 3D MEETING ROOM ── -->
+  <rect x="20"  y="108" width="350" height="146" fill="white" stroke="#42A5F5" stroke-width="1" rx="6"/>
+  <rect x="20"  y="108" width="350" height="20"  fill="#1E88E5" rx="6"/>
+  <rect x="20"  y="118" width="350" height="10"  fill="#1E88E5"/>
+  <text x="195" y="122" font-family="'Segoe UI',system-ui,sans-serif" font-size="9.5" font-weight="600" fill="white" text-anchor="middle">3D IMMERSIVE MEETING ROOM</text>
+  <text x="195" y="139" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" fill="#1565C0" text-anchor="middle">React Three Fiber 9 · @react-three/drei 10</text>
+  <text x="195" y="152" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#333"    text-anchor="middle">Three.js 0.170 · Ready Player Me (RPM) Avatars</text>
+  <text x="195" y="164" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444"    text-anchor="middle">MeetingRoom3D · RPMAgentAvatar × 6</text>
+  <text x="195" y="176" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444"    text-anchor="middle">HoloMonitor3D · BigScreenRenderer · SophiaBlob3D</text>
+  <text x="195" y="188" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444"    text-anchor="middle">CameraController: Overview / First-person / Boardroom</text>
+  <text x="195" y="200" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555"    text-anchor="middle">Viseme-driven lip sync (useViseme hook)</text>
+  <text x="195" y="212" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555"    text-anchor="middle">ArtifactScreen3D · MeetingTable3D</text>
+  <text x="195" y="226" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#666"    text-anchor="middle">AmbientLight · point lights · glass environment maps</text>
+  <text x="195" y="239" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#666"    text-anchor="middle">useFrame optimized · instancing · zero re-render policy</text>
+
+  <!-- ── Box 2: CHAT PANEL ── -->
+  <rect x="382" y="108" width="340" height="146" fill="white" stroke="#42A5F5" stroke-width="1" rx="6"/>
+  <rect x="382" y="108" width="340" height="20"  fill="#1E88E5" rx="6"/>
+  <rect x="382" y="118" width="340" height="10"  fill="#1E88E5"/>
+  <text x="552" y="122" font-family="'Segoe UI',system-ui,sans-serif" font-size="9.5" font-weight="600" fill="white" text-anchor="middle">CHAT PANEL — SLACK-STYLE UI</text>
+  <text x="552" y="139" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" fill="#1565C0" text-anchor="middle">@microsoft/signalr 10 (WebSocket client)</text>
+  <text x="552" y="152" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#333"    text-anchor="middle">ChatRoom · MessageBubble · TypingIndicator</text>
+  <text x="552" y="164" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444"    text-anchor="middle">SophiaMessage · ArtifactPreview card</text>
+  <text x="552" y="176" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444"    text-anchor="middle">Agent avatar — online / typing / working / idle</text>
+  <text x="552" y="188" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444"    text-anchor="middle">@mention routing · QuickActions (Agree/Disagree/Next)</text>
+  <text x="552" y="200" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555"    text-anchor="middle">ModeSelector: Live | Auto | DM</text>
+  <text x="552" y="212" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555"    text-anchor="middle">MeetingBanner · ChairmanControls · DmAgentPicker</text>
+  <text x="552" y="226" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#666"    text-anchor="middle">LobbyPage · BrandMemoryForm · Room code join</text>
+  <text x="552" y="239" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#666"    text-anchor="middle">Virtual scroll (large chat history) · auto-scroll</text>
+
+  <!-- ── Box 3: VOICE INPUT ── -->
+  <rect x="734" y="108" width="340" height="146" fill="white" stroke="#42A5F5" stroke-width="1" rx="6"/>
+  <rect x="734" y="108" width="340" height="20"  fill="#1E88E5" rx="6"/>
+  <rect x="734" y="118" width="340" height="10"  fill="#1E88E5"/>
+  <text x="904" y="122" font-family="'Segoe UI',system-ui,sans-serif" font-size="9.5" font-weight="600" fill="white" text-anchor="middle">REAL-TIME VOICE INPUT</text>
+  <text x="904" y="139" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" fill="#1565C0" text-anchor="middle">Push-to-Talk · useVoiceLive · usePushToTalk</text>
+  <text x="904" y="152" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#333"    text-anchor="middle">Web Speech API (SpeechRecognition)</text>
+  <text x="904" y="164" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444"    text-anchor="middle">Live Mode: GPT Realtime 1.5 (WebRTC session)</text>
+  <text x="904" y="176" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444"    text-anchor="middle">STT fallback: OpenAI Whisper-1 (REST POST)</text>
+  <text x="904" y="188" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444"    text-anchor="middle">Spacebar hold → record → transcribe → send</text>
+  <text x="904" y="200" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555"    text-anchor="middle">useAgentAudio — agent TTS voice playback</text>
+  <text x="904" y="212" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555"    text-anchor="middle">agentVoices.ts — per-agent voice configuration</text>
+  <text x="904" y="226" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#666"    text-anchor="middle">MicToggle · PushToTalk (red-dot animation)</text>
+  <text x="904" y="239" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#666"    text-anchor="middle">VoiceLiveSessionManager WebSocket proxy</text>
+
+  <!-- ── Box 4: STATE & ARTIFACTS ── -->
+  <rect x="1086" y="108" width="394" height="146" fill="white" stroke="#42A5F5" stroke-width="1" rx="6"/>
+  <rect x="1086" y="108" width="394" height="20"  fill="#1E88E5" rx="6"/>
+  <rect x="1086" y="118" width="394" height="10"  fill="#1E88E5"/>
+  <text x="1283" y="122" font-family="'Segoe UI',system-ui,sans-serif" font-size="9.5" font-weight="600" fill="white" text-anchor="middle">STATE MANAGEMENT &amp; ARTIFACTS</text>
+  <text x="1283" y="139" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" fill="#1565C0" text-anchor="middle">MeetingContext (React Context + useReducer)</text>
+  <text x="1283" y="152" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#333"    text-anchor="middle">ArtifactPanel (Excel / Word / PPT Online iframe)</text>
+  <text x="1283" y="164" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444"    text-anchor="middle">ArtifactPreview (in-chat download card)</text>
+  <text x="1283" y="176" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444"    text-anchor="middle">useSessionRoom · useSignalR (event dispatcher)</text>
+  <text x="1283" y="188" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444"    text-anchor="middle">Multi-user: human + AI agents concurrent</text>
+  <text x="1283" y="200" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555"    text-anchor="middle">Brand memory: industry / product / persona presets</text>
+  <text x="1283" y="212" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555"    text-anchor="middle">strings.ts — centralized i18n string store</text>
+  <text x="1283" y="226" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#666"    text-anchor="middle">React 19 · Strict mode · MSAL 2.0 (optional auth)</text>
+  <text x="1283" y="239" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#666"    text-anchor="middle">AppShell · Sidebar · ParticipantList</text>
+
+  <!-- ─ Arrow zone 1: Client ↕ SignalR ─ -->
+  <!-- Bidirectional: WebSocket -->
+  <line x1="750" y1="264" x2="750" y2="298" stroke="#546E7A" stroke-width="1.8" marker-end="url(#arr)" marker-start="url(#arrR)"/>
+  <rect x="650" y="269" width="200" height="17" fill="#F4F6F9" rx="4"/>
+  <text x="750" y="281" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" fill="#37474F" text-anchor="middle" font-style="italic">WebSocket (full-duplex)</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SECTION 2: AZURE SIGNALR SERVICE  (y=300 h=78)         -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="12" y="300" width="1476" height="78" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="1.5" rx="8"/>
+  <!-- Header -->
+  <rect x="12" y="300" width="1476" height="22" fill="#7B1FA2" rx="8"/>
+  <rect x="12" y="311" width="1476" height="11" fill="#7B1FA2"/>
+  <text x="24"   y="316" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" font-weight="700" fill="white">REAL-TIME MESSAGING LAYER</text>
+  <text x="1484" y="316" font-family="'Segoe UI',system-ui,sans-serif" font-size="9.5" fill="#E1BEE7" text-anchor="end">Azure SignalR Service · Serverless mode · Premium_P1</text>
+
+  <!-- Inner content box -->
+  <rect x="20" y="328" width="1460" height="44" fill="white" stroke="#AB47BC" stroke-width="0.8" rx="5"/>
+  <!-- Title -->
+  <text x="750" y="344" font-family="'Segoe UI',system-ui,sans-serif" font-size="9" font-weight="700" fill="#4A148C" text-anchor="middle">Azure SignalR Service — Hub: "default" · Groups: meeting-room-{roomId} · JWT authentication</text>
+  <!-- Events row -->
+  <text x="750" y="362" font-family="'Segoe UI',system-ui,sans-serif" font-size="8" fill="#555" text-anchor="middle">Broadcast events: agentMessage · agentTyping · bigScreenUpdate · monitorUpdate · sophiaMessage · artifactsReady · meetingStarted · userJoined · userLeft</text>
+
+  <!-- ─ Arrow zone 2: SignalR ↕ API ─ -->
+  <line x1="750" y1="380" x2="750" y2="414" stroke="#546E7A" stroke-width="1.8" marker-end="url(#arr)" marker-start="url(#arrR)"/>
+  <rect x="640" y="384" width="220" height="17" fill="#F4F6F9" rx="4"/>
+  <text x="750" y="396" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" fill="#37474F" text-anchor="middle" font-style="italic">HTTP Triggers + SSE streaming</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SECTION 3: API LAYER  (y=416 h=118)                    -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="12" y="416" width="1476" height="118" fill="#E0F2F1" stroke="#00695C" stroke-width="1.5" rx="8"/>
+  <!-- Header -->
+  <rect x="12" y="416" width="1476" height="22" fill="#00695C" rx="8"/>
+  <rect x="12" y="427" width="1476" height="11" fill="#00695C"/>
+  <text x="24"   y="432" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" font-weight="700" fill="white">API LAYER</text>
+  <text x="1484" y="432" font-family="'Segoe UI',system-ui,sans-serif" font-size="9.5" fill="#B2DFDB" text-anchor="end">Azure Functions v4 · Node.js 20 · TypeScript 5 · 23 endpoints · HTTP stream enabled</text>
+
+  <!-- API endpoint boxes: 6 boxes, w=233 each, gap=8 -->
+  <!-- Box A: /api/negotiate -->
+  <rect x="20"  y="444" width="232" height="82" fill="white" stroke="#4DB6AC" stroke-width="0.8" rx="5"/>
+  <rect x="20"  y="444" width="232" height="18" fill="#00897B" rx="5"/>
+  <rect x="20"  y="453" width="232" height="9"  fill="#00897B"/>
+  <text x="136" y="457" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="600" fill="white" text-anchor="middle">/api/negotiate</text>
+  <text x="136" y="473" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444" text-anchor="middle">SignalR JWT token</text>
+  <text x="136" y="484" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444" text-anchor="middle">Client authentication</text>
+  <text x="136" y="495" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555" text-anchor="middle">Connection string parsing</text>
+  <text x="136" y="506" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#777" text-anchor="middle">HMAC JWT (60s expiry)</text>
+  <text x="136" y="518" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#777" text-anchor="middle">negotiate.ts</text>
+
+  <!-- Box B: /api/message -->
+  <rect x="260" y="444" width="232" height="82" fill="white" stroke="#4DB6AC" stroke-width="0.8" rx="5"/>
+  <rect x="260" y="444" width="232" height="18" fill="#00897B" rx="5"/>
+  <rect x="260" y="453" width="232" height="9"  fill="#00897B"/>
+  <text x="376" y="457" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="600" fill="white" text-anchor="middle">/api/message</text>
+  <text x="376" y="473" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444" text-anchor="middle">SSE streaming response</text>
+  <text x="376" y="484" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444" text-anchor="middle">Agent orchestration entry</text>
+  <text x="376" y="495" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555" text-anchor="middle">TurnManager → agents → SignalR</text>
+  <text x="376" y="506" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#777" text-anchor="middle">Bing search context injection</text>
+  <text x="376" y="518" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#777" text-anchor="middle">message.ts · enableHttpStream</text>
+
+  <!-- Box C: /api/meeting-voice -->
+  <rect x="500" y="444" width="232" height="82" fill="white" stroke="#4DB6AC" stroke-width="0.8" rx="5"/>
+  <rect x="500" y="444" width="232" height="18" fill="#00897B" rx="5"/>
+  <rect x="500" y="453" width="232" height="9"  fill="#00897B"/>
+  <text x="616" y="457" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="600" fill="white" text-anchor="middle">/api/meeting-voice</text>
+  <text x="616" y="473" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444" text-anchor="middle">GPT Realtime 1.5 WebRTC</text>
+  <text x="616" y="484" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444" text-anchor="middle">VoiceLiveOrchestrator entry</text>
+  <text x="616" y="495" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555" text-anchor="middle">Live voice session proxy</text>
+  <text x="616" y="506" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#777" text-anchor="middle">WebSocket ↔ GPT Realtime API</text>
+  <text x="616" y="518" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#777" text-anchor="middle">meeting-voice.ts</text>
+
+  <!-- Box D: /api/meeting/start|end -->
+  <rect x="740" y="444" width="232" height="82" fill="white" stroke="#4DB6AC" stroke-width="0.8" rx="5"/>
+  <rect x="740" y="444" width="232" height="18" fill="#00897B" rx="5"/>
+  <rect x="740" y="453" width="232" height="9"  fill="#00897B"/>
+  <text x="856" y="457" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="600" fill="white" text-anchor="middle">/api/meeting/{start | end}</text>
+  <text x="856" y="473" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444" text-anchor="middle">Meeting lifecycle control</text>
+  <text x="856" y="484" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444" text-anchor="middle">end: artifact pipeline trigger</text>
+  <text x="856" y="495" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555" text-anchor="middle">PPT + Excel + meeting minutes</text>
+  <text x="856" y="506" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#777" text-anchor="middle">OneDrive upload + Planner tasks</text>
+  <text x="856" y="518" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#777" text-anchor="middle">meetingStart.ts · meetingEnd.ts</text>
+
+  <!-- Box E: /api/voice/transcribe -->
+  <rect x="980" y="444" width="232" height="82" fill="white" stroke="#4DB6AC" stroke-width="0.8" rx="5"/>
+  <rect x="980" y="444" width="232" height="18" fill="#00897B" rx="5"/>
+  <rect x="980" y="453" width="232" height="9"  fill="#00897B"/>
+  <text x="1096" y="457" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="600" fill="white" text-anchor="middle">/api/voice/transcribe</text>
+  <text x="1096" y="473" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444" text-anchor="middle">OpenAI Whisper-1 STT</text>
+  <text x="1096" y="484" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444" text-anchor="middle">Audio blob → transcript text</text>
+  <text x="1096" y="495" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555" text-anchor="middle">Multipart/form-data upload</text>
+  <text x="1096" y="506" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#777" text-anchor="middle">Fallback: Web Speech API</text>
+  <text x="1096" y="518" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#777" text-anchor="middle">voiceTranscribe.ts</text>
+
+  <!-- Box F: /api/artifact + /api/room/* -->
+  <rect x="1220" y="444" width="256" height="82" fill="white" stroke="#4DB6AC" stroke-width="0.8" rx="5"/>
+  <rect x="1220" y="444" width="256" height="18" fill="#00897B" rx="5"/>
+  <rect x="1220" y="453" width="256" height="9"  fill="#00897B"/>
+  <text x="1348" y="457" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="600" fill="white" text-anchor="middle">/api/artifact · /api/room/*</text>
+  <text x="1348" y="473" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444" text-anchor="middle">Artifact download (SAS token URL)</text>
+  <text x="1348" y="484" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#444" text-anchor="middle">Room join / leave · roomCreate</text>
+  <text x="1348" y="495" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#555" text-anchor="middle">Session history · message log</text>
+  <text x="1348" y="506" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#777" text-anchor="middle">User registration + brand memory</text>
+  <text x="1348" y="518" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#777" text-anchor="middle">roomJoin.ts · artifactDownload.ts</text>
+
+  <!-- ─ Arrow zone 3: API → Orchestration ─ -->
+  <line x1="750" y1="536" x2="750" y2="570" stroke="#546E7A" stroke-width="1.8" marker-end="url(#arr)"/>
+  <rect x="630" y="540" width="240" height="17" fill="#F4F6F9" rx="4"/>
+  <text x="750" y="552" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" fill="#37474F" text-anchor="middle" font-style="italic">Message routing · agent dispatch</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SECTION 4: ORCHESTRATION LAYER  (y=572 h=236)          -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="12" y="572" width="1476" height="236" fill="#FFFDE7" stroke="#F57F17" stroke-width="1.5" rx="8"/>
+  <!-- Header -->
+  <rect x="12" y="572" width="1476" height="22" fill="#F57F17" rx="8"/>
+  <rect x="12" y="583" width="1476" height="11" fill="#F57F17"/>
+  <text x="24"   y="588" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" font-weight="700" fill="white">ORCHESTRATION LAYER</text>
+  <text x="1484" y="588" font-family="'Segoe UI',system-ui,sans-serif" font-size="9.5" fill="#FFF9C4" text-anchor="end">Conversation intelligence · Turn-taking · Context management · Visual pipeline</text>
+
+  <!-- Left cluster: 5 boxes, w=167 each, gap=8 (x: 20..878) -->
+
+  <!-- OL-1: TurnManager -->
+  <rect x="20"  y="600" width="167" height="200" fill="white" stroke="#FFB300" stroke-width="0.8" rx="5"/>
+  <rect x="20"  y="600" width="167" height="18"  fill="#FB8C00" rx="5"/>
+  <rect x="20"  y="609" width="167" height="9"   fill="#FB8C00"/>
+  <text x="103" y="614" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">TurnManager</text>
+  <text x="103" y="630" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#1565C0" text-anchor="middle">Priority queue (P0–P4)</text>
+  <text x="103" y="643" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">P0  Human (always first)</text>
+  <text x="103" y="655" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">P1  COO Hudson</text>
+  <text x="103" y="667" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">P2  @Mentioned agent</text>
+  <text x="103" y="679" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">P3  Topic-relevant</text>
+  <text x="103" y="691" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">P4  Others (idle)</text>
+  <text x="103" y="707" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Max 2 consecutive AI turns</text>
+  <text x="103" y="719" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">DialogLab turn-taking logic</text>
+  <text x="103" y="731" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Follow-up chain routing</text>
+  <text x="103" y="745" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">TurnManager.ts</text>
+  <text x="103" y="757" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">turnConfig.ts (MAX_AGENTS=2)</text>
+  <text x="103" y="769" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">awaiting state machine</text>
+  <text x="103" y="781" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">Interrupt handler (legal/fin)</text>
+
+  <!-- OL-2: TopicClassifier -->
+  <rect x="195" y="600" width="167" height="200" fill="white" stroke="#FFB300" stroke-width="0.8" rx="5"/>
+  <rect x="195" y="600" width="167" height="18"  fill="#FB8C00" rx="5"/>
+  <rect x="195" y="609" width="167" height="9"   fill="#FB8C00"/>
+  <text x="278" y="614" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">TopicClassifier</text>
+  <text x="278" y="630" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#1565C0" text-anchor="middle">User input → agent set</text>
+  <text x="278" y="643" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Keyword-based routing</text>
+  <text x="278" y="655" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Finance → CFO Amelia</text>
+  <text x="278" y="667" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Marketing → CMO Yusef</text>
+  <text x="278" y="679" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Technology → CTO Kelvin</text>
+  <text x="278" y="691" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Legal → CLO Bradley</text>
+  <text x="278" y="707" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">@mention parsing</text>
+  <text x="278" y="719" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Multi-agent selection</text>
+  <text x="278" y="731" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">parseMentions()</text>
+  <text x="278" y="745" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">TopicClassifier.ts</text>
+  <text x="278" y="757" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">AgentRole[] result</text>
+
+  <!-- OL-3: ContextBroker -->
+  <rect x="370" y="600" width="167" height="200" fill="white" stroke="#FFB300" stroke-width="0.8" rx="5"/>
+  <rect x="370" y="600" width="167" height="18"  fill="#FB8C00" rx="5"/>
+  <rect x="370" y="609" width="167" height="9"   fill="#FB8C00"/>
+  <text x="453" y="614" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">ContextBroker</text>
+  <text x="453" y="630" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#1565C0" text-anchor="middle">Shared room context (in-mem)</text>
+  <text x="453" y="643" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Meeting agenda</text>
+  <text x="453" y="655" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Decision log (decisions[])</text>
+  <text x="453" y="667" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Brand memory (industry)</text>
+  <text x="453" y="679" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Bing search results</text>
+  <text x="453" y="691" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Conversation history (20 msg)</text>
+  <text x="453" y="707" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Per-agent filtered view</text>
+  <text x="453" y="719" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">getContextForAgent(role)</text>
+  <text x="453" y="731" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">addMessage / getBrandMemory</text>
+  <text x="453" y="745" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">ContextBroker.ts</text>
+  <text x="453" y="757" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">addSearchResult()</text>
+
+  <!-- OL-4: SnippetManager -->
+  <rect x="545" y="600" width="167" height="200" fill="white" stroke="#FFB300" stroke-width="0.8" rx="5"/>
+  <rect x="545" y="600" width="167" height="18"  fill="#FB8C00" rx="5"/>
+  <rect x="545" y="609" width="167" height="9"   fill="#FB8C00"/>
+  <text x="628" y="614" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">SnippetManager</text>
+  <text x="628" y="630" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#1565C0" text-anchor="middle">6-phase meeting lifecycle</text>
+  <text x="628" y="643" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">1. OPENING</text>
+  <text x="628" y="655" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">2. DISCUSSION</text>
+  <text x="628" y="667" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">3. ANALYSIS</text>
+  <text x="628" y="679" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">4. DECISION</text>
+  <text x="628" y="691" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">5. ACTION</text>
+  <text x="628" y="703" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">6. CLOSING</text>
+  <text x="628" y="719" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Phase-triggered prompts</text>
+  <text x="628" y="731" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">COO drives transitions</text>
+  <text x="628" y="745" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">SnippetManager.ts</text>
+
+  <!-- OL-5: ResponseParser -->
+  <rect x="720" y="600" width="167" height="200" fill="white" stroke="#FFB300" stroke-width="0.8" rx="5"/>
+  <rect x="720" y="600" width="167" height="18"  fill="#FB8C00" rx="5"/>
+  <rect x="720" y="609" width="167" height="9"   fill="#FB8C00"/>
+  <text x="803" y="614" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">ResponseParser</text>
+  <text x="803" y="630" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#1565C0" text-anchor="middle">StructuredAgentOutput</text>
+  <text x="803" y="643" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">speech: string</text>
+  <text x="803" y="655" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">key_points: string[]</text>
+  <text x="803" y="667" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">mention: Mention | null</text>
+  <text x="803" y="679" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">visual_hint: VisualHint | null</text>
+  <text x="803" y="695" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">3-tier parse strategy:</text>
+  <text x="803" y="707" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Tier 1: JSON block extract</text>
+  <text x="803" y="719" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Tier 2: Partial JSON repair</text>
+  <text x="803" y="731" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Tier 3: LLM parse-fallback</text>
+  <text x="803" y="745" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">ResponseParser.ts</text>
+  <text x="803" y="757" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">responseSchema.ts (zod-free)</text>
+
+  <!-- Right cluster separator -->
+  <line x1="896" y1="600" x2="896" y2="800" stroke="#F57F17" stroke-width="0.5" stroke-dasharray="4,3"/>
+
+  <!-- OL-6: VoiceLiveOrchestrator -->
+  <rect x="902"  y="600" width="280" height="200" fill="white" stroke="#FFB300" stroke-width="0.8" rx="5"/>
+  <rect x="902"  y="600" width="280" height="18"  fill="#EF6C00" rx="5"/>
+  <rect x="902"  y="609" width="280" height="9"   fill="#EF6C00"/>
+  <text x="1042" y="614" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">VoiceLiveOrchestrator</text>
+  <text x="1042" y="630" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#1565C0" text-anchor="middle">Live voice + Sophia pipeline</text>
+  <text x="1042" y="643" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">GPT Realtime ↔ SignalR bridge</text>
+  <text x="1042" y="655" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Visual intent detection (keywords)</text>
+  <text x="1042" y="667" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">agentDone handler pipeline:</text>
+  <text x="1042" y="679" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle"> 1. sophiaAgent.addToBuffer()</text>
+  <text x="1042" y="691" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle"> 2. monitorUpdate (key_points)</text>
+  <text x="1042" y="703" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle"> 3. mention routing (A2A)</text>
+  <text x="1042" y="715" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle"> 4. Sophia visual generation</text>
+  <text x="1042" y="727" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle"> 5. turnManager.onAgentDone()</text>
+  <text x="1042" y="743" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Bing search: auto-inject context</text>
+  <text x="1042" y="755" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">VoiceLiveOrchestrator.ts</text>
+  <text x="1042" y="767" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">VoiceLiveSessionManager.ts</text>
+  <text x="1042" y="779" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">BingSearchService.ts</text>
+
+  <!-- OL-7: SophiaAgent -->
+  <rect x="1192" y="600" width="288" height="200" fill="white" stroke="#FFB300" stroke-width="0.8" rx="5"/>
+  <rect x="1192" y="600" width="288" height="18"  fill="#EF6C00" rx="5"/>
+  <rect x="1192" y="609" width="288" height="9"   fill="#EF6C00"/>
+  <text x="1336" y="614" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">SophiaAgent (Singleton)</text>
+  <text x="1336" y="630" font-family="'Segoe UI',system-ui,sans-serif" font-size="8"   fill="#1565C0" text-anchor="middle">Visual generation + meeting minutes</text>
+  <text x="1336" y="643" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Visual buffer FIFO queue</text>
+  <text x="1336" y="655" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">visual_hint → BigScreenRenderData</text>
+  <text x="1336" y="667" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Types: bar-chart · pie-chart</text>
+  <text x="1336" y="679" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle"> comparison · timeline</text>
+  <text x="1336" y="691" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle"> checklist · summary</text>
+  <text x="1336" y="703" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle"> architecture diagram</text>
+  <text x="1336" y="719" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Meeting minutes: Claude Opus 4.6</text>
+  <text x="1336" y="731" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Artifact trigger: ArtifactGenerator</text>
+  <text x="1336" y="743" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">→ bigScreenUpdate event → SignalR</text>
+  <text x="1336" y="757" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">SophiaAgent.ts · sophia.ts (prompt)</text>
+  <text x="1336" y="769" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">SOPHIA_VISUAL_SYSTEM_PROMPT</text>
+  <text x="1336" y="781" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">HTTP-free: internal event pipeline only</text>
+
+  <!-- ─ Arrow zone 4: Orchestration → Agents ─ -->
+  <line x1="750" y1="810" x2="750" y2="844" stroke="#546E7A" stroke-width="1.8" marker-end="url(#arr)"/>
+  <rect x="630" y="814" width="240" height="17" fill="#F4F6F9" rx="4"/>
+  <text x="750" y="826" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" fill="#37474F" text-anchor="middle" font-style="italic">Agent invocation (AgentFactory)</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SECTION 5: AGENT LAYER  (y=846 h=152)                  -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="12" y="846" width="1476" height="152" fill="#FFF3E0" stroke="#E65100" stroke-width="1.5" rx="8"/>
+  <!-- Header -->
+  <rect x="12" y="846" width="1476" height="22" fill="#E65100" rx="8"/>
+  <rect x="12" y="857" width="1476" height="11" fill="#E65100"/>
+  <text x="24"   y="863" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" font-weight="700" fill="white">AI AGENT LAYER — C-SUITE EXECUTIVE TEAM</text>
+  <text x="1484" y="863" font-family="'Segoe UI',system-ui,sans-serif" font-size="9.5" fill="#FFE0B2" text-anchor="end">AgentFactory.ts · persona prompts · StructuredAgentOutput · A2A Protocol</text>
+
+  <!-- 7 agent boxes, w=202 each (including A2A), gap=8 -->
+  <!-- Agent 1: COO Hudson -->
+  <rect x="20"  y="874" width="202" height="116" fill="white" stroke="#FF8F00" stroke-width="0.8" rx="5"/>
+  <rect x="20"  y="874" width="202" height="18"  fill="#E65100" rx="5"/>
+  <rect x="20"  y="883" width="202" height="9"   fill="#E65100"/>
+  <text x="121" y="887" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">COO — Hudson</text>
+  <text x="121" y="902" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">Chief Operating Officer</text>
+  <text x="121" y="914" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Meeting facilitation</text>
+  <text x="121" y="926" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Operations strategy</text>
+  <text x="121" y="938" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Opens / closes meeting</text>
+  <text x="121" y="950" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Partnership &amp; execution</text>
+  <text x="121" y="962" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">Judson Althoff inspired</text>
+  <text x="121" y="974" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">coo-hudson.ts</text>
+
+  <!-- Agent 2: CFO Amelia -->
+  <rect x="230" y="874" width="202" height="116" fill="white" stroke="#FF8F00" stroke-width="0.8" rx="5"/>
+  <rect x="230" y="874" width="202" height="18"  fill="#E65100" rx="5"/>
+  <rect x="230" y="883" width="202" height="9"   fill="#E65100"/>
+  <text x="331" y="887" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">CFO — Amelia</text>
+  <text x="331" y="902" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">Chief Financial Officer</text>
+  <text x="331" y="914" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Financial analysis</text>
+  <text x="331" y="926" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Excel report generation</text>
+  <text x="331" y="938" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Budget constraints → A2A</text>
+  <text x="331" y="950" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Conservative risk management</text>
+  <text x="331" y="962" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">Amy Hood inspired</text>
+  <text x="331" y="974" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">cfo-amelia.ts</text>
+
+  <!-- Agent 3: CMO Yusef -->
+  <rect x="440" y="874" width="202" height="116" fill="white" stroke="#FF8F00" stroke-width="0.8" rx="5"/>
+  <rect x="440" y="874" width="202" height="18"  fill="#E65100" rx="5"/>
+  <rect x="440" y="883" width="202" height="9"   fill="#E65100"/>
+  <text x="541" y="887" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">CMO — Yusef</text>
+  <text x="541" y="902" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">Chief Marketing Officer</text>
+  <text x="541" y="914" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Marketing strategy</text>
+  <text x="541" y="926" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Content &amp; ROI analysis</text>
+  <text x="541" y="938" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Digital campaign planning</text>
+  <text x="541" y="950" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">AI-first consumer insights</text>
+  <text x="541" y="962" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">Yusuf Mehdi inspired</text>
+  <text x="541" y="974" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">cmo-yusef.ts</text>
+
+  <!-- Agent 4: CTO Kelvin -->
+  <rect x="650" y="874" width="202" height="116" fill="white" stroke="#FF8F00" stroke-width="0.8" rx="5"/>
+  <rect x="650" y="874" width="202" height="18"  fill="#E65100" rx="5"/>
+  <rect x="650" y="883" width="202" height="9"   fill="#E65100"/>
+  <text x="751" y="887" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">CTO — Kelvin</text>
+  <text x="751" y="902" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">Chief Technology Officer</text>
+  <text x="751" y="914" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">System architecture</text>
+  <text x="751" y="926" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Code review &amp; feasibility</text>
+  <text x="751" y="938" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Tech trade-off analysis</text>
+  <text x="751" y="950" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Infra scalability vision</text>
+  <text x="751" y="962" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">Kevin Scott inspired</text>
+  <text x="751" y="974" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">cto-kelvin.ts</text>
+
+  <!-- Agent 5: CDO Jonas -->
+  <rect x="860" y="874" width="202" height="116" fill="white" stroke="#FF8F00" stroke-width="0.8" rx="5"/>
+  <rect x="860" y="874" width="202" height="18"  fill="#E65100" rx="5"/>
+  <rect x="860" y="883" width="202" height="9"   fill="#E65100"/>
+  <text x="961" y="887" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">CDO — Jonas</text>
+  <text x="961" y="902" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">Chief Design Officer</text>
+  <text x="961" y="914" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Design system &amp; brand</text>
+  <text x="961" y="926" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">User experience (WCAG)</text>
+  <text x="961" y="938" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Inclusive design principles</text>
+  <text x="961" y="950" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Accessibility advocacy</text>
+  <text x="961" y="962" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">Jon Friedman inspired</text>
+  <text x="961" y="974" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">cdo-jonas.ts</text>
+
+  <!-- Agent 6: CLO Bradley -->
+  <rect x="1070" y="874" width="202" height="116" fill="white" stroke="#FF8F00" stroke-width="0.8" rx="5"/>
+  <rect x="1070" y="874" width="202" height="18"  fill="#E65100" rx="5"/>
+  <rect x="1070" y="883" width="202" height="9"   fill="#E65100"/>
+  <text x="1171" y="887" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">CLO — Bradley</text>
+  <text x="1171" y="902" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">Chief Legal Officer</text>
+  <text x="1171" y="914" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Legal review &amp; compliance</text>
+  <text x="1171" y="926" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">GDPR / regulatory risk</text>
+  <text x="1171" y="938" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Contract analysis</text>
+  <text x="1171" y="950" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Responsible AI governance</text>
+  <text x="1171" y="962" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">Brad Smith inspired</text>
+  <text x="1171" y="974" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">clo-bradley.ts</text>
+
+  <!-- A2A Protocol connector -->
+  <rect x="1280" y="874" width="200" height="116" fill="#FFF8E1" stroke="#FFB300" stroke-width="1.2" rx="5" stroke-dasharray="4,2"/>
+  <text x="1380" y="894" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="#E65100" text-anchor="middle">A2A Protocol</text>
+  <text x="1380" y="908" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Agent-to-Agent communication</text>
+  <text x="1380" y="920" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">mention → target routing</text>
+  <text x="1380" y="932" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Constraint propagation</text>
+  <text x="1380" y="944" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">CFO → CMO (budget cap)</text>
+  <text x="1380" y="956" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Follow-up chain (max 2)</text>
+  <text x="1380" y="968" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">handleMentionRouting()</text>
+  <text x="1380" y="980" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">MAX_FOLLOW_UP_ROUNDS=2</text>
+
+  <!-- ─ Arrow zone 5: Agents → Bottom tier (3 arrows) ─ -->
+  <!-- To AI Models -->
+  <line x1="350" y1="998" x2="280" y2="1030" stroke="#E65100" stroke-width="1.5" marker-end="url(#arrO)"/>
+  <!-- To Tools -->
+  <line x1="750" y1="998" x2="760" y2="1030" stroke="#E65100" stroke-width="1.5" marker-end="url(#arrO)"/>
+  <!-- To Storage -->
+  <line x1="1150" y1="998" x2="1200" y2="1030" stroke="#E65100" stroke-width="1.5" marker-end="url(#arrO)"/>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SECTION 6: BOTTOM TIER — 3 COLUMNS (y=1032)            -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+
+  <!-- ── COL 1: AI MODEL LAYER ── -->
+  <rect x="12"  y="1032" width="468" height="288" fill="#FCE4EC" stroke="#C62828" stroke-width="1.5" rx="8"/>
+  <!-- Header -->
+  <rect x="12"  y="1032" width="468" height="22" fill="#C62828" rx="8"/>
+  <rect x="12"  y="1043" width="468" height="11" fill="#C62828"/>
+  <text x="24"  y="1048" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" font-weight="700" fill="white">AI MODEL LAYER</text>
+  <text x="474" y="1048" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" fill="#FFCDD2" text-anchor="end">ModelRouter.ts — multi-provider task routing</text>
+
+  <!-- Sub-box: Azure AI Foundry (PRIMARY) -->
+  <rect x="20"  y="1060" width="452" height="66" fill="white" stroke="#EF9A9A" stroke-width="0.8" rx="5"/>
+  <rect x="20"  y="1060" width="452" height="16" fill="#B71C1C" rx="5"/>
+  <rect x="20"  y="1068" width="452" height="8"  fill="#B71C1C"/>
+  <text x="246" y="1073" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">Azure AI Foundry — Model Router (PRIMARY)</text>
+  <text x="246" y="1087" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">Single OpenAI-compatible endpoint · AZURE_FOUNDRY_MODEL_ROUTER_ENDPOINT</text>
+  <text x="246" y="1099" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Auto-selects: quality | cost | balanced routing mode</text>
+  <text x="246" y="1111" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">getFoundryClient() · model: "model-router" · api-version: 2025-11-18</text>
+
+  <!-- Sub-box: Anthropic (FALLBACK) -->
+  <rect x="20"  y="1134" width="452" height="88" fill="white" stroke="#EF9A9A" stroke-width="0.8" rx="5"/>
+  <rect x="20"  y="1134" width="452" height="16" fill="#8D1515" rx="5"/>
+  <rect x="20"  y="1142" width="452" height="8"  fill="#8D1515"/>
+  <text x="246" y="1147" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">Anthropic Claude API (FALLBACK — default active)</text>
+  <text x="246" y="1161" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">ANTHROPIC_API_KEY · @anthropic-ai/sdk</text>
+  <text x="100" y="1173" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">claude-opus-4-6</text>
+  <text x="100" y="1184" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#777" text-anchor="middle">agent-response · minutes</text>
+  <text x="246" y="1173" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">claude-sonnet-4-6</text>
+  <text x="246" y="1184" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#777" text-anchor="middle">visual-gen (balanced)</text>
+  <text x="392" y="1173" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">claude-haiku-4-5</text>
+  <text x="392" y="1184" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#777" text-anchor="middle">visual-gen-fast</text>
+  <!-- Column separator lines -->
+  <line x1="171" y1="1161" x2="171" y2="1190" stroke="#EEE" stroke-width="0.8"/>
+  <line x1="317" y1="1161" x2="317" y2="1190" stroke="#EEE" stroke-width="0.8"/>
+  <text x="246" y="1202" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">Temperature: 0.5 (agents) · 0.2 (visual) · 0.4 (minutes) · 0.1 (artifacts)</text>
+  <text x="246" y="1212" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">getAnthropicClient() · getAnthropicModel(task)</text>
+
+  <!-- Sub-box: OpenAI (VOICE) -->
+  <rect x="20"  y="1230" width="452" height="62" fill="white" stroke="#EF9A9A" stroke-width="0.8" rx="5"/>
+  <rect x="20"  y="1230" width="452" height="16" fill="#8D1515" rx="5"/>
+  <rect x="20"  y="1238" width="452" height="8"  fill="#8D1515"/>
+  <text x="246" y="1243" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">OpenAI API (VOICE + REASONING)</text>
+  <text x="246" y="1257" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">OPENAI_API_KEY · openai SDK</text>
+  <text x="175" y="1269" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">gpt-realtime-1.5</text>
+  <text x="175" y="1280" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#777" text-anchor="middle">live voice (WebRTC)</text>
+  <text x="350" y="1269" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Whisper-1 · o3</text>
+  <text x="350" y="1280" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#777" text-anchor="middle">STT · deep reasoning</text>
+  <line x1="265" y1="1257" x2="265" y2="1284" stroke="#EEE" stroke-width="0.8"/>
+  <text x="246" y="1294" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">getOpenAIClient() · getOpenAIModel(task)</text>
+
+  <!-- ── COL 2: TOOLS &amp; INTEGRATIONS ── -->
+  <rect x="492" y="1032" width="510" height="288" fill="#F1F8E9" stroke="#33691E" stroke-width="1.5" rx="8"/>
+  <!-- Header -->
+  <rect x="492" y="1032" width="510" height="22" fill="#33691E" rx="8"/>
+  <rect x="492" y="1043" width="510" height="11" fill="#33691E"/>
+  <text x="504" y="1048" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" font-weight="700" fill="white">TOOLS &amp; INTEGRATIONS</text>
+  <text x="996" y="1048" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" fill="#DCEDC8" text-anchor="end">Azure MCP · Microsoft Graph · Bing · ArtifactGenerator</text>
+
+  <!-- Microsoft Graph API -->
+  <rect x="500" y="1060" width="494" height="52" fill="white" stroke="#AED581" stroke-width="0.8" rx="5"/>
+  <rect x="500" y="1060" width="494" height="15" fill="#2E7D32" rx="5"/>
+  <rect x="500" y="1067" width="494" height="8"  fill="#2E7D32"/>
+  <text x="747" y="1071" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">Microsoft Graph API</text>
+  <text x="640" y="1083" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">OneDrive: artifact file storage</text>
+  <text x="640" y="1094" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">GraphService.ts · @microsoft/microsoft-graph-client</text>
+  <text x="880" y="1083" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Planner: meeting task creation</text>
+  <text x="880" y="1094" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">Excel/PPT embed URL (SAS)</text>
+  <line x1="752" y1="1078" x2="752" y2="1100" stroke="#EEE" stroke-width="0.8"/>
+
+  <!-- Bing Search API -->
+  <rect x="500" y="1120" width="244" height="58" fill="white" stroke="#AED581" stroke-width="0.8" rx="5"/>
+  <rect x="500" y="1120" width="244" height="15" fill="#2E7D32" rx="5"/>
+  <rect x="500" y="1127" width="244" height="8"  fill="#2E7D32"/>
+  <text x="622" y="1131" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">Bing Search API</text>
+  <text x="622" y="1144" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">Real-time market data injection</text>
+  <text x="622" y="1155" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">BingSearchService.ts</text>
+  <text x="622" y="1166" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">searchBing() · formatSearchContext()</text>
+  <text x="622" y="1170" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">addSearchResult(ctx) → ContextBroker</text>
+
+  <!-- Artifact Generator -->
+  <rect x="752" y="1120" width="242" height="58" fill="white" stroke="#AED581" stroke-width="0.8" rx="5"/>
+  <rect x="752" y="1120" width="242" height="15" fill="#2E7D32" rx="5"/>
+  <rect x="752" y="1127" width="242" height="8"  fill="#2E7D32"/>
+  <text x="873" y="1131" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">ArtifactGenerator</text>
+  <text x="873" y="1144" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">pptxgenjs 3.x — PowerPoint</text>
+  <text x="873" y="1155" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">exceljs — Excel workbooks</text>
+  <text x="873" y="1166" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">ArtifactGenerator.ts</text>
+  <text x="873" y="1177" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">ArtifactService.ts · ArtifactPlugin.ts</text>
+
+  <!-- Plugins -->
+  <rect x="500" y="1186" width="244" height="58" fill="white" stroke="#AED581" stroke-width="0.8" rx="5"/>
+  <rect x="500" y="1186" width="244" height="15" fill="#2E7D32" rx="5"/>
+  <rect x="500" y="1193" width="244" height="8"  fill="#2E7D32"/>
+  <text x="622" y="1197" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">Sophia Plugins</text>
+  <text x="622" y="1210" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">ExcelPlugin.ts</text>
+  <text x="622" y="1221" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">MeetingMinutesPlugin.ts</text>
+  <text x="622" y="1232" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">Structured output → file bytes → Blob</text>
+  <text x="622" y="1243" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">→ OneDrive → embed URL → SignalR</text>
+
+  <!-- Azure MCP Servers -->
+  <rect x="752" y="1186" width="242" height="58" fill="white" stroke="#AED581" stroke-width="0.8" rx="5"/>
+  <rect x="752" y="1186" width="242" height="15" fill="#2E7D32" rx="5"/>
+  <rect x="752" y="1193" width="242" height="8"  fill="#2E7D32"/>
+  <text x="873" y="1197" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">Azure MCP Servers</text>
+  <text x="873" y="1210" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">Model Context Protocol</text>
+  <text x="873" y="1221" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Calendar · GitHub · Notion</text>
+  <text x="873" y="1232" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">Standardized tool connectors</text>
+  <text x="873" y="1243" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">External data → agent context</text>
+
+  <!-- Cosmos (tools col) -->
+  <rect x="500" y="1252" width="494" height="58" fill="white" stroke="#AED581" stroke-width="0.8" rx="5"/>
+  <rect x="500" y="1252" width="494" height="15" fill="#1B5E20" rx="5"/>
+  <rect x="500" y="1259" width="494" height="8"  fill="#1B5E20"/>
+  <text x="747" y="1263" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">Shared Types — single source of truth</text>
+  <text x="747" y="1276" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">shared/types.ts — re-exported to frontend and backend</text>
+  <text x="747" y="1288" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">AgentRole · Message · VisualHint · BigScreenRenderData · StructuredAgentOutput · Mention</text>
+  <text x="747" y="1300" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">models/index.ts (backend re-export) · types.ts (frontend re-export)</text>
+
+  <!-- ── COL 3: STORAGE + MONITORING ── -->
+  <rect x="1014" y="1032" width="474" height="288" fill="#E8EAF6" stroke="#283593" stroke-width="1.5" rx="8"/>
+  <!-- Header -->
+  <rect x="1014" y="1032" width="474" height="22" fill="#283593" rx="8"/>
+  <rect x="1014" y="1043" width="474" height="11" fill="#283593"/>
+  <text x="1026" y="1048" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" font-weight="700" fill="white">STORAGE &amp; MONITORING</text>
+  <text x="1482" y="1048" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" fill="#C5CAE9" text-anchor="end">Azure Cosmos DB · Blob Storage · App Insights</text>
+
+  <!-- Cosmos DB -->
+  <rect x="1022" y="1060" width="458" height="88" fill="white" stroke="#9FA8DA" stroke-width="0.8" rx="5"/>
+  <rect x="1022" y="1060" width="458" height="16" fill="#303F9F" rx="5"/>
+  <rect x="1022" y="1068" width="458" height="8"  fill="#303F9F"/>
+  <text x="1251" y="1072" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">Azure Cosmos DB</text>
+  <text x="1251" y="1086" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">NoSQL · serverless tier · CosmosService.ts</text>
+  <text x="1251" y="1098" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Collections:</text>
+  <text x="1145" y="1110" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">conversations</text>
+  <text x="1145" y="1121" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">message history</text>
+  <text x="1251" y="1110" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">rooms</text>
+  <text x="1251" y="1121" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">room + brand memory</text>
+  <text x="1358" y="1110" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">users</text>
+  <text x="1358" y="1121" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">user profiles</text>
+  <text x="1251" y="1136" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">COSMOS_ENDPOINT · COSMOS_KEY · SessionService.ts</text>
+  <line x1="1196" y1="1100" x2="1196" y2="1130" stroke="#EEE" stroke-width="0.8"/>
+  <line x1="1306" y1="1100" x2="1306" y2="1130" stroke="#EEE" stroke-width="0.8"/>
+
+  <!-- Blob Storage -->
+  <rect x="1022" y="1156" width="458" height="76" fill="white" stroke="#9FA8DA" stroke-width="0.8" rx="5"/>
+  <rect x="1022" y="1156" width="458" height="16" fill="#303F9F" rx="5"/>
+  <rect x="1022" y="1164" width="458" height="8"  fill="#303F9F"/>
+  <text x="1251" y="1168" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">Azure Blob Storage</text>
+  <text x="1251" y="1182" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">Artifact file persistence · AZURE_STORAGE_CONNECTION_STRING</text>
+  <text x="1160" y="1194" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Excel (.xlsx)</text>
+  <text x="1251" y="1194" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">PowerPoint (.pptx)</text>
+  <text x="1358" y="1194" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">Minutes (.md)</text>
+  <text x="1251" y="1206" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">SAS token URL generation · ArtifactService.ts</text>
+  <text x="1251" y="1218" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">Container: bizroom-artifacts · BlobServiceClient</text>
+  <line x1="1200" y1="1182" x2="1200" y2="1212" stroke="#EEE" stroke-width="0.8"/>
+  <line x1="1310" y1="1182" x2="1310" y2="1212" stroke="#EEE" stroke-width="0.8"/>
+
+  <!-- Application Insights -->
+  <rect x="1022" y="1240" width="458" height="72" fill="white" stroke="#9FA8DA" stroke-width="0.8" rx="5"/>
+  <rect x="1022" y="1240" width="458" height="16" fill="#1A237E" rx="5"/>
+  <rect x="1022" y="1248" width="458" height="8"  fill="#1A237E"/>
+  <text x="1251" y="1252" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" font-weight="700" fill="white" text-anchor="middle">Azure Application Insights</text>
+  <text x="1251" y="1266" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#1565C0" text-anchor="middle">APPLICATIONINSIGHTS_CONNECTION_STRING</text>
+  <text x="1251" y="1278" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#333" text-anchor="middle">API telemetry · error tracking · latency</text>
+  <text x="1251" y="1290" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#555" text-anchor="middle">Agent invocation timing · SignalR event logs</text>
+  <text x="1251" y="1302" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5"   fill="#666" text-anchor="middle">Function execution tracking · cold start monitoring</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SECTION 7: HERO TECHNOLOGIES BANNER                    -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="0"  y="1334" width="1500" height="86" fill="url(#heroBg)"/>
+  <!-- Banner title -->
+  <text x="24" y="1354" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" font-weight="700" fill="#90CAF9">HERO TECHNOLOGIES</text>
+  <text x="24" y="1367" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" fill="#64B5F6">Required Microsoft AI Dev Days Hackathon technologies — all four integrated</text>
+
+  <!-- Hero boxes (4 boxes) -->
+  <!-- Hero 1: Azure AI Foundry -->
+  <rect x="24"  y="1377" width="344" height="36" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" rx="5"/>
+  <text x="196" y="1392" font-family="'Segoe UI',system-ui,sans-serif" font-size="9" font-weight="700" fill="white" text-anchor="middle">Azure AI Foundry (Model Router)</text>
+  <text x="196" y="1406" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#BBDEFB" text-anchor="middle">ModelRouter.ts · getFoundryClient() · model: "model-router"</text>
+
+  <!-- Hero 2: Microsoft Agent Framework -->
+  <rect x="380" y="1377" width="356" height="36" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" rx="5"/>
+  <text x="558" y="1392" font-family="'Segoe UI',system-ui,sans-serif" font-size="9" font-weight="700" fill="white" text-anchor="middle">Microsoft Agent Framework</text>
+  <text x="558" y="1406" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#BBDEFB" text-anchor="middle">TurnManager · A2A Protocol · 6 C-Suite agents · AgentFactory.ts</text>
+
+  <!-- Hero 3: Azure MCP -->
+  <rect x="748" y="1377" width="344" height="36" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" rx="5"/>
+  <text x="920" y="1392" font-family="'Segoe UI',system-ui,sans-serif" font-size="9" font-weight="700" fill="white" text-anchor="middle">Azure MCP (Model Context Protocol)</text>
+  <text x="920" y="1406" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#BBDEFB" text-anchor="middle">GraphService.ts · OneDrive · Planner · Azure MCP Servers</text>
+
+  <!-- Hero 4: GitHub Copilot -->
+  <rect x="1104" y="1377" width="372" height="36" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" rx="5"/>
+  <text x="1290" y="1392" font-family="'Segoe UI',system-ui,sans-serif" font-size="9" font-weight="700" fill="white" text-anchor="middle">GitHub Copilot Agent Mode</text>
+  <text x="1290" y="1406" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#BBDEFB" text-anchor="middle">Full-stack development · TDD · code generation · refactoring</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SOPHIA FEEDBACK ARROW (Orchestration → SignalR back)   -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- Curved arrow: SophiaAgent → SignalR (broadcast back to clients) -->
+  <path d="M 1482,700 C 1492,700 1492,338 1482,338" fill="none" stroke="#FB8C00" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+  <!-- Label for feedback arrow -->
+  <rect x="1450" y="497" width="9" height="58" fill="#F4F6F9"/>
+  <text transform="translate(1488,570) rotate(-90)" font-family="'Segoe UI',system-ui,sans-serif" font-size="7.5" fill="#E65100" text-anchor="middle">bigScreenUpdate · sophiaMessage</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- DATA FLOW LEGEND — top left                            -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="14" y="83" width="128" height="18" fill="#1565C0" rx="3" opacity="0.0"/>
+  <!-- Flow direction indicator (subtle) -->
+  <line x1="6" y1="115" x2="6" y2="985" stroke="#BDBDBD" stroke-width="1" stroke-dasharray="3,4" marker-end="url(#arr)"/>
+  <rect x="0" y="530" width="12" height="80" fill="#F4F6F9"/>
+  <text transform="translate(6,600) rotate(-90)" font-family="'Segoe UI',system-ui,sans-serif" font-size="8.5" fill="#BDBDBD" text-anchor="middle">DATA FLOW</text>
+
+</svg>

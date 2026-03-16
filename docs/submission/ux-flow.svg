@@ -1,0 +1,421 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 700" width="1100" height="700" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrowMain" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#374151"/>
+    </marker>
+    <marker id="arrowSignalR" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#0078D4"/>
+    </marker>
+    <marker id="arrowEvent" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6366F1"/>
+    </marker>
+    <!-- Gradients -->
+    <linearGradient id="headerGradUX" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0F172A"/>
+      <stop offset="50%" style="stop-color:#1E3A8A"/>
+      <stop offset="100%" style="stop-color:#0F172A"/>
+    </linearGradient>
+    <linearGradient id="step1Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#EFF6FF"/>
+      <stop offset="100%" style="stop-color:#DBEAFE"/>
+    </linearGradient>
+    <linearGradient id="step2Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F0FDF4"/>
+      <stop offset="100%" style="stop-color:#DCFCE7"/>
+    </linearGradient>
+    <linearGradient id="step3Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFF7ED"/>
+      <stop offset="100%" style="stop-color:#FFEDD5"/>
+    </linearGradient>
+    <linearGradient id="step4Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F5F3FF"/>
+      <stop offset="100%" style="stop-color:#EDE9FE"/>
+    </linearGradient>
+    <linearGradient id="step5Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ECFDF5"/>
+      <stop offset="100%" style="stop-color:#D1FAE5"/>
+    </linearGradient>
+    <linearGradient id="footerGradUX" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0F172A"/>
+      <stop offset="100%" style="stop-color:#1E293B"/>
+    </linearGradient>
+    <linearGradient id="signalRLane" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#EFF6FF"/>
+      <stop offset="100%" style="stop-color:#DBEAFE"/>
+    </linearGradient>
+    <filter id="shadowCard" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#00000018"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="700" fill="#F0F3F7"/>
+
+  <!-- ═══════════════ HEADER ═══════════════ -->
+  <rect x="0" y="0" width="1100" height="62" fill="url(#headerGradUX)"/>
+  <text x="550" y="20" text-anchor="middle" fill="#93C5FD" font-size="10" font-weight="600" letter-spacing="2">BIZROOM.AI — HACKATHON SUBMISSION</text>
+  <text x="550" y="44" text-anchor="middle" fill="#FFFFFF" font-size="22" font-weight="700" letter-spacing="0.5">User Experience Flow</text>
+
+  <!-- ═══════════════ STEP NUMBERS ROW ═══════════════ -->
+  <!-- Step connector line -->
+  <line x1="88" y1="107" x2="1012" y2="107" stroke="#CBD5E1" stroke-width="2" stroke-dasharray="6,4"/>
+
+  <!-- Step circles -->
+  <circle cx="88" cy="107" r="18" fill="#2563EB"/>
+  <text x="88" y="112" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">1</text>
+
+  <circle cx="284" cy="107" r="18" fill="#059669"/>
+  <text x="284" y="112" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">2</text>
+
+  <circle cx="480" cy="107" r="18" fill="#EA580C"/>
+  <text x="480" y="112" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">3</text>
+
+  <circle cx="768" cy="107" r="18" fill="#7C3AED"/>
+  <text x="768" y="112" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">4</text>
+
+  <circle cx="1012" cy="107" r="18" fill="#0D9488"/>
+  <text x="1012" y="112" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">5</text>
+
+  <!-- ═══════════════ STEP CARDS ═══════════════ -->
+  <!-- CARD WIDTH = 168px, gaps = 28px -->
+  <!-- Start X: 4, 200, 396, 684, 928 -->
+
+  <!-- ── Step 1: Lobby ── -->
+  <rect x="4" y="128" width="168" height="310" rx="12" fill="url(#step1Grad)" stroke="#BFDBFE" stroke-width="2" filter="url(#shadowCard)"/>
+  <!-- Header bar -->
+  <rect x="4" y="128" width="168" height="36" rx="12" fill="#2563EB"/>
+  <rect x="4" y="152" width="168" height="12" fill="#2563EB"/>
+  <text x="88" y="151" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">Lobby</text>
+
+  <!-- Wireframe mockup -->
+  <rect x="18" y="176" width="140" height="96" rx="6" fill="#FFFFFF" stroke="#BFDBFE" stroke-width="1"/>
+  <!-- App logo mockup -->
+  <rect x="38" y="184" width="100" height="12" rx="3" fill="#DBEAFE"/>
+  <text x="88" y="193" text-anchor="middle" fill="#2563EB" font-size="7.5" font-weight="700">BizRoom.ai</text>
+  <!-- Tagline mock -->
+  <rect x="48" y="200" width="80" height="8" rx="2" fill="#EFF6FF"/>
+  <!-- Input field mock -->
+  <rect x="28" y="214" width="120" height="16" rx="4" fill="#F0F9FF" stroke="#93C5FD" stroke-width="1"/>
+  <text x="88" y="225" text-anchor="middle" fill="#93C5FD" font-size="8">Company name...</text>
+  <!-- Button mock -->
+  <rect x="38" y="236" width="100" height="22" rx="5" fill="#2563EB"/>
+  <text x="88" y="250" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">Start Meeting</text>
+  <!-- Connecting line -->
+  <line x1="88" y1="272" x2="88" y2="281" stroke="#DBEAFE" stroke-width="1"/>
+
+  <!-- Actions -->
+  <text x="88" y="294" text-anchor="middle" fill="#1E40AF" font-size="10" font-weight="700">Actions</text>
+  <rect x="18" y="300" width="140" height="20" rx="4" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+  <text x="88" y="313" text-anchor="middle" fill="#2563EB" font-size="9">Enter company name</text>
+  <rect x="18" y="326" width="140" height="20" rx="4" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+  <text x="88" y="339" text-anchor="middle" fill="#2563EB" font-size="9">Select meeting mode</text>
+  <rect x="18" y="352" width="140" height="20" rx="4" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+  <text x="88" y="365" text-anchor="middle" fill="#2563EB" font-size="9">Click Start Meeting</text>
+
+  <!-- Component label -->
+  <text x="88" y="400" text-anchor="middle" fill="#93C5FD" font-size="9" font-weight="600">LobbyPage</text>
+  <text x="88" y="413" text-anchor="middle" fill="#BFDBFE" font-size="8">frontend/src/components/lobby/</text>
+  <text x="88" y="427" text-anchor="middle" fill="#BFDBFE" font-size="8">Azure SignalR roomJoin</text>
+
+  <!-- ── Step 2: Brand Memory Form ── -->
+  <rect x="200" y="128" width="168" height="310" rx="12" fill="url(#step2Grad)" stroke="#BBF7D0" stroke-width="2" filter="url(#shadowCard)"/>
+  <rect x="200" y="128" width="168" height="36" rx="12" fill="#059669"/>
+  <rect x="200" y="152" width="168" height="12" fill="#059669"/>
+  <text x="284" y="151" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">Brand Memory</text>
+
+  <!-- Wireframe mockup -->
+  <rect x="214" y="176" width="140" height="96" rx="6" fill="#FFFFFF" stroke="#BBF7D0" stroke-width="1"/>
+  <!-- Form header -->
+  <rect x="224" y="184" width="120" height="10" rx="2" fill="#D1FAE5"/>
+  <text x="284" y="192" text-anchor="middle" fill="#059669" font-size="7.5" font-weight="700">Company Profile</text>
+  <!-- Fields -->
+  <rect x="224" y="198" width="120" height="12" rx="3" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1"/>
+  <text x="284" y="207" text-anchor="middle" fill="#86EFAC" font-size="7.5">Industry type...</text>
+  <rect x="224" y="214" width="120" height="12" rx="3" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1"/>
+  <text x="284" y="223" text-anchor="middle" fill="#86EFAC" font-size="7.5">Revenue range...</text>
+  <rect x="224" y="230" width="120" height="12" rx="3" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1"/>
+  <text x="284" y="239" text-anchor="middle" fill="#86EFAC" font-size="7.5">Key goals...</text>
+  <!-- CTA -->
+  <rect x="234" y="248" width="100" height="18" rx="4" fill="#059669"/>
+  <text x="284" y="260" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">Save Profile</text>
+
+  <!-- Actions -->
+  <text x="284" y="294" text-anchor="middle" fill="#065F46" font-size="10" font-weight="700">Actions</text>
+  <rect x="214" y="300" width="140" height="20" rx="4" fill="#ECFDF5" stroke="#BBF7D0" stroke-width="1"/>
+  <text x="284" y="313" text-anchor="middle" fill="#059669" font-size="9">Fill brand context</text>
+  <rect x="214" y="326" width="140" height="20" rx="4" fill="#ECFDF5" stroke="#BBF7D0" stroke-width="1"/>
+  <text x="284" y="339" text-anchor="middle" fill="#059669" font-size="9">Industry &amp; goals</text>
+  <rect x="214" y="352" width="140" height="20" rx="4" fill="#ECFDF5" stroke="#BBF7D0" stroke-width="1"/>
+  <text x="284" y="365" text-anchor="middle" fill="#059669" font-size="9">Stored to ContextBroker</text>
+
+  <text x="284" y="400" text-anchor="middle" fill="#6EE7B7" font-size="9" font-weight="600">BrandMemoryForm</text>
+  <text x="284" y="413" text-anchor="middle" fill="#A7F3D0" font-size="8">frontend/src/components/lobby/</text>
+  <text x="284" y="427" text-anchor="middle" fill="#A7F3D0" font-size="8">Persists to ContextBroker</text>
+
+  <!-- ── Step 3: 3D Meeting Room ── -->
+  <rect x="396" y="128" width="260" height="310" rx="12" fill="url(#step3Grad)" stroke="#FED7AA" stroke-width="2" filter="url(#shadowCard)"/>
+  <rect x="396" y="128" width="260" height="36" rx="12" fill="#EA580C"/>
+  <rect x="396" y="152" width="260" height="12" fill="#EA580C"/>
+  <text x="526" y="151" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">3D Meeting Room</text>
+
+  <!-- Wireframe: Two-panel layout -->
+  <rect x="410" y="176" width="232" height="96" rx="6" fill="#1A1A2E" stroke="#FED7AA" stroke-width="1"/>
+  <!-- 3D panel (left) -->
+  <rect x="415" y="180" width="136" height="88" rx="4" fill="#0D0D1A"/>
+  <!-- Fake 3D grid -->
+  <line x1="415" y1="230" x2="551" y2="230" stroke="#1E3A5F" stroke-width="0.5"/>
+  <line x1="415" y1="220" x2="551" y2="220" stroke="#1E3A5F" stroke-width="0.5"/>
+  <line x1="415" y1="240" x2="551" y2="240" stroke="#1E3A5F" stroke-width="0.5"/>
+  <!-- Avatar circles -->
+  <circle cx="443" cy="210" r="9" fill="#2563EB" opacity="0.8"/>
+  <text x="443" y="213" text-anchor="middle" fill="#FFFFFF" font-size="5.5" font-weight="700">H</text>
+  <circle cx="463" cy="208" r="9" fill="#10B981" opacity="0.8"/>
+  <text x="463" y="211" text-anchor="middle" fill="#FFFFFF" font-size="5.5" font-weight="700">A</text>
+  <circle cx="483" cy="210" r="9" fill="#F97316" opacity="0.8"/>
+  <text x="483" y="213" text-anchor="middle" fill="#FFFFFF" font-size="5.5" font-weight="700">Y</text>
+  <circle cx="503" cy="208" r="9" fill="#06B6D4" opacity="0.8"/>
+  <text x="503" y="211" text-anchor="middle" fill="#FFFFFF" font-size="5.5" font-weight="700">K</text>
+  <circle cx="523" cy="210" r="9" fill="#EC4899" opacity="0.8"/>
+  <text x="523" y="213" text-anchor="middle" fill="#FFFFFF" font-size="5.5" font-weight="700">J</text>
+  <circle cx="543" cy="208" r="9" fill="#84CC16" opacity="0.8"/>
+  <text x="543" y="211" text-anchor="middle" fill="#FFFFFF" font-size="5.5" font-weight="700">B</text>
+  <!-- BigScreen mini -->
+  <rect x="420" y="244" width="126" height="18" rx="2" fill="#1E1B4B" stroke="#818CF8" stroke-width="0.5"/>
+  <text x="483" y="255" text-anchor="middle" fill="#818CF8" font-size="6">BigScreen</text>
+  <!-- PTT button -->
+  <circle cx="483" cy="262" r="4" fill="#DC2626"/>
+  <text x="495" y="264" text-anchor="middle" fill="#FCA5A5" font-size="5">PTT</text>
+  <!-- Chat panel (right) -->
+  <rect x="555" y="180" width="82" height="88" rx="4" fill="#111827"/>
+  <rect x="560" y="185" width="72" height="12" rx="2" fill="#1E3A5F"/>
+  <text x="596" y="193" text-anchor="middle" fill="#93C5FD" font-size="6">Chat</text>
+  <rect x="560" y="201" width="60" height="10" rx="2" fill="#2563EB" opacity="0.6"/>
+  <text x="590" y="208" fill="#DBEAFE" font-size="5.5">Hudson: Hello!</text>
+  <rect x="560" y="215" width="60" height="10" rx="2" fill="#059669" opacity="0.6"/>
+  <text x="590" y="222" fill="#D1FAE5" font-size="5.5">Amelia: Budget...</text>
+  <rect x="560" y="229" width="60" height="10" rx="2" fill="#EA580C" opacity="0.6"/>
+  <text x="590" y="236" fill="#FED7AA" font-size="5.5">Yusef: Market...</text>
+  <!-- Mic bar -->
+  <rect x="555" y="250" width="82" height="14" rx="3" fill="#DC2626" opacity="0.8"/>
+  <text x="596" y="259" text-anchor="middle" fill="#FFFFFF" font-size="6" font-weight="600">● REC</text>
+
+  <!-- Actions -->
+  <text x="526" y="294" text-anchor="middle" fill="#7C2D12" font-size="10" font-weight="700">Actions</text>
+  <rect x="410" y="300" width="232" height="20" rx="4" fill="#FFF7ED" stroke="#FED7AA" stroke-width="1"/>
+  <text x="526" y="313" text-anchor="middle" fill="#EA580C" font-size="9">Hold PTT → speak to agents</text>
+  <rect x="410" y="326" width="232" height="20" rx="4" fill="#FFF7ED" stroke="#FED7AA" stroke-width="1"/>
+  <text x="526" y="339" text-anchor="middle" fill="#EA580C" font-size="9">Whisper STT → TurnManager</text>
+  <rect x="410" y="352" width="232" height="20" rx="4" fill="#FFF7ED" stroke="#FED7AA" stroke-width="1"/>
+  <text x="526" y="365" text-anchor="middle" fill="#EA580C" font-size="9">Agents reply in turn order</text>
+
+  <text x="526" y="400" text-anchor="middle" fill="#FDBA74" font-size="9" font-weight="600">MeetingRoom3D</text>
+  <text x="526" y="413" text-anchor="middle" fill="#FED7AA" font-size="8">R3F · RPMAgentAvatar · SophiaBlob3D</text>
+  <text x="526" y="427" text-anchor="middle" fill="#FED7AA" font-size="8">GPT Realtime 1.5 (WebRTC) voice</text>
+
+  <!-- ── Step 4: BigScreen Visualization ── -->
+  <rect x="684" y="128" width="168" height="310" rx="12" fill="url(#step4Grad)" stroke="#DDD6FE" stroke-width="2" filter="url(#shadowCard)"/>
+  <rect x="684" y="128" width="168" height="36" rx="12" fill="#7C3AED"/>
+  <rect x="684" y="152" width="168" height="12" fill="#7C3AED"/>
+  <text x="768" y="151" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">BigScreen Visual</text>
+
+  <!-- Wireframe: chart area -->
+  <rect x="698" y="176" width="140" height="96" rx="6" fill="#1E1B4B" stroke="#DDD6FE" stroke-width="1"/>
+  <!-- Fake bar chart -->
+  <text x="768" y="192" text-anchor="middle" fill="#A78BFA" font-size="7" font-weight="600">Market Share Analysis</text>
+  <rect x="710" y="218" width="18" height="42" rx="2" fill="#2563EB" opacity="0.8"/>
+  <rect x="732" y="230" width="18" height="30" rx="2" fill="#10B981" opacity="0.8"/>
+  <rect x="754" y="210" width="18" height="50" rx="2" fill="#F97316" opacity="0.8"/>
+  <rect x="776" y="222" width="18" height="38" rx="2" fill="#EC4899" opacity="0.8"/>
+  <rect x="798" y="235" width="18" height="25" rx="2" fill="#06B6D4" opacity="0.8"/>
+  <!-- X axis -->
+  <line x1="708" y1="262" x2="820" y2="262" stroke="#4C1D95" stroke-width="1"/>
+  <!-- Sophia label -->
+  <rect x="710" y="200" width="80" height="12" rx="3" fill="#4C1D95" opacity="0.9"/>
+  <text x="750" y="208" text-anchor="middle" fill="#DDD6FE" font-size="7">Sophia AI Analysis</text>
+
+  <!-- Actions -->
+  <text x="768" y="294" text-anchor="middle" fill="#4C1D95" font-size="10" font-weight="700">Actions</text>
+  <rect x="698" y="300" width="140" height="20" rx="4" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="1"/>
+  <text x="768" y="313" text-anchor="middle" fill="#7C3AED" font-size="9">visual_hint → Sophia</text>
+  <rect x="698" y="326" width="140" height="20" rx="4" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="1"/>
+  <text x="768" y="339" text-anchor="middle" fill="#7C3AED" font-size="9">Claude renders chart</text>
+  <rect x="698" y="352" width="140" height="20" rx="4" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="1"/>
+  <text x="768" y="365" text-anchor="middle" fill="#7C3AED" font-size="9">bigScreenUpdate event</text>
+
+  <text x="768" y="400" text-anchor="middle" fill="#C4B5FD" font-size="9" font-weight="600">BigScreenRenderer</text>
+  <text x="768" y="413" text-anchor="middle" fill="#DDD6FE" font-size="8">SophiaAgent FIFO queue</text>
+  <text x="768" y="427" text-anchor="middle" fill="#DDD6FE" font-size="8">Claude Sonnet/Haiku 4.x</text>
+
+  <!-- ── Step 5: Artifact Download ── -->
+  <rect x="928" y="128" width="168" height="310" rx="12" fill="url(#step5Grad)" stroke="#99F6E4" stroke-width="2" filter="url(#shadowCard)"/>
+  <rect x="928" y="128" width="168" height="36" rx="12" fill="#0D9488"/>
+  <rect x="928" y="152" width="168" height="12" fill="#0D9488"/>
+  <text x="1012" y="151" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">Artifacts</text>
+
+  <!-- Wireframe: download panel -->
+  <rect x="942" y="176" width="140" height="96" rx="6" fill="#FFFFFF" stroke="#99F6E4" stroke-width="1"/>
+  <!-- Title -->
+  <text x="1012" y="192" text-anchor="middle" fill="#0D9488" font-size="7.5" font-weight="700">Meeting Outputs</text>
+  <!-- PPT item -->
+  <rect x="950" y="198" width="124" height="18" rx="4" fill="#FFF7ED" stroke="#FED7AA" stroke-width="1"/>
+  <rect x="954" y="202" width="10" height="10" rx="2" fill="#EA580C"/>
+  <text x="972" y="209" fill="#374151" font-size="6.5">presentation.pptx</text>
+  <text x="1062" y="209" fill="#10B981" font-size="6.5">↓</text>
+  <!-- Excel item -->
+  <rect x="950" y="220" width="124" height="18" rx="4" fill="#F0FDF4" stroke="#BBF7D0" stroke-width="1"/>
+  <rect x="954" y="224" width="10" height="10" rx="2" fill="#059669"/>
+  <text x="972" y="231" fill="#374151" font-size="6.5">meeting_data.xlsx</text>
+  <text x="1062" y="231" fill="#10B981" font-size="6.5">↓</text>
+  <!-- Minutes item -->
+  <rect x="950" y="242" width="124" height="18" rx="4" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+  <rect x="954" y="246" width="10" height="10" rx="2" fill="#2563EB"/>
+  <text x="972" y="253" fill="#374151" font-size="6.5">minutes.md</text>
+  <text x="1062" y="253" fill="#10B981" font-size="6.5">↓</text>
+  <!-- OneDrive badge -->
+  <rect x="950" y="262" width="56" height="8" rx="2" fill="#0078D4"/>
+  <text x="978" y="268" text-anchor="middle" fill="#FFFFFF" font-size="5.5">OneDrive</text>
+  <rect x="1012" y="262" width="56" height="8" rx="2" fill="#0078D4"/>
+  <text x="1040" y="268" text-anchor="middle" fill="#FFFFFF" font-size="5.5">Planner</text>
+
+  <!-- Actions -->
+  <text x="1012" y="294" text-anchor="middle" fill="#134E4A" font-size="10" font-weight="700">Actions</text>
+  <rect x="942" y="300" width="140" height="20" rx="4" fill="#ECFDF5" stroke="#99F6E4" stroke-width="1"/>
+  <text x="1012" y="313" text-anchor="middle" fill="#0D9488" font-size="9">Auto-generated PPT + Excel</text>
+  <rect x="942" y="326" width="140" height="20" rx="4" fill="#ECFDF5" stroke="#99F6E4" stroke-width="1"/>
+  <text x="1012" y="339" text-anchor="middle" fill="#0D9488" font-size="9">Saved to OneDrive</text>
+  <rect x="942" y="352" width="140" height="20" rx="4" fill="#ECFDF5" stroke="#99F6E4" stroke-width="1"/>
+  <text x="1012" y="365" text-anchor="middle" fill="#0D9488" font-size="9">Planner tasks created</text>
+
+  <text x="1012" y="400" text-anchor="middle" fill="#5EEAD4" font-size="9" font-weight="600">ArtifactPreview</text>
+  <text x="1012" y="413" text-anchor="middle" fill="#99F6E4" font-size="8">pptxgenjs · exceljs</text>
+  <text x="1012" y="427" text-anchor="middle" fill="#99F6E4" font-size="8">Microsoft Graph API</text>
+
+  <!-- ═══════════════ STEP TRANSITION ARROWS ═══════════════ -->
+  <!-- Step 1 → 2 -->
+  <line x1="172" y1="283" x2="198" y2="283" stroke="#374151" stroke-width="2.5" marker-end="url(#arrowMain)"/>
+
+  <!-- Step 2 → 3 -->
+  <line x1="368" y1="283" x2="393" y2="283" stroke="#374151" stroke-width="2.5" marker-end="url(#arrowMain)"/>
+
+  <!-- Step 3 → 4 -->
+  <line x1="656" y1="283" x2="681" y2="283" stroke="#374151" stroke-width="2.5" marker-end="url(#arrowMain)"/>
+
+  <!-- Step 4 → 5 -->
+  <line x1="852" y1="283" x2="925" y2="283" stroke="#374151" stroke-width="2.5" marker-end="url(#arrowMain)"/>
+
+  <!-- ═══════════════ SIGNALR EVENTS LANE ═══════════════ -->
+  <rect x="4" y="452" width="1092" height="78" rx="10" fill="url(#signalRLane)" stroke="#BFDBFE" stroke-width="1.5"/>
+  <!-- Lane header -->
+  <rect x="4" y="452" width="1092" height="24" rx="10" fill="#1E40AF"/>
+  <rect x="4" y="463" width="1092" height="13" fill="#1E40AF"/>
+  <text x="550" y="468" text-anchor="middle" fill="#BFDBFE" font-size="10" font-weight="700" letter-spacing="1.5">AZURE SIGNALR  —  REAL-TIME EVENT STREAM</text>
+
+  <!-- Event chips -->
+  <rect x="28" y="484" width="100" height="34" rx="6" fill="#0078D4" stroke="#60A5FA" stroke-width="1"/>
+  <text x="78" y="498" text-anchor="middle" fill="#FFFFFF" font-size="9.5" font-weight="700">roomJoin</text>
+  <text x="78" y="511" text-anchor="middle" fill="#BFDBFE" font-size="8">session connect</text>
+
+  <text x="140" y="504" text-anchor="middle" fill="#3B82F6" font-size="14" font-weight="700">→</text>
+
+  <rect x="154" y="484" width="130" height="34" rx="6" fill="#1D4ED8" stroke="#60A5FA" stroke-width="1"/>
+  <text x="219" y="498" text-anchor="middle" fill="#FFFFFF" font-size="9.5" font-weight="700">agentMessage</text>
+  <text x="219" y="511" text-anchor="middle" fill="#BFDBFE" font-size="8">speech + key_points</text>
+
+  <text x="296" y="504" text-anchor="middle" fill="#3B82F6" font-size="14" font-weight="700">→</text>
+
+  <rect x="310" y="484" width="110" height="34" rx="6" fill="#4338CA" stroke="#818CF8" stroke-width="1"/>
+  <text x="365" y="498" text-anchor="middle" fill="#FFFFFF" font-size="9.5" font-weight="700">monitorUpdate</text>
+  <text x="365" y="511" text-anchor="middle" fill="#C7D2FE" font-size="8">HoloMonitor3D</text>
+
+  <text x="432" y="504" text-anchor="middle" fill="#3B82F6" font-size="14" font-weight="700">→</text>
+
+  <rect x="446" y="484" width="130" height="34" rx="6" fill="#6D28D9" stroke="#A78BFA" stroke-width="1"/>
+  <text x="511" y="498" text-anchor="middle" fill="#FFFFFF" font-size="9.5" font-weight="700">bigScreenUpdate</text>
+  <text x="511" y="511" text-anchor="middle" fill="#DDD6FE" font-size="8">Sophia visual render</text>
+
+  <text x="588" y="504" text-anchor="middle" fill="#3B82F6" font-size="14" font-weight="700">→</text>
+
+  <rect x="602" y="484" width="110" height="34" rx="6" fill="#0E7490" stroke="#67E8F9" stroke-width="1"/>
+  <text x="657" y="498" text-anchor="middle" fill="#FFFFFF" font-size="9.5" font-weight="700">sophiaMessage</text>
+  <text x="657" y="511" text-anchor="middle" fill="#CFFAFE" font-size="8">analysis text</text>
+
+  <text x="724" y="504" text-anchor="middle" fill="#3B82F6" font-size="14" font-weight="700">→</text>
+
+  <rect x="738" y="484" width="110" height="34" rx="6" fill="#065F46" stroke="#6EE7B7" stroke-width="1"/>
+  <text x="793" y="498" text-anchor="middle" fill="#FFFFFF" font-size="9.5" font-weight="700">artifactsReady</text>
+  <text x="793" y="511" text-anchor="middle" fill="#A7F3D0" font-size="8">PPT + Excel done</text>
+
+  <text x="860" y="504" text-anchor="middle" fill="#3B82F6" font-size="14" font-weight="700">→</text>
+
+  <rect x="874" y="484" width="110" height="34" rx="6" fill="#7C3AED" stroke="#C4B5FD" stroke-width="1"/>
+  <text x="929" y="498" text-anchor="middle" fill="#FFFFFF" font-size="9.5" font-weight="700">turnUpdate</text>
+  <text x="929" y="511" text-anchor="middle" fill="#EDE9FE" font-size="8">agent_active state</text>
+
+  <text x="996" y="504" text-anchor="middle" fill="#3B82F6" font-size="14" font-weight="700">→</text>
+
+  <rect x="1010" y="484" width="80" height="34" rx="6" fill="#374151" stroke="#9CA3AF" stroke-width="1"/>
+  <text x="1050" y="498" text-anchor="middle" fill="#FFFFFF" font-size="9.5" font-weight="700">agentsDone</text>
+  <text x="1050" y="511" text-anchor="middle" fill="#D1D5DB" font-size="8">→ idle</text>
+
+  <!-- ═══════════════ MODE BADGES ═══════════════ -->
+  <rect x="4" y="545" width="1092" height="50" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" filter="url(#shadowCard)"/>
+  <text x="550" y="562" text-anchor="middle" fill="#374151" font-size="10" font-weight="700" letter-spacing="0.5">MEETING MODES</text>
+
+  <!-- Live mode -->
+  <rect x="24" y="571" width="130" height="18" rx="5" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+  <circle cx="38" cy="580" r="4" fill="#2563EB"/>
+  <text x="110" y="584" text-anchor="middle" fill="#1D4ED8" font-size="9" font-weight="600">Live — PTT Voice Conversation</text>
+
+  <!-- Auto mode -->
+  <rect x="170" y="571" width="130" height="18" rx="5" fill="#FFF7ED" stroke="#FED7AA" stroke-width="1"/>
+  <circle cx="184" cy="580" r="4" fill="#EA580C"/>
+  <text x="256" y="584" text-anchor="middle" fill="#C2410C" font-size="9" font-weight="600">Auto — Agent Discussion</text>
+
+  <!-- DM mode -->
+  <rect x="316" y="571" width="130" height="18" rx="5" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="1"/>
+  <circle cx="330" cy="580" r="4" fill="#7C3AED"/>
+  <text x="402" y="584" text-anchor="middle" fill="#6D28D9" font-size="9" font-weight="600">DM — 1:1 Agent Chat</text>
+
+  <!-- Chairman mode -->
+  <rect x="462" y="571" width="154" height="18" rx="5" fill="#FFF1F2" stroke="#FECDD3" stroke-width="1"/>
+  <circle cx="476" cy="580" r="4" fill="#DC2626"/>
+  <text x="560" y="584" text-anchor="middle" fill="#DC2626" font-size="9" font-weight="600">Chairman — P0 Override</text>
+
+  <!-- Models badge -->
+  <rect x="636" y="568" width="460" height="24" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+  <text x="695" y="583" text-anchor="middle" fill="#6B7280" font-size="8.5" font-weight="600">AI Models:</text>
+  <text x="780" y="583" text-anchor="middle" fill="#2563EB" font-size="8.5" font-weight="600">GPT Realtime 1.5</text>
+  <text x="842" y="583" text-anchor="middle" fill="#6B7280" font-size="8">·</text>
+  <text x="900" y="583" text-anchor="middle" fill="#D4722A" font-size="8.5" font-weight="600">Claude Sonnet 4.6</text>
+  <text x="958" y="583" text-anchor="middle" fill="#6B7280" font-size="8">·</text>
+  <text x="1020" y="583" text-anchor="middle" fill="#D4722A" font-size="8.5" font-weight="600">Haiku 4.5</text>
+
+  <!-- ═══════════════ FOOTER ═══════════════ -->
+  <rect x="0" y="656" width="1100" height="44" fill="url(#footerGradUX)"/>
+  <text x="100" y="670" text-anchor="middle" fill="#64748B" font-size="8" letter-spacing="0.5">POWERED BY</text>
+
+  <rect x="28" y="674" width="120" height="20" rx="5" fill="#0078D4" opacity="0.9"/>
+  <text x="88" y="687" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">Azure Functions v4</text>
+
+  <rect x="156" y="674" width="120" height="20" rx="5" fill="#0078D4" opacity="0.9"/>
+  <text x="216" y="687" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">Azure SignalR Service</text>
+
+  <rect x="284" y="674" width="120" height="20" rx="5" fill="#0078D4" opacity="0.9"/>
+  <text x="344" y="687" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">Azure Static Web Apps</text>
+
+  <rect x="412" y="674" width="120" height="20" rx="5" fill="#10A37F" opacity="0.9"/>
+  <text x="472" y="687" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">OpenAI Realtime API</text>
+
+  <rect x="540" y="674" width="120" height="20" rx="5" fill="#D4722A" opacity="0.9"/>
+  <text x="600" y="687" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">Anthropic Claude</text>
+
+  <rect x="668" y="674" width="120" height="20" rx="5" fill="#0D1117" stroke="#3B82F6" stroke-width="1" opacity="0.9"/>
+  <text x="728" y="687" text-anchor="middle" fill="#60A5FA" font-size="9" font-weight="600">React Three Fiber</text>
+
+  <rect x="796" y="674" width="120" height="20" rx="5" fill="#0078D4" opacity="0.9"/>
+  <text x="856" y="687" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="600">Microsoft Graph API</text>
+
+  <text x="1010" y="679" text-anchor="middle" fill="#475569" font-size="9" font-weight="700">BizRoom.ai</text>
+  <text x="1010" y="692" text-anchor="middle" fill="#334155" font-size="8">Hackathon 2025</text>
+</svg>

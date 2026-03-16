@@ -169,6 +169,8 @@ interface MeetingRoom3DProps {
   monitorData?: Record<string, MonitorUpdateEvent>;
   /** Callback when first-person mode changes (V key) */
   onFirstPersonChange?: (isFirstPerson: boolean) => void;
+  /** Display name of the human user (CEO) — shown on avatar nameplate */
+  userName?: string;
 }
 
 export const MeetingRoom3D = memo(function MeetingRoom3D({
@@ -182,6 +184,7 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
   getVisemeWeights,
   monitorData,
   onFirstPersonChange,
+  userName,
 }: MeetingRoom3DProps) {
   // useRef instead of useState to avoid re-renders on drag
   const isUserControllingRef = useRef(false);
@@ -424,7 +427,7 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
               <RPMAgentAvatar
                 key={seat.agent}
                 agentRole={seat.agent}
-                agentName={seat.name}
+                agentName={seat.agent === "ceo" && userName ? userName : seat.name}
                 position={seat.position}
                 rotation={seat.rotation}
                 isSpeaking={speakingAgent === seat.agent}

@@ -17,6 +17,7 @@
     "@azure/functions": "^4.0.0",
     "@azure/msal-node": "^2.0.0",
     "@microsoft/microsoft-graph-client": "^3.0.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "exceljs": "^4.0.0",
     "openai": "^4.0.0",
     "pptxgenjs": "^3.0.0",

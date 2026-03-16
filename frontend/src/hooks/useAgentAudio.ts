@@ -80,6 +80,32 @@ export function useAgentAudio(): UseAgentAudioReturn {
     (role: AgentRole, audioBase64: string) => {
       if (disposedRef.current) return;
       const float32 = base64ToPcm16Float32(audioBase64);
+
+      // Prevent two voices overlapping: only one role plays at a time.
+      // When a new role arrives, decide based on priority:
+      //   C-Suite agent > Sophia — agents interrupt Sophia, Sophia is dropped during agent playback.
+      const currentRole = playingRole.current;
+      if (currentRole && currentRole !== role) {
+        const isSophiaPlaying = (currentRole as string) === "sophia";
+        const isSophiaIncoming = (role as string) === "sophia";
+
+        if (isSophiaPlaying && !isSophiaIncoming) {
+          // Agent takes over from Sophia — stop Sophia and clear queue
+          queueRef.current = [];
+          if (currentSourceRef.current) {
+            try { currentSourceRef.current.stop(); } catch { /* already stopped */ }
+            currentSourceRef.current = null;
+          }
+          isPlayingRef.current = false;
+          playingRole.current = null;
+        } else if (!isSophiaPlaying && isSophiaIncoming) {
+          // Sophia tries to speak while agent is playing — drop Sophia chunk
+          return;
+        }
+        // Agent-to-agent transition: let current agent finish naturally,
+        // new agent chunks queue behind (sequential playback)
+      }
+
       queueRef.current.push({ role, data: float32 });
       // Per-role cap of 50 — enough for ~20 seconds of audio per agent
       const roleChunks = queueRef.current.filter((c) => c.role === role);
@@ -93,7 +119,6 @@ export function useAgentAudio(): UseAgentAudioReturn {
           }
           return true;
         });
-        // Trimmed oldest chunks silently
       }
       playNext();
     },
