@@ -338,22 +338,19 @@ function meetingReducer(state: MeetingState, action: MeetingAction): MeetingStat
     }
     case "ADD_SOPHIA_MESSAGE": {
       const next = [...state.sophiaMessages, action.payload];
-      // Also inject the Sophia message into the main chat messages array so it
-      // appears in the ChatRoom UI. sophiaMessages is kept for history/reference.
-      const sophiaChatMessage: Message = {
-        id: crypto.randomUUID(),
-        roomId: state.roomId,
-        senderId: "agent-sophia",
-        senderType: "agent",
-        senderName: "Sophia",
-        senderRole: "sophia",
-        content: action.payload.text,
-        timestamp: new Date().toISOString(),
-      };
+      // NOTE: Sophia messages arrive in chat via two separate paths:
+      //   1. SSE path (message.ts): Sophia deltas are streamed as SSE events with
+      //      role="sophia" — these create chat messages via START_STREAM/END_STREAM.
+      //   2. VoiceLive path (VoiceLiveOrchestrator.ts): SignalR broadcasts a
+      //      `sophiaMessage` event which calls this action.
+      // Injecting into `messages` here (path 2) while path 1 also creates messages
+      // causes every Sophia statement to appear TWICE in chat.
+      // Fix: ADD_SOPHIA_MESSAGE only maintains the sophiaMessages history array.
+      // Chat messages are created exclusively by the SSE START_STREAM/END_STREAM
+      // pipeline, which handles both plain text deltas and structured outputs.
       return {
         ...state,
         sophiaMessages: next.length > 50 ? next.slice(-50) : next,
-        messages: [...state.messages, sophiaChatMessage],
       };
     }
     case "SET_READY_ARTIFACTS":

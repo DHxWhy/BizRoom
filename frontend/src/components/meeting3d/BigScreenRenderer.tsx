@@ -179,9 +179,11 @@ export function renderToCanvas(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     if (!event?.renderData) {
-      reject(new Error("No renderData in event"));
+      reject(new Error("[BigScreen] No renderData in event"));
       return;
     }
+
+    console.log("[BigScreen] renderToCanvas called — type:", event.renderData.type, "| title:", event.title);
 
     let svgString: string;
 
@@ -207,8 +209,13 @@ export function renderToCanvas(
       case "architecture":
         svgString = renderArchitectureSVG(event.renderData);
         break;
-      default:
-        svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${SCREEN_WIDTH}" height="${SCREEN_HEIGHT}"><rect width="100%" height="100%" fill="#0d1117"/><text x="50%" y="50%" text-anchor="middle" fill="#e6edf3" font-size="20">${esc(event.title)}</text></svg>`;
+      default: {
+        // Unknown type from LLM — render a readable fallback so the screen is
+        // never black. Log the actual type for debugging.
+        const unknownType = (event.renderData as { type?: string }).type ?? "unknown";
+        console.warn("[BigScreen] Unknown renderData.type:", unknownType, "— rendering fallback");
+        svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${SCREEN_WIDTH}" height="${SCREEN_HEIGHT}"><rect width="100%" height="100%" fill="#0d1117"/><text x="50%" y="48%" text-anchor="middle" fill="#58a6ff" font-size="20" font-weight="bold">${esc(event.title)}</text><text x="50%" y="56%" text-anchor="middle" fill="#8b949e" font-size="14">(type: ${esc(unknownType)})</text></svg>`;
+      }
     }
 
     // Inject title bar into SVG — skip types that already have headers at y≤40
@@ -218,25 +225,30 @@ export function renderToCanvas(
       svgString = svgString.replace('fill="#0d1117"/>', `fill="#0d1117"/>${titleSVG}`);
     }
 
-    const blob = new Blob([svgString], { type: "image/svg+xml" });
+    const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const img = new Image();
-    // Set dimensions BEFORE requesting the context — resizing after ctx acquisition
-    // resets the context state, which can cause a blank frame on some browsers.
+
     img.onload = () => {
-      // Reset canvas dimensions first (clears the canvas with a fresh context state)
+      // Reset canvas dimensions (clears the canvas with a fresh context state)
       canvas.width = SCREEN_WIDTH;
       canvas.height = SCREEN_HEIGHT;
       const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
+      if (!ctx) {
+        // 2D context unavailable — reject so ArtifactScreen3D surfaces the error
+        URL.revokeObjectURL(url);
+        reject(new Error("[BigScreen] canvas.getContext('2d') returned null"));
+        return;
       }
+      ctx.drawImage(img, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
       URL.revokeObjectURL(url);
+      console.log("[BigScreen] SVG drawn to canvas successfully — type:", event.renderData.type);
       resolve();
     };
     img.onerror = (err) => {
+      console.error("[BigScreen] SVG image load failed:", err, "| SVG length:", svgString.length);
       URL.revokeObjectURL(url);
-      reject(err);
+      reject(new Error("[BigScreen] SVG image load error"));
     };
     img.src = url;
   });

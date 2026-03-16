@@ -269,9 +269,12 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
       return;
     }
 
+    console.log("[BigScreen] useEffect triggered — renderData.type:", bigScreenEvent.renderData?.type, "| title:", bigScreenEvent.title);
+
     const canvas = canvasRef.current;
     void renderToCanvas(canvas, bigScreenEvent)
       .then(() => {
+        // Guard: component may have unmounted while async rendering was in-flight
         if (!canvasRef.current) return;
         const tex = new THREE.CanvasTexture(canvasRef.current);
         tex.needsUpdate = true;
@@ -279,9 +282,34 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
           prev?.dispose();
           return tex;
         });
+        console.log("[BigScreen] CanvasTexture created and applied to screen mesh");
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         console.error("[BigScreen] renderToCanvas failed:", err);
+        // Attempt canvas-API fallback: draw a plain colored rectangle with text
+        // so the screen is never left black after a failure.
+        if (!canvasRef.current) return;
+        const fallbackCanvas = canvasRef.current;
+        fallbackCanvas.width = 1024;
+        fallbackCanvas.height = 576;
+        const ctx = fallbackCanvas.getContext("2d");
+        if (ctx) {
+          ctx.fillStyle = "#0d1117";
+          ctx.fillRect(0, 0, 1024, 576);
+          ctx.fillStyle = "#58a6ff";
+          ctx.font = "bold 20px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(bigScreenEvent.title || "시각화 데이터", 512, 260);
+          ctx.fillStyle = "#8b949e";
+          ctx.font = "14px sans-serif";
+          ctx.fillText("(렌더링 오류 — 데이터는 수신됨)", 512, 300);
+          const fallbackTex = new THREE.CanvasTexture(fallbackCanvas);
+          fallbackTex.needsUpdate = true;
+          setBigScreenTexture((prev) => {
+            prev?.dispose();
+            return fallbackTex;
+          });
+        }
       });
   }, [bigScreenEvent]);
 

@@ -373,6 +373,24 @@ export function useSignalR(
 
             const { messageId, role, name, delta } = event;
 
+            // [BIGSCREEN] deltas are routed to the BigScreen pipeline, not chat.
+            // This check MUST happen before onStreamStart is called for this
+            // messageId — otherwise a dangling Sophia chat stub is created that
+            // never receives a meaningful delta or END_STREAM, causing a blank
+            // ghost message to appear in chat every time BigScreen renders.
+            const BIGSCREEN_PREFIX = "[BIGSCREEN]";
+            if (delta.startsWith(BIGSCREEN_PREFIX)) {
+              try {
+                const bigScreenPayload = JSON.parse(delta.slice(BIGSCREEN_PREFIX.length));
+                console.log("[BigScreen] SSE bigScreenUpdate received:", JSON.stringify(bigScreenPayload).slice(0, 200));
+                optionsRef.current.onBigScreenUpdate?.(bigScreenPayload);
+              } catch (e) {
+                console.warn("[BigScreen] Failed to parse [BIGSCREEN] payload:", e, "| raw:", delta.slice(BIGSCREEN_PREFIX.length, 300));
+              }
+              // Skip chat pipeline entirely — no START_STREAM, no APPEND_DELTA, no END_STREAM
+              continue;
+            }
+
             // 해당 messageId의 첫 delta → START_STREAM 호출
             if (!startedMessages.has(messageId)) {
               startedMessages.add(messageId);
@@ -392,19 +410,6 @@ export function useSignalR(
                 senderRole: role,
                 senderType: "agent",
               });
-            }
-
-            // Check for [BIGSCREEN] prefix — route to BigScreen instead of chat
-            const BIGSCREEN_PREFIX = "[BIGSCREEN]";
-            if (delta.startsWith(BIGSCREEN_PREFIX)) {
-              try {
-                const bigScreenPayload = JSON.parse(delta.slice(BIGSCREEN_PREFIX.length));
-                optionsRef.current.onBigScreenUpdate?.(bigScreenPayload);
-              } catch (e) {
-                console.warn("Failed to parse [BIGSCREEN] payload:", e);
-              }
-              // Do NOT add to chat message stream
-              continue;
             }
 
             // APPEND_MESSAGE_DELTA 호출
