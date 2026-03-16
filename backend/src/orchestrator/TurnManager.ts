@@ -509,27 +509,17 @@ export function determineAgentOrder(
   const entries: AgentTurn[] = [];
   const added = new Set<AgentRole>();
 
-  // P1: COO always leads — the room orchestrator speaks first.
-  // Exception: when there are explicit mentions that do NOT include COO,
-  // the user is directly addressing specific agents and COO should not
-  // be forced to the front.
-  const hasNonCooMentions = mentions.length > 0 && !mentions.includes("coo");
-  if (!hasNonCooMentions) {
-    entries.push({ role: "coo", priority: 1 });
-    added.add("coo");
-  }
-
-  // P2: Explicitly mentioned agents
+  // P1: Explicitly mentioned agents (user called them by name)
   for (const role of mentions) {
     if (!added.has(role)) {
-      entries.push({ role, priority: 2 });
+      entries.push({ role, priority: 1 });
       added.add(role);
     }
   }
 
-  // P3: Primary topic agent from TopicClassifier
+  // P2: Primary topic agent from TopicClassifier (the domain expert)
   if (!added.has(primaryAgent)) {
-    entries.push({ role: primaryAgent, priority: 3 });
+    entries.push({ role: primaryAgent, priority: 2 });
     added.add(primaryAgent);
   }
 
