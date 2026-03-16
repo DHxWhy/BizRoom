@@ -18,14 +18,19 @@ function esc(str: string): string {
 }
 
 function renderComparisonSVG(data: Extract<BigScreenRenderData, { type: "comparison" }>): string {
-  const colWidth = SCREEN_WIDTH / data.columns.length;
+  const columns = Array.isArray(data.columns) ? data.columns : [];
+  const rows = Array.isArray(data.rows) ? data.rows : [];
+  if (columns.length === 0) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${SCREEN_WIDTH}" height="${SCREEN_HEIGHT}"><rect width="100%" height="100%" fill="#0d1117"/><text x="50%" y="50%" text-anchor="middle" fill="#e6edf3" font-size="20">비교 데이터 준비 중...</text></svg>`;
+  }
+  const colWidth = SCREEN_WIDTH / columns.length;
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SCREEN_WIDTH}" height="${SCREEN_HEIGHT}">`;
   svg += `<rect width="100%" height="100%" fill="#0d1117"/>`;
-  data.columns.forEach((col, i) => {
+  columns.forEach((col, i) => {
     svg += `<text x="${i * colWidth + colWidth / 2}" y="40" text-anchor="middle" fill="#58a6ff" font-size="20" font-weight="bold">${esc(col)}</text>`;
   });
   svg += `<line x1="0" y1="55" x2="${SCREEN_WIDTH}" y2="55" stroke="#30363d" stroke-width="1"/>`;
-  data.rows.forEach((row, ri) => {
+  rows.forEach((row, ri) => {
     const y = 90 + ri * 45;
     row.forEach((cell, ci) => {
       svg += `<text x="${ci * colWidth + colWidth / 2}" y="${y}" text-anchor="middle" fill="#e6edf3" font-size="16">${esc(cell)}</text>`;
@@ -39,11 +44,12 @@ function renderPieChartSVG(data: Extract<BigScreenRenderData, { type: "pie-chart
   const cx = SCREEN_WIDTH / 2;
   const cy = SCREEN_HEIGHT / 2;
   const r = 150;
-  const total = data.items.reduce((s, i) => s + i.value, 0);
+  const items = Array.isArray(data.items) ? data.items : [];
+  const total = items.reduce((s, i) => s + i.value, 0) || 1;
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SCREEN_WIDTH}" height="${SCREEN_HEIGHT}">`;
   svg += `<rect width="100%" height="100%" fill="#0d1117"/>`;
   let startAngle = 0;
-  data.items.forEach((item) => {
+  items.forEach((item) => {
     const angle = (item.value / total) * 360;
     const endAngle = startAngle + angle;
     const x1 = cx + r * Math.cos((Math.PI / 180) * startAngle);
@@ -54,7 +60,7 @@ function renderPieChartSVG(data: Extract<BigScreenRenderData, { type: "pie-chart
     svg += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc},1 ${x2},${y2} Z" fill="${item.color}"/>`;
     startAngle = endAngle;
   });
-  data.items.forEach((item, i) => {
+  items.forEach((item, i) => {
     const ly = 40 + i * 25;
     svg += `<rect x="20" y="${ly - 10}" width="12" height="12" fill="${item.color}"/>`;
     svg += `<text x="38" y="${ly}" fill="#e6edf3" font-size="13">${esc(item.label)} (${item.value}%)</text>`;
@@ -64,11 +70,12 @@ function renderPieChartSVG(data: Extract<BigScreenRenderData, { type: "pie-chart
 }
 
 function renderBarChartSVG(data: Extract<BigScreenRenderData, { type: "bar-chart" }>): string {
-  const maxVal = Math.max(...data.items.map((i) => i.value), 1);
-  const barW = Math.min(80, (SCREEN_WIDTH - 100) / data.items.length - 10);
+  const items = Array.isArray(data.items) ? data.items : [];
+  const maxVal = Math.max(...items.map((i) => i.value), 1);
+  const barW = Math.min(80, (SCREEN_WIDTH - 100) / Math.max(items.length, 1) - 10);
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SCREEN_WIDTH}" height="${SCREEN_HEIGHT}">`;
   svg += `<rect width="100%" height="100%" fill="#0d1117"/>`;
-  data.items.forEach((item, i) => {
+  items.forEach((item, i) => {
     const barH = (item.value / maxVal) * 380;
     const x = 60 + i * (barW + 10);
     const y = SCREEN_HEIGHT - 80 - barH;
@@ -81,17 +88,18 @@ function renderBarChartSVG(data: Extract<BigScreenRenderData, { type: "bar-chart
 }
 
 function renderTimelineSVG(data: Extract<BigScreenRenderData, { type: "timeline" }>): string {
+  const items = Array.isArray(data.items) ? data.items : [];
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SCREEN_WIDTH}" height="${SCREEN_HEIGHT}">`;
   svg += `<rect width="100%" height="100%" fill="#0d1117"/>`;
   const lineY = SCREEN_HEIGHT / 2;
   svg += `<line x1="40" y1="${lineY}" x2="${SCREEN_WIDTH - 40}" y2="${lineY}" stroke="#30363d" stroke-width="2"/>`;
-  const step = (SCREEN_WIDTH - 120) / Math.max(data.items.length - 1, 1);
+  const step = (SCREEN_WIDTH - 120) / Math.max(items.length - 1, 1);
   const statusColors: Record<string, string> = {
     done: "#3fb950",
     current: "#58a6ff",
     pending: "#484f58",
   };
-  data.items.forEach((item, i) => {
+  items.forEach((item, i) => {
     const x = 60 + i * step;
     const color = statusColors[item.status] ?? "#484f58";
     svg += `<circle cx="${x}" cy="${lineY}" r="8" fill="${color}"/>`;
@@ -103,9 +111,10 @@ function renderTimelineSVG(data: Extract<BigScreenRenderData, { type: "timeline"
 }
 
 function renderChecklistSVG(data: Extract<BigScreenRenderData, { type: "checklist" }>): string {
+  const items = Array.isArray(data.items) ? data.items : [];
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SCREEN_WIDTH}" height="${SCREEN_HEIGHT}">`;
   svg += `<rect width="100%" height="100%" fill="#0d1117"/>`;
-  data.items.forEach((item, i) => {
+  items.forEach((item, i) => {
     const y = 50 + i * 45;
     const color = item.checked ? "#3fb950" : "#484f58";
     const icon = item.checked ? "\u2713" : "\u25CB";
@@ -117,10 +126,11 @@ function renderChecklistSVG(data: Extract<BigScreenRenderData, { type: "checklis
 }
 
 function renderSummarySVG(data: Extract<BigScreenRenderData, { type: "summary" }>): string {
+  const items = Array.isArray(data.items) ? data.items : [];
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SCREEN_WIDTH}" height="${SCREEN_HEIGHT}">`;
   svg += `<rect width="100%" height="100%" fill="#0d1117"/>`;
   svg += `<text x="40" y="40" fill="#58a6ff" font-size="20" font-weight="bold">Summary</text>`;
-  data.items.forEach((item, i) => {
+  items.forEach((item, i) => {
     const y = 80 + i * 40;
     svg += `<text x="50" y="${y}" fill="#e6edf3" font-size="15">\u2022 ${esc(item)}</text>`;
   });
@@ -135,15 +145,17 @@ function renderArchitectureSVG(
   svg += `<rect width="100%" height="100%" fill="#0d1117"/>`;
   const scaleX = (x: number) => 60 + (x / 100) * (SCREEN_WIDTH - 120);
   const scaleY = (y: number) => 60 + (y / 100) * (SCREEN_HEIGHT - 120);
-  const nodeMap = new Map(data.nodes.map((n) => [n.id, n]));
-  data.edges.forEach((edge) => {
+  const nodes = Array.isArray(data.nodes) ? data.nodes : [];
+  const edges = Array.isArray(data.edges) ? data.edges : [];
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  edges.forEach((edge) => {
     const from = nodeMap.get(edge.from);
     const to = nodeMap.get(edge.to);
     if (from && to) {
       svg += `<line x1="${scaleX(from.x)}" y1="${scaleY(from.y)}" x2="${scaleX(to.x)}" y2="${scaleY(to.y)}" stroke="#30363d" stroke-width="2"/>`;
     }
   });
-  data.nodes.forEach((node) => {
+  nodes.forEach((node) => {
     const x = scaleX(node.x);
     const y = scaleY(node.y);
     svg += `<rect x="${x - 50}" y="${y - 18}" width="100" height="36" rx="6" fill="#161b22" stroke="#58a6ff" stroke-width="1"/>`;
@@ -158,6 +170,11 @@ export function renderToCanvas(
   event: BigScreenUpdateEvent,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
+    if (!event?.renderData) {
+      reject(new Error("No renderData in event"));
+      return;
+    }
+
     let svgString: string;
 
     switch (event.renderData.type) {
