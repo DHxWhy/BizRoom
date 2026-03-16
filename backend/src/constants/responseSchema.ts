@@ -7,7 +7,7 @@ export const CSUITE_RESPONSE_SCHEMA = {
   schema: {
     type: "object" as const,
     properties: {
-      speech: { type: "string" as const, description: "Spoken text in Korean, 80-180 chars" },
+      speech: { type: "string" as const, description: "Spoken text in English, 30-80 words" },
       key_points: { type: "array" as const, items: { type: "string" as const } },
       mention: {
         anyOf: [

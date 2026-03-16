@@ -73,7 +73,7 @@ export async function searchBing(
   // Fallback: Bing Search API
   if (!BING_KEY) return [];
   try {
-    const url = `${BING_ENDPOINT}?q=${encodeURIComponent(query)}&count=${count}&mkt=ko-KR`;
+    const url = `${BING_ENDPOINT}?q=${encodeURIComponent(query)}&count=${count}&mkt=en-US`;
     const res = await fetch(url, {
       headers: { "Ocp-Apim-Subscription-Key": BING_KEY },
     });

@@ -88,7 +88,7 @@ export const DmStoriesPicker = memo(function DmStoriesPicker({
       <p className="text-xs text-neutral-500 text-center mb-3">
         {S.mode.selectDmAgent}
       </p>
-      <div className="flex justify-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-3 overflow-x-auto pb-2 px-1 scrollbar-hide">
         {AGENTS.map((agent) => (
           <AgentStoryAvatar
             key={agent.role}

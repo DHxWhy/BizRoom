@@ -39,7 +39,7 @@ export function LobbyPage({ initialRoomCode }: LobbyPageProps) {
   const [mode, setMode] = useState<"create" | "join">(initialRoomCode ? "join" : "create");
   const [name, setName] = useState(savedUserName);
   const [roomCode, setRoomCode] = useState(initialRoomCode ?? "");
-  const [agenda, setAgenda] = useState("");
+  const [agenda, setAgenda] = useState("BizRoom Target Customer Definition");
   const [brandMemory, setBrandMemory] = useState<BrandMemorySet>(loadBrandMemory);
   const [error, setError] = useState("");
 
@@ -97,7 +97,7 @@ export function LobbyPage({ initialRoomCode }: LobbyPageProps) {
       e.preventDefault();
       dispatch({
         type: "SET_LOBBY_AGENDA",
-        payload: agenda.trim() || "일반 회의",
+        payload: agenda.trim() || "General Meeting",
       });
       enterRoom();
     },

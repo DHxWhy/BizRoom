@@ -32,7 +32,7 @@ function getOpenAI(): OpenAI {
  * application/octet-stream body. Returns { transcript: string }.
  *
  * Query params:
- *  - lang: BCP-47 language hint (default "ko"), forwarded to Whisper
+ *  - lang: BCP-47 language hint (default "en"), forwarded to Whisper
  *  - prompt: optional context hint to improve accuracy
  */
 async function transcribeAudio(
@@ -48,7 +48,7 @@ async function transcribeAudio(
     };
   }
 
-  const lang = request.query.get("lang") ?? "ko";
+  const lang = request.query.get("lang") ?? "en";
   const promptHint = request.query.get("prompt") ?? "";
 
   let audioBuffer: ArrayBuffer;
