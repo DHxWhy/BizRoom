@@ -32,7 +32,7 @@ interface MessageRequest {
   senderId: string;
   senderName: string;
   mentions?: AgentRole[];
-  isChairman?: boolean;
+  isCeo?: boolean;
   mode?: string;
   dmTarget?: string | null;
 }
@@ -67,8 +67,8 @@ export async function message(
     roomId,
     senderId: body.senderId ?? "user-1",
     senderType: "human",
-    senderName: body.senderName ?? "Chairman",
-    senderRole: "chairman",
+    senderName: body.senderName ?? "CEO",
+    senderRole: "ceo",
     content: body.content,
     timestamp: new Date().toISOString(),
   };
@@ -80,15 +80,15 @@ export async function message(
   if (!isStream) {
     // Voice Live mode: route to TurnManager state machine
     // TurnManager handles timing, buffering, and triggers agents via events
-    // Chairman detection: match against the userId registered at meeting start
-    // (body.isChairman from frontend, or fallback to senderId-based check)
-    const isChairman = body.isChairman === true || body.senderId === "chairman" || !body.senderId;
+    // CEO detection: match against the userId registered at meeting start
+    // (body.isCeo from frontend, or fallback to senderId-based check)
+    const isCeo = body.isCeo === true || body.senderId === "ceo" || !body.senderId;
     turnManager.onChatMessage(
       roomId,
       userMessage.senderId,
       userMessage.senderName,
       userMessage.content,
-      isChairman,
+      isCeo,
     );
     // Return 202 Accepted — agent responses arrive via SignalR events, not HTTP response
     return { status: 202, jsonBody: { accepted: true, mode: "voiceLive" } };
@@ -123,6 +123,34 @@ export async function message(
         // H1: Initialize Sophia room state for buffer tracking in SSE path
         sophiaAgent.initRoom(roomId);
 
+        // ── Step 0: Sophia PRE-SEARCH — before agents speak ──
+        // If user wants research, Sophia searches FIRST so agents have real data
+        const wantsPreSearch = /웹|서칭|검색|조사|리서치|시장.*규모|search|research/i.test(userMessage.content);
+        if (wantsPreSearch) {
+          controller.enqueue(sseEncode(JSON.stringify({
+            messageId: uuidv4(), role: "sophia", name: "Sophia",
+            delta: `웹 자료를 조사하고 있습니다...`,
+          })));
+
+          try {
+            const searchResults = await searchBing(userMessage.content, 5);
+            if (searchResults.length > 0) {
+              addSearchResult(roomId, userMessage.content, searchResults);
+              controller.enqueue(sseEncode(JSON.stringify({
+                messageId: uuidv4(), role: "sophia", name: "Sophia",
+                delta: `조사 완료. ${searchResults.length}건의 자료를 확보했습니다. 임원진에게 전달합니다.`,
+              })));
+            } else {
+              controller.enqueue(sseEncode(JSON.stringify({
+                messageId: uuidv4(), role: "sophia", name: "Sophia",
+                delta: `웹 검색 결과가 없습니다. 보유 데이터로 진행합니다.`,
+              })));
+            }
+          } catch (err) {
+            context.log("Sophia pre-search failed:", err);
+          }
+        }
+
         // Agent turn queue — starts with 1, grows via mention chain
         const agentQueue = [...turnOrder];
         const respondedAgents = new Set<string>();
@@ -142,7 +170,7 @@ export async function message(
           let fullContent = "";
           try {
             const agentStream = invokeAgentStream(entry.role, userMessage.content, {
-              participants: "Chairman (사용자), Hudson (COO), Amelia (CFO), Yusef (CMO), Kelvin (CTO), Jonas (CDO), Bradley (CLO)",
+              participants: "CEO (사용자), Hudson (COO), Amelia (CFO), Yusef (CMO), Kelvin (CTO), Jonas (CDO), Bradley (CLO)",
               agenda: room.agenda || userMessage.content,
               history: contextStr,
               brandMemory: getBrandMemory(roomId),
