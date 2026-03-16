@@ -34,11 +34,16 @@ export function InputArea({
     setText("");
   }, [text, disabled, onSend]);
 
+  const lastSentRef = useRef<{ text: string; time: number }>({ text: "", time: 0 });
   const handleTranscript = useCallback(
     (transcript: string) => {
-      if (transcript.trim() && !disabled) {
-        onSend(transcript.trim(), true);
-      }
+      const trimmed = transcript.trim();
+      if (!trimmed || disabled) return;
+      // Debounce: skip if same text sent within 3 seconds
+      const now = Date.now();
+      if (trimmed === lastSentRef.current.text && now - lastSentRef.current.time < 3000) return;
+      lastSentRef.current = { text: trimmed, time: now };
+      onSend(trimmed, true);
     },
     [onSend, disabled],
   );
