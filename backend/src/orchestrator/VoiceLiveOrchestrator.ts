@@ -407,9 +407,10 @@ export function wireVoiceLiveForRoom(
         }
       }
 
-      // Visualize
+      // Visualize — let LLM decide the type based on user's actual request
       if (wantsVisual) {
-        const hint = detectVisualIntent(userInput) ?? { type: "summary" as const, title: userInput.replace(/\[.*?\]:\s*/g, "").slice(0, 40) || "요약" };
+        const userRequest = userInput.replace(/\[.*?\]:\s*/g, "").trim();
+        const hint = { type: "summary" as const, title: userRequest.slice(0, 60) || "요약" };
         sophiaAgent.enqueueVisual(roomId, hint);
         processVisualQueue(roomId);
       }
@@ -535,7 +536,7 @@ function classifyVisualComplexity(hint: VisualHint, contextLength: number): "vis
 /** Call LLM to generate BigScreenRenderData from a visual hint */
 async function callSophiaVisualLLM(roomId: string, hint: VisualHint): Promise<BigScreenRenderData> {
   const recentContext = sophiaAgent.getRecentSpeeches(roomId, 5).join("\n");
-  const userContent = `visual_hint: ${JSON.stringify(hint)}\n\n최근 대화:\n${recentContext}\n\ntype="${hint.type}"에 맞는 BigScreenRenderData JSON을 생성하세요.`;
+  const userContent = `사용자 요청: "${hint.title}"\n\n최근 대화:\n${recentContext}\n\n위 맥락에서 가장 적합한 시각화 type을 직접 선택하고(comparison, pie-chart, bar-chart, timeline, checklist, summary, architecture 중 하나) BigScreenRenderData JSON을 생성하세요. items/columns/rows에 반드시 실제 내용을 채우세요.`;
   const taskType = classifyVisualComplexity(hint, recentContext.length);
   const selection = getModelForTask(taskType);
 
