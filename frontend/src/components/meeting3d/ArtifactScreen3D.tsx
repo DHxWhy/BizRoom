@@ -373,12 +373,13 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
       <mesh ref={screenRef}>
         <planeGeometry args={[SCREEN_WIDTH, SCREEN_HEIGHT]} />
         <meshStandardMaterial
-          color="#060610"
-          emissive={bigScreenTexture ? "#111122" : "#0a0a20"}
-          emissiveIntensity={bigScreenTexture ? 0.15 : 0.04}
-          roughness={0.15}
-          metalness={0.2}
+          color={bigScreenTexture ? "#ffffff" : "#060610"}
+          emissive={bigScreenTexture ? "#ffffff" : "#0a0a20"}
+          emissiveIntensity={bigScreenTexture ? 1.5 : 0.04}
+          roughness={0.3}
+          metalness={0.0}
           map={bigScreenTexture ?? undefined}
+          toneMapped={false}
         />
       </mesh>
 

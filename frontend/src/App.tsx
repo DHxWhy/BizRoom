@@ -205,6 +205,7 @@ function MeetingRoom() {
   // for natural conversational presence.
   const agentAudio = useAgentAudio();
   const viseme = useViseme();
+  const [isFirstPerson, setIsFirstPerson] = useState(false);
 
   // Destructure stable callbacks so useCallback deps arrays are flat references
   // (avoids React Compiler memoization preservation warning)
@@ -591,6 +592,7 @@ function MeetingRoom() {
             onBigScreenNav={handleBigScreenNav}
             getVisemeWeights={getTargetWeights}
             monitorData={state.monitorData}
+            onFirstPersonChange={setIsFirstPerson}
           />
         </Suspense>
       </div>
@@ -808,7 +810,7 @@ function MeetingRoom() {
           />
         )}
 
-        <ChatRoom messages={state.messages} typingAgents={state.typingAgents} />
+        {!isFirstPerson && <ChatRoom messages={state.messages} typingAgents={state.typingAgents} />}
 
         {/* Quick actions only in Live mode */}
         {state.meetingMode === "live" && (

@@ -167,6 +167,8 @@ interface MeetingRoom3DProps {
   getVisemeWeights?: (role: AgentRole) => BlendShapeWeights;
   /** Per-agent holographic monitor data keyed by agent role / "ceo" */
   monitorData?: Record<string, MonitorUpdateEvent>;
+  /** Callback when first-person mode changes (V key) */
+  onFirstPersonChange?: (isFirstPerson: boolean) => void;
 }
 
 export const MeetingRoom3D = memo(function MeetingRoom3D({
@@ -179,6 +181,7 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
   onBigScreenNav,
   getVisemeWeights,
   monitorData,
+  onFirstPersonChange,
 }: MeetingRoom3DProps) {
   // useRef instead of useState to avoid re-renders on drag
   const isUserControllingRef = useRef(false);
@@ -208,8 +211,10 @@ export const MeetingRoom3D = memo(function MeetingRoom3D({
       // V: toggle first-person view
       if (e.key === "v" || e.key === "V") {
         setIsFirstPerson((prev) => {
+          const next = !prev;
           if (prev) setFirstPersonYaw(0);
-          return !prev;
+          onFirstPersonChange?.(next);
+          return next;
         });
         setIsLookingBack(false);
       }
