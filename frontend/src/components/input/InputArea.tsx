@@ -51,7 +51,7 @@ export function InputArea({
     stopRecording: whisperStop,
   } = useWhisperPTT({
     onTranscript: handleTranscript,
-    lang: "ko",
+    lang: "en",
     // Primer vocabulary hint — improves Whisper accuracy for BizRoom domain terms
     prompt: "BizRoom, COO, CFO, CMO, CTO, 회의, 전략, 예산, 마케팅",
   });
@@ -65,7 +65,7 @@ export function InputArea({
   } = usePushToTalk({
     // Only deliver transcripts when Whisper is NOT available (prevents double message)
     onTranscript: whisperSupported ? undefined : handleTranscript,
-    lang: "ko-KR",
+    lang: "en-US",
   });
 
   // Decide which STT backend to use
