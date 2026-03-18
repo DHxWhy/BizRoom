@@ -13,7 +13,7 @@ updated: "2026-03-16 09:00"
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x%20strict-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.x-61DAFB?logo=react)](https://react.dev)
 [![Three.js](https://img.shields.io/badge/Three.js-R3F%209.x-000000?logo=threedotjs)](https://r3f.docs.pmnd.rs/)
-[![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
+[![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red)]()
 
 > **Microsoft AI Dev Days Hackathon submission.**
 > Categories: **Grand Prize (AI Applications & Agents)** + **Best Multi-Agent System**
@@ -418,7 +418,9 @@ BizRoom/
 
 ## License
 
-MIT License — see [LICENSE](./LICENSE) for details.
+Copyright © 2026 Maestiq. All Rights Reserved.
+
+This software is proprietary and confidential. Unauthorized copying, modification, distribution, or use of this software, via any medium, is strictly prohibited.
 
 ---
 
