@@ -183,8 +183,6 @@ export function renderToCanvas(
       return;
     }
 
-    console.log("[BigScreen] renderToCanvas called — type:", event.renderData.type, "| title:", event.title);
-
     let svgString: string;
 
     switch (event.renderData.type) {
@@ -242,7 +240,6 @@ export function renderToCanvas(
       }
       ctx.drawImage(img, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
       URL.revokeObjectURL(url);
-      console.log("[BigScreen] SVG drawn to canvas successfully — type:", event.renderData.type);
       resolve();
     };
     img.onerror = (err) => {

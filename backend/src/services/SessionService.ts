@@ -23,7 +23,7 @@ export async function createSession(
   agenda: string,
   mode: MeetingMode,
   brandMemorySnapshot?: BrandMemorySet,
-  participants?: Array<{ userId: string; role: string }>,
+  participants?: Array<{ userId: string; role: "ceo" | "member" }>,
 ): Promise<SessionDocument> {
   const doc: SessionDocument = {
     id: uuid(),

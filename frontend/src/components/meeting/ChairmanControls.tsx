@@ -64,11 +64,9 @@ export function CeoControls({
     setConfirmingEnd(false);
     if (res?.ok) {
       try {
-        const data: unknown = await res.json();
-        console.log("[CeoControls] Meeting ended. Artifacts:", data);
+        await res.json();
       } catch {
         // Response may not be JSON — that is acceptable
-        console.log("[CeoControls] Meeting ended (no artifact payload).");
       }
     }
   }, [roomId, callApi, confirmingEnd]);

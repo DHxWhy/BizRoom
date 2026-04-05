@@ -244,6 +244,7 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
   // React-state-driven canvas texture — avoids R3F JSX reconciler overwriting
   // imperative mat.map mutations on re-renders (Bug 4 root cause).
   const [bigScreenTexture, setBigScreenTexture] = useState<THREE.CanvasTexture | null>(null);
+  const mountedRef = useRef(true);
 
   // Offscreen canvas for BigScreen SVG rendering — created once
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -269,20 +270,20 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
       return;
     }
 
-    console.log("[BigScreen] useEffect triggered — renderData.type:", bigScreenEvent.renderData?.type, "| title:", bigScreenEvent.title);
-
     const canvas = canvasRef.current;
     void renderToCanvas(canvas, bigScreenEvent)
       .then(() => {
-        // Guard: component may have unmounted while async rendering was in-flight
         if (!canvasRef.current) return;
         const tex = new THREE.CanvasTexture(canvasRef.current);
         tex.needsUpdate = true;
+        if (!mountedRef.current) {
+          tex.dispose();
+          return;
+        }
         setBigScreenTexture((prev) => {
           prev?.dispose();
           return tex;
         });
-        console.log("[BigScreen] CanvasTexture created and applied to screen mesh");
       })
       .catch((err: unknown) => {
         console.error("[BigScreen] renderToCanvas failed:", err);
@@ -316,6 +317,7 @@ export const ArtifactScreen3D = memo(function ArtifactScreen3D({
   // Dispose texture on unmount
   useEffect(() => {
     return () => {
+      mountedRef.current = false;
       bigScreenTexture?.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

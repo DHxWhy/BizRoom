@@ -24,6 +24,7 @@ export function useAgentAudio(): UseAgentAudioReturn {
   const isPlayingRef = useRef(false);
   const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const disposedRef = useRef(false);
+  const stoppedRef = useRef(false);
 
   // Initialize AudioContext lazily (requires user gesture)
   const getAudioCtx = useCallback(() => {
@@ -36,6 +37,7 @@ export function useAgentAudio(): UseAgentAudioReturn {
   const playNext = useCallback(async () => {
     if (isPlayingRef.current || queueRef.current.length === 0 || disposedRef.current) return;
     isPlayingRef.current = true;
+    stoppedRef.current = false;
 
     const ctx = getAudioCtx();
     // Resume if suspended (common before user gesture)
@@ -43,7 +45,7 @@ export function useAgentAudio(): UseAgentAudioReturn {
       await ctx.resume();
     }
 
-    while (queueRef.current.length > 0 && !disposedRef.current) {
+    while (queueRef.current.length > 0 && !disposedRef.current && !stoppedRef.current) {
       const item = queueRef.current.shift()!;
       // Update playingRole when chunk actually starts playing
       playingRole.current = item.role;
@@ -128,7 +130,7 @@ export function useAgentAudio(): UseAgentAudioReturn {
   const stopAll = useCallback(() => {
     queueRef.current = [];
     playingRole.current = null;
-    isPlayingRef.current = false;
+    stoppedRef.current = true;
     // Stop currently playing audio immediately
     if (currentSourceRef.current) {
       try {

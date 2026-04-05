@@ -23,6 +23,7 @@ import {
   getOpenAIClient,
   getFoundryClient,
 } from "../services/ModelRouter.js";
+import { unwireVoiceLiveForRoom } from "../orchestrator/VoiceLiveOrchestrator.js";
 
 interface MeetingEndRequest {
   roomId: string;
@@ -201,13 +202,11 @@ export async function meetingEnd(
       }
 
       sophiaAgent.destroyRoom(roomId);
-
-      // Clean up VoiceLive sessions + TurnManager + event listeners
-      const { unwireVoiceLiveForRoom } = await import("../orchestrator/VoiceLiveOrchestrator.js");
-      unwireVoiceLiveForRoom(roomId);
     }
   } catch (err) {
     context.log("Sophia artifact pipeline failed:", err);
+  } finally {
+    unwireVoiceLiveForRoom(roomId);
   }
 
   return {

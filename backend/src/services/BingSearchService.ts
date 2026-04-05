@@ -50,7 +50,8 @@ async function searchOpenAI(query: string, count: number): Promise<BingSearchRes
         url: r.url ?? "",
         snippet: r.snippet ?? "",
       }));
-  } catch {
+  } catch (err) {
+    console.error("[BingSearchService] OpenAI search failed:", err);
     return [];
   }
 }
@@ -91,7 +92,8 @@ export async function searchBing(
       url: p.url,
       snippet: p.snippet,
     }));
-  } catch {
+  } catch (err) {
+    console.error("[BingSearchService] Bing search failed:", err);
     return [];
   }
 }

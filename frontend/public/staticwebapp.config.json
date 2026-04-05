@@ -1,7 +1,13 @@
 {
+  "routes": [
+    {
+      "route": "/api/*",
+      "allowedRoles": ["anonymous"]
+    }
+  ],
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/avatars/*", "/models/*", "*.svg"]
+    "exclude": ["/api/*", "*.{css,js,svg,png,jpg,ico,woff,woff2}"]
   },
   "mimeTypes": {
     ".js": "text/javascript",
@@ -18,5 +24,12 @@
     ".ico": "image/x-icon",
     ".woff2": "font/woff2",
     ".woff": "font/woff"
+  },
+  "globalHeaders": {
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff"
+  },
+  "platform": {
+    "apiRuntime": "node:20"
   }
 }

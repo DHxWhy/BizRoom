@@ -67,7 +67,7 @@ export interface SessionDocument {
   artifactIds: string[];
   participants: Array<{
     userId: string;
-    role: string;
+    role: "ceo" | "member";
   }>;
 }
 
@@ -93,7 +93,7 @@ export interface ArtifactDocument {
   roomId: string;
   sessionId: string;
   fileName: string;
-  fileType: "pptx" | "xlsx" | "pdf" | "planner";
+  fileType: ArtifactFileType;
   fileSize?: number;
   storage: "onedrive" | "blob";
   storageUrl: string;
@@ -117,7 +117,7 @@ export type MeetingPhase =
   | "closing";
 export type ParticipantStatus = "online" | "away" | "busy" | "typing";
 export type ArtifactType = "excel" | "markdown" | "image" | "powerpoint" | "planner";
-export type ArtifactFileType = "pptx" | "xlsx" | "planner";
+export type ArtifactFileType = "pptx" | "xlsx" | "pdf" | "planner";
 export type QuickActionType = "agree" | "disagree" | "next" | "hold";
 export type MeetingMode = "live" | "auto" | "dm";
 

@@ -5,7 +5,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   HubConnectionBuilder,
-  HubConnectionState,
   LogLevel,
 } from "@microsoft/signalr";
 import type { HubConnection } from "@microsoft/signalr";
@@ -190,7 +189,6 @@ export function useSignalR(
         });
 
         connection.on("monitorUpdate", (payload: MonitorUpdateEvent) => {
-          console.log("[SignalR] monitorUpdate received:", payload.target, payload.mode);
           optionsRef.current.onMonitorUpdate?.(payload);
         });
 
@@ -236,9 +234,9 @@ export function useSignalR(
           updateStatus("disconnected");
         });
 
-        // Start the connection
-        await connection.start();
+        // Assign ref BEFORE start() so cleanup can stop a pending connection
         connectionRef.current = connection;
+        await connection.start();
         updateStatus("connected");
         startKeepAlive();
       } catch (err: unknown) {
@@ -257,7 +255,7 @@ export function useSignalR(
       mounted = false;
       if (keepAliveInterval) clearInterval(keepAliveInterval);
       const conn = connectionRef.current;
-      if (conn?.state === HubConnectionState.Connected) {
+      if (conn) {
         void conn.stop();
       }
     };
@@ -383,7 +381,6 @@ export function useSignalR(
             if (delta.startsWith(BIGSCREEN_PREFIX)) {
               try {
                 const bigScreenPayload = JSON.parse(delta.slice(BIGSCREEN_PREFIX.length));
-                console.log("[BigScreen] SSE bigScreenUpdate received:", JSON.stringify(bigScreenPayload).slice(0, 200));
                 optionsRef.current.onBigScreenUpdate?.(bigScreenPayload);
               } catch (e) {
                 console.warn("[BigScreen] Failed to parse [BIGSCREEN] payload:", e, "| raw:", delta.slice(BIGSCREEN_PREFIX.length, 300));

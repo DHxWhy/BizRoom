@@ -384,9 +384,9 @@ export function wireVoiceLiveForRoom(
 
       broadcastEvent(roomId, {
         type: "sophiaMessage",
-        payload: { text: `${tasks.join(" then ")}in progress.` },
+        payload: { text: `${tasks.join(" then ")} in progress.` },
       });
-      voiceLiveManager.triggerSophiaVoice(roomId, `${tasks.join(" then ")}in progress.`);
+      voiceLiveManager.triggerSophiaVoice(roomId, `${tasks.join(" then ")} in progress.`);
 
       // Show Sophia Thinking UI on CEO monitor
       broadcastEvent(roomId, {
@@ -421,9 +421,9 @@ export function wireVoiceLiveForRoom(
             });
             broadcastEvent(roomId, {
               type: "sophiaMessage",
-              payload: { text: `Research complete: ${results.length}results found.` },
+              payload: { text: `Research complete: ${results.length} results found.` },
             });
-            voiceLiveManager.triggerSophiaVoice(roomId, `Research complete. ${results.length}results found.`);
+            voiceLiveManager.triggerSophiaVoice(roomId, `Research complete. ${results.length} results found.`);
           }
         } catch (err) {
           console.error("[Sophia] agentsDone search failed:", err);
@@ -644,7 +644,7 @@ function processVisualQueue(roomId: string): void {
       });
       broadcastEvent(roomId, {
         type: "sophiaMessage",
-        payload: { text: `${item.hint.title}displayed on BigScreen` },
+        payload: { text: `${item.hint.title} displayed on BigScreen` },
       });
       // Update CEO monitor: visual complete
       broadcastEvent(roomId, {
@@ -661,7 +661,7 @@ function processVisualQueue(roomId: string): void {
       // agent response — not a direct user request to Sophia).
       // The item carries a flag to distinguish these paths.
       if (!item.fromDirect) {
-        voiceLiveManager.triggerSophiaVoice(roomId, `${item.hint.title}displayed on BigScreen`);
+        voiceLiveManager.triggerSophiaVoice(roomId, `${item.hint.title} displayed on BigScreen`);
       }
       sophiaAgent.addVisualToHistory(roomId, {
         type: item.hint.type,
@@ -696,11 +696,10 @@ const processingTask = new Set<string>();
  */
 function processSophiaTaskQueue(roomId: string): void {
   if (processingTask.has(roomId)) return;
+  processingTask.add(roomId);
 
   const task = sophiaAgent.dequeueTask(roomId);
-  if (!task) return;
-
-  processingTask.add(roomId);
+  if (!task) { processingTask.delete(roomId); return; }
 
   executeSophiaTask(roomId, task)
     .catch((err) => {
@@ -770,12 +769,12 @@ async function executeSophiaSearch(roomId: string, task: SophiaTaskQueueItem): P
   const requestedByName = AGENT_CONFIGS[task.requestedBy as keyof typeof AGENT_CONFIGS]?.name ?? task.requestedBy;
   broadcastEvent(roomId, {
     type: "sophiaMessage",
-    payload: { text: `${requestedByName}requested research complete. (${results.length}건)` },
+    payload: { text: `${requestedByName} requested research complete. (${results.length}건)` },
   });
 
   // 4. Voice announcement (only for direct user requests, not agent-initiated)
   if (task.requestedBy === "user") {
-    voiceLiveManager.triggerSophiaVoice(roomId, `Research complete. ${results.length}results found.`);
+    voiceLiveManager.triggerSophiaVoice(roomId, `Research complete. ${results.length} results found.`);
   }
 }
 

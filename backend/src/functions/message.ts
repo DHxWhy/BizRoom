@@ -103,8 +103,6 @@ export async function message(
         const room = getOrCreateRoom(roomId);
         addMessage(roomId, userMessage);
 
-        // ── Sophia direct call: bypass agents when user addresses Sophia ──
-        const SOPHIA_DIRECT = /소피아|sophia|시각화|차트|그래프|보여\s*줘|정리해\s*줘|웹\s*서칭|웹\s*검색|조사.*해|리서치|visualize|chart|graph|search/i;
         // Sophia keyword detection — checked AFTER agents respond (not bypass)
         const SOPHIA_KEYWORDS = /소피아|sophia|시각화|차트|그래프|보여\s*줘|정리해\s*줘|웹\s*서칭|웹\s*검색|조사.*해|리서치|visualize|chart|graph|search/i;
         let sophiaTurnNeeded = SOPHIA_KEYWORDS.test(userMessage.content);
@@ -509,7 +507,8 @@ async function callSophiaVisualInSSE(
 
   // H2: Graceful fallback if LLM returns invalid JSON
   try {
-    const parsed = JSON.parse(content) as Record<string, unknown>;
+    const cleaned = content.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+    const parsed = JSON.parse(cleaned) as Record<string, unknown>;
     if (typeof parsed.type !== "string") parsed.type = hint.type;
     return parsed as unknown as BigScreenRenderData;
   } catch {

@@ -429,6 +429,7 @@ export class VoiceLiveSessionManager extends EventEmitter {
   private async createSophiaSession(roomId: string): Promise<WebSocket> {
     const ws = this.createWebSocket();
     const sophiaRole: AllAgentRole = "sophia";
+    let resolved = false;
 
     return new Promise((resolve, reject) => {
       ws.on("open", () => {
@@ -462,19 +463,26 @@ export class VoiceLiveSessionManager extends EventEmitter {
           );
         }
         this.setupHeartbeat(roomId, "sophia", ws);
-        resolve(ws);
+        setTimeout(() => { if (!resolved) { resolved = true; resolve(ws); } }, 2000);
       });
 
       ws.on("message", (data) => {
         try {
           const event = JSON.parse(data.toString());
+          if (event.type === "session.updated" && !resolved) {
+            resolved = true;
+            console.log("[VoiceLive] Sophia session configured");
+            resolve(ws);
+          }
           this.handleAgentEvent(roomId, sophiaRole, event);
         } catch {
           /* ignore parse errors */
         }
       });
 
-      ws.on("error", (err) => reject(err));
+      ws.on("error", (err) => {
+        if (!resolved) { resolved = true; reject(err); }
+      });
       ws.on("close", () => this.handleSessionClose(roomId, "sophia"));
     });
   }

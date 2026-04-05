@@ -377,6 +377,7 @@ export class TurnManager extends EventEmitter {
 
   private onFlush(roomId: string): void {
     const room = this.getRoom(roomId);
+    if (room.state !== "hearing" && room.state !== "idle") return;
     this.transition(roomId, "routing");
 
     // 1. Merge buffered messages
