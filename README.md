@@ -74,17 +74,24 @@ Kelvin (CTO)      Yusef (CMO)            Jonas (CDO)
 
 ---
 
-## Live Demo + Screenshots
+## Screenshots
 
-> **Demo URL:** [https://gray-pebble-030ae3b10.1.azurestaticapps.net](https://gray-pebble-030ae3b10.1.azurestaticapps.net/)
+> **Demo Video:** [YouTube](https://www.youtube.com/watch?v=gs2glxVB9kE)
 
-| Scene                    | Description                                                  |
-| ------------------------ | ------------------------------------------------------------ |
-| Lobby                    | Enter agenda, select meeting mode, set brand memory context  |
-| 3D Boardroom (Live Mode) | PTT voice → real-time agent responses with viseme lip-sync   |
-| BigScreen                | Sophia renders charts, market maps, checklists in real time  |
-| HoloMonitor              | Key points from each agent displayed per avatar              |
-| Artifact Preview         | Auto-generated PPT and Excel after meeting end               |
+### Lobby — Brand Memory Setup
+![Lobby - Brand Memory](docs/screenshots/lobby-brand-memory.jpg)
+
+### 3D Boardroom — Full Executive Team
+![3D Boardroom Overview](docs/screenshots/boardroom-overview.jpg)
+
+### Live Meeting — Real-Time Agent Conversation
+![Live Meeting](docs/screenshots/live-meeting.jpg)
+
+### Agent Discussion — Multi-Agent Debate
+![Agent Discussion](docs/screenshots/agent-discussion.jpg)
+
+### BigScreen — Sophia Real-Time Visualization
+![BigScreen Summary](docs/screenshots/bigscreen-summary.jpg)
 
 ---
 
